@@ -1,0 +1,11 @@
+{
+    "server": "https://api.siliconflow.cn/v1",
+    "endpoint": "/chat/completions",
+    "model": "deepseek-ai/DeepSeek-V2.5",
+    "apikey": "sk-frkki********fonqgafaspuz",
+    "target_language": "zh",
+    "chat": true,
+    "systemmessages": true,
+    "redis_url": "redis://localhost:6379",
+    "callback_url": "http://localhost:8000/v1/callback"
+}
