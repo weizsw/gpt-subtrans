@@ -7,10 +7,15 @@ from argparse import Namespace
 from typing import Any, Dict
 
 import redis
+import requests
 
 # Add the parent directory to the sys path so that modules can be found
 base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(base_path)
+
+# Add the current directory to the path for local imports
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
 
 from config import Config
 
@@ -26,18 +31,17 @@ logging.basicConfig(level=logging.INFO)
 class TranslationService:
     def __init__(
         self,
-        redis_url: str = "redis://localhost:6379",
-        config_path: str = "/app/config/config.json",
+        config_path: str = None,
     ):
-        self.redis_client = redis.from_url(redis_url)
         self.config = Config(config_path)
+        self.redis_client = redis.from_url(self.config.get("redis_url"))
         self.queue_name = "translate_queue"
 
-    def create_translation_args(self, file_path: str, output_path: str) -> Namespace:
+    def create_translation_args(self, file_path: str) -> Namespace:
         """Create translation arguments from config and file path"""
         return Namespace(
-            input=file_path,
-            output=output_path,
+            # Core translation settings
+            filepath=file_path,
             server=self.config.get("server"),
             endpoint=self.config.get("endpoint"),
             apikey=self.config.get("apikey"),
@@ -45,38 +49,79 @@ class TranslationService:
             chat=self.config.get("chat"),
             systemmessages=self.config.get("systemmessages"),
             target_language=self.config.get("target_language"),
+            # Project settings
             projectfile=None,
             write_project=False,
             read_project=False,
+            # Language settings
             language=None,
             source_language=None,
-            includeoriginal=False,
+            includeoriginal=None,
+            # Translation behavior
             description=None,
-            temperature=0.0,
+            temperature=None,
+            # Batch processing settings
+            maxbatchsize=None,
+            minbatchsize=None,
+            scenethreshold=None,
+            # Processing options
+            preprocess=None,
+            postprocess=None,
+            # Rate limiting
+            ratelimit=None,
+            # Error handling
+            retry_on_error=True,
+            stop_on_error=False,
+            # Debug options
+            debug=False,
+            # Additional options
+            addrtlmarkers=None,
+            instruction=None,
+            instructionfile=None,
+            matchpartialwords=None,
+            maxsummaries=None,
+            maxlines=None,
+            moviename=None,
+            names=None,
+            name=None,
+            project=None,
+            substitution=None,
+            writebackup=None,
+            output=None,
+            input=file_path,  # Required by some functions that reference args.input
         )
+
+    def send_callback(self, callback_url: str, file_path: str) -> None:
+        """Send callback request with subtitle paths"""
+        try:
+            # Generate Chinese subtitle path by adding 'zh' before the last extension
+            base, ext = os.path.splitext(file_path)
+            if base.endswith(".eng"):
+                base = base[:-4]  # Remove '.eng'
+            chs_subtitle_path = f"{base}.eng.zh{ext}"
+
+            payload = {
+                "chs_subtitle_path": chs_subtitle_path,
+                "eng_subtitle_path": file_path,
+            }
+
+            response = requests.post(callback_url, json=payload)
+            response.raise_for_status()
+            logger.info(f"Callback sent successfully to {callback_url}")
+
+        except Exception as e:
+            logger.error(f"Failed to send callback: {str(e)}")
 
     def process_message(self, message: Dict[str, Any]) -> None:
         """Process a single translation message"""
-        file_path = message.get("input_path")
-        output_path = message.get("output_path")
+        file_path = message.get("path")
 
         if not file_path or not os.path.exists(file_path):
-            logger.error(f"Invalid input file path: {file_path}")
+            logger.error(f"File not found at path: {file_path}")
             return
 
-        # Ensure output directory exists
-        output_dir = os.path.dirname(output_path)
-        if not os.path.exists(output_dir):
-            try:
-                os.makedirs(output_dir, exist_ok=True)
-            except Exception as e:
-                logger.error(
-                    f"Failed to create output directory {output_dir}: {str(e)}"
-                )
-                return
-
         try:
-            args = self.create_translation_args(file_path, output_path)
+            args = self.create_translation_args(file_path)
             options: Options = CreateOptions(
                 args,
                 "Local Server",
@@ -84,6 +129,7 @@ class TranslationService:
                 endpoint=self.config.get("endpoint"),
                 model=self.config.get("model"),
                 server_address=self.config.get("server"),
+                target_language=self.config.get("target_language"),
                 supports_conversation=self.config.get("chat"),
                 supports_system_messages=self.config.get("systemmessages"),
             )
@@ -91,10 +137,8 @@ class TranslationService:
             translator: SubtitleTranslator = CreateTranslator(options)
             project: SubtitleProject = CreateProject(options, args)
 
-            result = project.TranslateSubtitles(translator)
-            logger.info(
-                f"Translation completed for {file_path} -> {output_path}: {result}"
-            )
+            project.TranslateSubtitles(translator)
+            logger.info(f"Translation completed for {file_path}: success")
 
         except Exception as e:
             logger.error(f"Translation failed for {file_path}: {str(e)}")
@@ -105,6 +149,16 @@ class TranslationService:
         logger.info(f"Using config from: {self.config.config_path}")
         logger.info(f"Redis queue: {self.queue_name}")
 
+        # Add config value logging
+        logger.info("Configuration:")
+        for key, value in self.config.config.items():
+            # Mask API key for security
+            if key == "apikey":
+                masked_value = value[:8] + "..." + value[-4:] if value else None
+                logger.info(f"  {key}: {masked_value}")
+            else:
+                logger.info(f"  {key}: {value}")
+
         while True:
             try:
                 # BLPOP blocks until a message is available
@@ -114,11 +168,20 @@ class TranslationService:
                     try:
                         message_dict = json.loads(message_data)
                         logger.info("Received translation request:")
-                        logger.info(f"  Input: {message_dict.get('input_path')}")
-                        logger.info(f"  Output: {message_dict.get('output_path')}")
+                        logger.info(f"  Path: {message_dict.get('path')}")
+                        logger.info(f"  Name: {message_dict.get('file_name')}")
                         self.process_message(message_dict)
+
+                        callback_url = self.config.get("callback_url")
+                        if callback_url:
+                            self.send_callback(callback_url, message_dict.get("path"))
+
                     except json.JSONDecodeError:
                         logger.error(f"Invalid message format: {message_data}")
+                    except Exception as e:
+                        logger.error(f"Error processing message: {str(e)}")
+                        # Don't send callback on error
+
                 time.sleep(0.1)  # Small delay to prevent CPU spinning
             except Exception as e:
                 logger.error(f"Error in main loop: {str(e)}")
@@ -126,8 +189,18 @@ class TranslationService:
 
 
 if __name__ == "__main__":
-    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379")
-    config_path = os.getenv("CONFIG_PATH", "/app/config/config.json")
+    # Get config path from environment or use default based on environment
+    config_path = os.getenv("CONFIG_PATH")
+    if not config_path:
+        if os.environ.get("DOCKER_ENV") == "true":
+            config_path = "/app/configs/config.json"
+        else:
+            config_path = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                "configs",
+                "config.json",
+            )
 
-    service = TranslationService(redis_url, config_path)
+    # Initialize and run service
+    service = TranslationService(config_path)
     service.run()
