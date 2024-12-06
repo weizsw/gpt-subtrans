@@ -4,23 +4,21 @@ FROM python:3.10-slim
 # Set working directory
 WORKDIR /app
 
-# Copy requirements first to leverage Docker cache
-COPY requirements.txt .
-
 # Install dependencies
+COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Install additional dependencies for the API
-RUN pip install --no-cache-dir fastapi uvicorn python-multipart
+# Copy application code
+COPY app/ ./app/
+COPY PySubtitle/ ./PySubtitle/
+COPY scripts/ ./scripts/
 
-# Copy the entire project
-COPY . .
+# Create config directory
+RUN mkdir -p /app/config
 
-# Create virtual environment
-RUN python -m venv envsubtrans
+# Set environment variables
+ENV REDIS_URL=redis://redis:6379
+ENV CONFIG_PATH=/app/config/config.json
 
-# Expose port for API
-EXPOSE 8000
-
-# Start the API server
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
+# Run the service
+CMD ["python", "-m", "app.main"] 

@@ -1,12 +1,19 @@
 version: '3'
 
 services:
-  llm-subtrans-api:
+  translator:
     build: .
-    ports:
-      - "8432:8000"
     volumes:
-      - .env:/app/.env
+      - ./config:/app/config
+      - ./input:/input    # Mount directory for input files
+      - ./output:/output  # Mount directory for output files
     environment:
-      - PYTHONPATH=/app
-    restart: unless-stopped 
+      - REDIS_URL=redis://redis:6379
+      - CONFIG_PATH=/app/config/config.json
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
