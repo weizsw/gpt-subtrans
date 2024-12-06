@@ -12,13 +12,14 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ ./app/
 COPY PySubtitle/ ./PySubtitle/
 COPY scripts/ ./scripts/
+COPY instructions/ ./instructions/
 
 # Create config directory
-RUN mkdir -p /app/config
+RUN mkdir -p /app/configs
 
 # Set environment variables
-ENV REDIS_URL=redis://redis:6379
-ENV CONFIG_PATH=/app/config/config.json
+ENV CONFIG_PATH=/app/configs/config.json
+ENV DOCKER_ENV=true
 
 # Run the service
 CMD ["python", "-m", "app.main"] 
