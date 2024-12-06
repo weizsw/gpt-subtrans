@@ -1,19 +1,10 @@
-version: '3'
-
+---
 services:
   translator:
     build: .
     volumes:
-      - ./config:/app/config
-      - ./input:/input    # Mount directory for input files
-      - ./output:/output  # Mount directory for output files
+      - ./configs:/app/configs
+      - /Volumes/External:/data
     environment:
-      - REDIS_URL=redis://redis:6379
-      - CONFIG_PATH=/app/config/config.json
-    depends_on:
-      - redis
-
-  redis:
-    image: redis:alpine
-    ports:
-      - "6379:6379"
+      - CONFIG_PATH=/app/configs/config.json
+      - DOCKER_ENV=true
