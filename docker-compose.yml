@@ -1,0 +1,12 @@
+version: '3'
+
+services:
+  llm-subtrans-api:
+    build: .
+    ports:
+      - "8432:8000"
+    volumes:
+      - .env:/app/.env
+    environment:
+      - PYTHONPATH=/app
+    restart: unless-stopped 
