@@ -115,6 +115,7 @@ class TranslationService:
     def process_message(self, message: Dict[str, Any]) -> None:
         """Process a single translation message"""
         file_path = message.get("path")
+        overview = message.get("overview")
 
         if not file_path or not os.path.exists(file_path):
             logger.error(f"File not found at path: {file_path}")
@@ -132,6 +133,7 @@ class TranslationService:
                 target_language=self.config.get("target_language"),
                 supports_conversation=self.config.get("chat"),
                 supports_system_messages=self.config.get("systemmessages"),
+                description=overview,
             )
 
             translator: SubtitleTranslator = CreateTranslator(options)
@@ -170,6 +172,7 @@ class TranslationService:
                         logger.info("Received translation request:")
                         logger.info(f"  Path: {message_dict.get('path')}")
                         logger.info(f"  Name: {message_dict.get('file_name')}")
+                        logger.info(f"  Overview: {message_dict.get('overview')}")
                         self.process_message(message_dict)
 
                         callback_url = self.config.get("callback_url")
