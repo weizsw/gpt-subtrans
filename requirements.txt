@@ -13,3 +13,5 @@ fastapi>=0.68.0
 uvicorn>=0.15.0
 python-multipart>=0.0.5
 redis>=4.0.0
+watchdog
+dictdiffer
