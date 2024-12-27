@@ -40,7 +40,13 @@ class Config:
             self.save_config()
         else:
             with open(self.config_path, "r") as f:
-                self.config = json.load(f)
+                user_config = json.load(f)
+                # Merge default config with user config, preserving user values
+                self.config = DEFAULT_CONFIG.copy()
+                self.config.update(user_config)
+                # Save if there were any missing keys
+                if len(self.config) > len(user_config):
+                    self.save_config()
 
     def save_config(self) -> None:
         """Save current config to file"""
