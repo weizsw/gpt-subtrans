@@ -15,13 +15,12 @@ function install_provider() {
         sed -i.bak "/^PROVIDER=/d" .env
         rm -f .env.bak
     fi
-    echo "PROVIDER=$provider" >> .env
-    echo "${api_key_var_name}_API_KEY=$api_key" >> .env
+    echo "PROVIDER=$provider" >>.env
+    echo "${api_key_var_name}_API_KEY=$api_key" >>.env
     echo "Installing $provider module..."
-    pip install $pip_package
+    uv pip install $pip_package
     scripts/generate-cmd.sh $script_name
 }
-
 
 if [ ! -d "scripts" ]; then
     echo "Please run the script from the root directory of the project."
@@ -58,7 +57,7 @@ if [ -d "envsubtrans" ]; then
     fi
 fi
 
-python3 -m venv envsubtrans
+uv venv envsubtrans --python=3.10
 source envsubtrans/bin/activate
 
 scripts/generate-cmd.sh gui-subtrans
@@ -73,31 +72,31 @@ echo "a = All"
 read -p "Enter your choice (0/1/2/3/a): " provider_choice
 
 case $provider_choice in
-    0)
-        echo "No additional provider selected. Moving forward without any installations."
-        ;;
-    1)
-        install_provider "OpenAI" "OPENAI" "openai" "gpt-subtrans"
-        ;;
-    2)
-        install_provider "Google Gemini" "GEMINI" "google-generativeai" "gemini-subtrans"
-        ;;
-    3)
-        install_provider "Claude" "CLAUDE" "anthropic" "claude-subtrans"
-        ;;
-    a)
-        install_provider "Claude" "CLAUDE" "anthropic" "claude-subtrans"
-        install_provider "Google Gemini" "GEMINI" "google-generativeai" "gemini-subtrans"
-        install_provider "OpenAI" "OPENAI" "openai" "gpt-subtrans"
-        ;;
-    *)
-        echo "Invalid choice. Exiting installation."
-        exit 1
-        ;;
+0)
+    echo "No additional provider selected. Moving forward without any installations."
+    ;;
+1)
+    install_provider "OpenAI" "OPENAI" "openai" "gpt-subtrans"
+    ;;
+2)
+    install_provider "Google Gemini" "GEMINI" "google-generativeai" "gemini-subtrans"
+    ;;
+3)
+    install_provider "Claude" "CLAUDE" "anthropic" "claude-subtrans"
+    ;;
+a)
+    install_provider "Claude" "CLAUDE" "anthropic" "claude-subtrans"
+    install_provider "Google Gemini" "GEMINI" "google-generativeai" "gemini-subtrans"
+    install_provider "OpenAI" "OPENAI" "openai" "gpt-subtrans"
+    ;;
+*)
+    echo "Invalid choice. Exiting installation."
+    exit 1
+    ;;
 esac
 
 echo "Installing required modules..."
-pip install --upgrade -r requirements.txt
+uv pip install --upgrade -r requirements.txt
 
 echo "Setup completed successfully. To uninstall just delete the directory"
 
