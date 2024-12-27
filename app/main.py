@@ -19,9 +19,6 @@ sys.path.append(current_dir)
 
 from config import Config
 
-from PySubtitle.Options import Options
-from PySubtitle.SubtitleProject import SubtitleProject
-from PySubtitle.SubtitleTranslator import SubtitleTranslator
 from scripts.subtrans_common import CreateOptions, CreateProject, CreateTranslator
 
 logger = logging.getLogger("llm-subtrans-service")
@@ -112,38 +109,64 @@ class TranslationService:
         except Exception as e:
             logger.error(f"Failed to send callback: {str(e)}")
 
+    def translate_with_local_server(self, file_path: str, overview: str = None) -> None:
+        """Handle translation using local server"""
+        args = self.create_translation_args(file_path)
+        options_kwargs = {
+            "api_key": self.config.get("apikey"),
+            "endpoint": self.config.get("endpoint"),
+            "model": self.config.get("model"),
+            "server_address": self.config.get("server"),
+            "target_language": self.config.get("target_language"),
+            "supports_conversation": self.config.get("chat"),
+            "supports_system_messages": self.config.get("systemmessages"),
+            "description": overview,
+        }
+
+        self._execute_translation(file_path, args, "Local Server", options_kwargs)
+
+    def translate_with_gemini(self, file_path: str, overview: str = None) -> None:
+        """Handle translation using Gemini"""
+        args = self.create_translation_args(file_path)
+        options_kwargs = {
+            "model": self.config.get("gemini_model"),
+            "api_key": self.config.get("gemini_apikey"),
+            "target_language": self.config.get("target_language"),
+            "description": overview,
+        }
+
+        self._execute_translation(file_path, args, "Gemini", options_kwargs)
+
+    def _execute_translation(
+        self, file_path: str, args: Namespace, provider: str, options_kwargs: dict
+    ) -> None:
+        """Execute the translation process with given parameters"""
+        try:
+            options = CreateOptions(args, provider, **options_kwargs)
+            translator = CreateTranslator(options)
+            project = CreateProject(options, args)
+
+            project.TranslateSubtitles(translator)
+            logger.info(f"Translation completed for {file_path}: success")
+        except Exception as e:
+            logger.error(f"Translation failed for {file_path}: {str(e)}")
+
     def process_message(self, message: Dict[str, Any]) -> None:
         """Process a single translation message"""
         file_path = message.get("path")
-        overview = message.get("overview")
-
         if not file_path or not os.path.exists(file_path):
             logger.error(f"File not found at path: {file_path}")
             return
 
-        try:
-            args = self.create_translation_args(file_path)
-            options: Options = CreateOptions(
-                args,
-                "Local Server",
-                api_key=self.config.get("apikey"),
-                endpoint=self.config.get("endpoint"),
-                model=self.config.get("model"),
-                server_address=self.config.get("server"),
-                target_language=self.config.get("target_language"),
-                supports_conversation=self.config.get("chat"),
-                supports_system_messages=self.config.get("systemmessages"),
-                description=overview,
-            )
+        provider = message.get("provider")
+        overview = message.get("overview")
 
-            translator: SubtitleTranslator = CreateTranslator(options)
-            project: SubtitleProject = CreateProject(options, args)
-
-            project.TranslateSubtitles(translator)
-            logger.info(f"Translation completed for {file_path}: success")
-
-        except Exception as e:
-            logger.error(f"Translation failed for {file_path}: {str(e)}")
+        if provider == "local":
+            self.translate_with_local_server(file_path, overview)
+        elif provider == "gemini":
+            self.translate_with_gemini(file_path, overview)
+        else:
+            logger.error(f"Unsupported provider: {provider}")
 
     def run(self) -> None:
         """Main service loop"""
@@ -155,7 +178,7 @@ class TranslationService:
         logger.info("Configuration:")
         for key, value in self.config.config.items():
             # Mask API key for security
-            if key == "apikey":
+            if key == "apikey" or key == "gemini_apikey":
                 masked_value = value[:8] + "..." + value[-4:] if value else None
                 logger.info(f"  {key}: {masked_value}")
             else:
