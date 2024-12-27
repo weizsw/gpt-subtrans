@@ -195,6 +195,7 @@ class TranslationService:
                         logger.info("Received translation request:")
                         logger.info(f"  Path: {message_dict.get('path')}")
                         logger.info(f"  Name: {message_dict.get('file_name')}")
+                        logger.info(f"  Provider: {message_dict.get('provider')}")
                         logger.info(f"  Overview: {message_dict.get('overview')}")
                         self.process_message(message_dict)
 
