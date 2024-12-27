@@ -19,6 +19,8 @@ DEFAULT_CONFIG = {
     "chat": True,
     "systemmessages": True,
     "redis_url": "redis://localhost:6379",  # Default for local development
+    "gemini_model": "gemini-2.0-flash-exp",
+    "gemini_apikey": "",
 }
 
 
