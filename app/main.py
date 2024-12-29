@@ -133,6 +133,7 @@ class TranslationService:
             "api_key": self.config.get("gemini_apikey"),
             "target_language": self.config.get("target_language"),
             "description": overview,
+            "ratelimit": 10,
         }
 
         self._execute_translation(file_path, args, "Gemini", options_kwargs)
