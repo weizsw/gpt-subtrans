@@ -197,7 +197,12 @@ class TranslationService:
                         logger.info(f"  Name: {message_dict.get('file_name')}")
                         logger.info(f"  Provider: {message_dict.get('provider')}")
                         logger.info(f"  Overview: {message_dict.get('overview')}")
-                        self.process_message(message_dict)
+
+                        try:
+                            self.process_message(message_dict)
+                        except Exception as e:
+                            logger.error(f"Failed to process message: {str(e)}")
+                            continue  # Skip callback and continue with next message
 
                         callback_url = self.config.get("callback_url")
                         if callback_url:
@@ -207,12 +212,11 @@ class TranslationService:
                         logger.error(f"Invalid message format: {message_data}")
                     except Exception as e:
                         logger.error(f"Error processing message: {str(e)}")
-                        # Don't send callback on error
 
-                time.sleep(0.1)  # Small delay to prevent CPU spinning
+                time.sleep(0.1)
             except Exception as e:
                 logger.error(f"Error in main loop: {str(e)}")
-                time.sleep(1)  # Longer delay on error
+                time.sleep(1)
 
 
 if __name__ == "__main__":
