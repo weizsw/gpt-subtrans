@@ -6,9 +6,7 @@ WORKDIR /app
 
 # Install dependencies
 COPY requirements.txt .
-COPY install.sh scripts/generate-cmd.sh ./
-RUN chmod +x install.sh generate-cmd.sh && \
-    pip install --no-cache-dir -r requirements.txt && \
+RUN pip install --no-cache-dir -r requirements.txt && \
     pip install openai google-generativeai anthropic
 
 # Set provider API keys (these should be overridden at runtime)
