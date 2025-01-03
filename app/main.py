@@ -88,7 +88,7 @@ class TranslationService:
             input=file_path,  # Required by some functions that reference args.input
         )
 
-    def send_callback(self, callback_url: str, file_path: str) -> None:
+    def send_callback(self, callback_url: str, file_path: str, video_path: str) -> None:
         """Send callback request with subtitle paths"""
         try:
             # Generate Chinese subtitle path by adding 'zh' before the last extension
@@ -100,6 +100,7 @@ class TranslationService:
             payload = {
                 "chs_subtitle_path": chs_subtitle_path,
                 "eng_subtitle_path": file_path,
+                "video_path": video_path,
             }
 
             response = requests.post(callback_url, json=payload)
@@ -198,6 +199,7 @@ class TranslationService:
                         logger.info(f"  Name: {message_dict.get('file_name')}")
                         logger.info(f"  Provider: {message_dict.get('provider')}")
                         logger.info(f"  Overview: {message_dict.get('overview')}")
+                        logger.info(f"  VideoPath: {message_dict.get('video_path')}")
 
                         try:
                             self.process_message(message_dict)
@@ -207,7 +209,11 @@ class TranslationService:
 
                         callback_url = self.config.get("callback_url")
                         if callback_url:
-                            self.send_callback(callback_url, message_dict.get("path"))
+                            self.send_callback(
+                                callback_url,
+                                message_dict.get("path"),
+                                message_dict.get("video_path"),
+                            )
 
                     except json.JSONDecodeError:
                         logger.error(f"Invalid message format: {message_data}")
