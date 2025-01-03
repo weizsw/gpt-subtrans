@@ -65,7 +65,7 @@ class TranslationService:
             preprocess=None,
             postprocess=None,
             # Rate limiting
-            ratelimit=10,
+            ratelimit=None,
             # Error handling
             retry_on_error=True,
             stop_on_error=False,
@@ -134,7 +134,7 @@ class TranslationService:
             "api_key": self.config.get("gemini_apikey"),
             "target_language": self.config.get("target_language"),
             "description": overview,
-            "ratelimit": 10,
+            "rate_limit": 10,
         }
 
         self._execute_translation(file_path, args, "Gemini", options_kwargs)
