@@ -65,7 +65,7 @@ class TranslationService:
             preprocess=None,
             postprocess=None,
             # Rate limiting
-            ratelimit=None,
+            ratelimit=10,
             # Error handling
             retry_on_error=True,
             stop_on_error=False,
