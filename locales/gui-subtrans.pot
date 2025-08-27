@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: LLM-Subtrans\n"
-"POT-Creation-Date: 2025-08-24 14:50+0000\n"
+"POT-Creation-Date: 2025-08-27 19:54+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "MIME-Version: 1.0\n"
@@ -29,7 +29,7 @@ msgstr ""
 msgid "AI model to use as the translator"
 msgstr ""
 
-#: PySubtitle/Providers/Provider_Azure.py:86 PySubtitle/Providers/Provider_DeepSeek.py:122 PySubtitle/Providers/Provider_Gemini.py:102 PySubtitle/Providers/Provider_Mistral.py:118 PySubtitle/Providers/Provider_OpenAI.py:164 PySubtitle/Providers/Provider_OpenRouter.py:190
+#: PySubtitle/Providers/Provider_Azure.py:86 PySubtitle/Providers/Provider_DeepSeek.py:122 PySubtitle/Providers/Provider_Gemini.py:102 PySubtitle/Providers/Provider_Mistral.py:118 PySubtitle/Providers/Provider_OpenAI.py:164 PySubtitle/Providers/Provider_OpenRouter.py:191
 msgid "API Key is required"
 msgstr ""
 
@@ -129,7 +129,7 @@ msgstr ""
 msgid "Amazon Boto3 SDK is not installed. Bedrock provider will not be available"
 msgstr ""
 
-#: PySubtitle/Providers/Provider_DeepSeek.py:69 PySubtitle/Providers/Provider_Gemini.py:76 PySubtitle/Providers/Provider_Mistral.py:73 PySubtitle/Providers/Provider_OpenAI.py:110 PySubtitle/Providers/Provider_OpenRouter.py:145
+#: PySubtitle/Providers/Provider_DeepSeek.py:69 PySubtitle/Providers/Provider_Gemini.py:76 PySubtitle/Providers/Provider_Mistral.py:73 PySubtitle/Providers/Provider_OpenAI.py:110 PySubtitle/Providers/Provider_OpenRouter.py:146
 msgid "Amount of random variance to add to translations. Generally speaking, none is best"
 msgstr ""
 
@@ -253,7 +253,7 @@ msgstr ""
 msgid "Cannot redo the last command"
 msgstr ""
 
-#: PySubtitle/Providers/Provider_OpenRouter.py:168
+#: PySubtitle/Providers/Provider_OpenRouter.py:169
 msgid "Cannot retrieve model list, check API key"
 msgstr ""
 
@@ -273,7 +273,7 @@ msgstr ""
 msgid "Check API key and base URL and try again"
 msgstr ""
 
-#: PySubtitle/Providers/Provider_OpenRouter.py:140
+#: PySubtitle/Providers/Provider_OpenRouter.py:141
 msgid "Check API key and try again"
 msgstr ""
 
@@ -401,7 +401,7 @@ msgstr ""
 msgid "Error communicating with provider"
 msgstr ""
 
-#: PySubtitle/SubtitleProject.py:224
+#: PySubtitle/SubtitleProject.py:230
 msgid "Error decoding JSON file: {}"
 msgstr ""
 
@@ -409,7 +409,7 @@ msgstr ""
 msgid "Error executing {type}: {str}"
 msgstr ""
 
-#: PySubtitle/Providers/Provider_DeepSeek.py:96 PySubtitle/Providers/Provider_OpenRouter.py:230
+#: PySubtitle/Providers/Provider_DeepSeek.py:96 PySubtitle/Providers/Provider_OpenRouter.py:231
 msgid "Error fetching models: {status} {text}"
 msgstr ""
 
@@ -417,15 +417,15 @@ msgstr ""
 msgid "Error in {command}: {message}"
 msgstr ""
 
-#: PySubtitle/Options.py:214
+#: PySubtitle/Options.py:222
 msgid "Error loading settings from {}"
 msgstr ""
 
-#: PySubtitle/Options.py:275
+#: PySubtitle/Options.py:283
 msgid "Error migrating settings from {} to {}. You can copy the files manually and restart the application."
 msgstr ""
 
-#: PySubtitle/SubtitleFile.py:265
+#: PySubtitle/Subtitles.py:264
 msgid "Error parsing SRT file... trying with fallback encoding: {}"
 msgstr ""
 
@@ -437,7 +437,7 @@ msgstr ""
 msgid "Error reparsing scene {scene} batch {batch}: {error}"
 msgstr ""
 
-#: PySubtitle/Options.py:241
+#: PySubtitle/Options.py:249
 msgid "Error saving settings to {}"
 msgstr ""
 
@@ -489,7 +489,7 @@ msgstr ""
 msgid "Expected a patch dictionary"
 msgstr ""
 
-#: PySubtitle/Providers/Anthropic/AnthropicClient.py:172 PySubtitle/Providers/Azure/AzureOpenAIClient.py:152 PySubtitle/Providers/Gemini/GeminiClient.py:172 PySubtitle/Providers/Mistral/MistralClient.py:130 PySubtitle/Providers/OpenAI/OpenAIClient.py:152
+#: PySubtitle/Providers/Anthropic/AnthropicClient.py:172 PySubtitle/Providers/Azure/AzureOpenAIClient.py:152 PySubtitle/Providers/Gemini/GeminiClient.py:177 PySubtitle/Providers/Mistral/MistralClient.py:130 PySubtitle/Providers/OpenAI/OpenAIClient.py:152
 msgid "Failed to communicate with provider after {max_retries} retries"
 msgstr ""
 
@@ -517,7 +517,7 @@ msgstr ""
 msgid "Failed to load project data model."
 msgstr ""
 
-#: PySubtitle/SubtitleProject.py:106
+#: PySubtitle/SubtitleProject.py:112
 msgid "Failed to load subtitle file {}: {}"
 msgstr ""
 
@@ -525,11 +525,11 @@ msgstr ""
 msgid "Failed to merge lines"
 msgstr ""
 
-#: PySubtitle/SubtitleFile.py:270
+#: PySubtitle/Subtitles.py:269
 msgid "Failed to parse SRT file with fallback encoding: {}"
 msgstr ""
 
-#: PySubtitle/SubtitleFile.py:288
+#: PySubtitle/Subtitles.py:290
 msgid "Failed to parse SRT string: {}"
 msgstr ""
 
@@ -545,7 +545,7 @@ msgstr ""
 msgid "Failed to translate scene {scene}... stopping translation"
 msgstr ""
 
-#: PySubtitle/SubtitleProject.py:296
+#: PySubtitle/SubtitleProject.py:317
 msgid "Failed to translate subtitles: {}"
 msgstr ""
 
@@ -589,31 +589,31 @@ msgstr ""
 msgid "Gap: {gap}, Length: {duration}"
 msgstr ""
 
-#: PySubtitle/Providers/Gemini/GeminiClient.py:178
+#: PySubtitle/Providers/Gemini/GeminiClient.py:183
 msgid "Gemini request failure {error}, retrying in {sleep_time} seconds..."
 msgstr ""
 
-#: PySubtitle/Providers/Gemini/GeminiClient.py:134
+#: PySubtitle/Providers/Gemini/GeminiClient.py:136
 msgid "Gemini response exceeded token limit"
 msgstr ""
 
-#: PySubtitle/Providers/Gemini/GeminiClient.py:155
+#: PySubtitle/Providers/Gemini/GeminiClient.py:157
 msgid "Gemini response has no valid content parts"
 msgstr ""
 
-#: PySubtitle/Providers/Gemini/GeminiClient.py:160
+#: PySubtitle/Providers/Gemini/GeminiClient.py:162
 msgid "Gemini response is empty"
 msgstr ""
 
-#: PySubtitle/Providers/Gemini/GeminiClient.py:140
+#: PySubtitle/Providers/Gemini/GeminiClient.py:142
 msgid "Gemini response was blocked for recitation"
 msgstr ""
 
-#: PySubtitle/Providers/Gemini/GeminiClient.py:137
+#: PySubtitle/Providers/Gemini/GeminiClient.py:139
 msgid "Gemini response was blocked for safety reasons"
 msgstr ""
 
-#: PySubtitle/Providers/Gemini/GeminiClient.py:143
+#: PySubtitle/Providers/Gemini/GeminiClient.py:145
 msgid "Gemini response was incomplete"
 msgstr ""
 
@@ -689,11 +689,15 @@ msgstr ""
 msgid "Invalid substitutions list, must be a dictionary, list or string"
 msgstr ""
 
-#: PySubtitle/SubtitleLine.py:204 PySubtitle/SubtitleLine.py:209 PySubtitle/SubtitleLine.py:250
+#: PySubtitle/SubtitleLine.py:205 PySubtitle/SubtitleLine.py:210 PySubtitle/SubtitleLine.py:258
 msgid "Invalid subtitle line format: {}"
 msgstr ""
 
-#: PySubtitle/SubtitleLine.py:128 PySubtitle/SubtitleLine.py:136
+#: PySubtitle/SubtitleLine.py:215
+msgid "Invalid subtitle line index: {}"
+msgstr ""
+
+#: PySubtitle/SubtitleLine.py:129 PySubtitle/SubtitleLine.py:137
 msgid "Invalid timestamp"
 msgstr ""
 
@@ -777,7 +781,7 @@ msgstr ""
 msgid "Max batch size is less than min batch size"
 msgstr ""
 
-#: PySubtitle/Providers/Provider_DeepSeek.py:70 PySubtitle/Providers/Provider_Gemini.py:77 PySubtitle/Providers/Provider_Mistral.py:74 PySubtitle/Providers/Provider_OpenRouter.py:146
+#: PySubtitle/Providers/Provider_DeepSeek.py:70 PySubtitle/Providers/Provider_Gemini.py:77 PySubtitle/Providers/Provider_Mistral.py:74 PySubtitle/Providers/Provider_OpenRouter.py:147
 msgid "Maximum API requests per minute."
 msgstr ""
 
@@ -797,7 +801,7 @@ msgstr ""
 msgid "Maximum length of the context summary to include with each translation batch"
 msgstr ""
 
-#: PySubtitle/Providers/Provider_DeepSeek.py:68 PySubtitle/Providers/Provider_OpenRouter.py:144
+#: PySubtitle/Providers/Provider_DeepSeek.py:68 PySubtitle/Providers/Provider_OpenRouter.py:145
 msgid "Maximum number of output tokens to return in the response."
 msgstr ""
 
@@ -937,11 +941,11 @@ msgstr ""
 msgid "No model specified"
 msgstr ""
 
-#: PySubtitle/Providers/Provider_OpenRouter.py:138
+#: PySubtitle/Providers/Provider_OpenRouter.py:137 PySubtitle/Providers/Provider_OpenRouter.py:139
 msgid "No models available"
 msgstr ""
 
-#: PySubtitle/SubtitleFile.py:323
+#: PySubtitle/Subtitles.py:310
 msgid "No original subtitles to save to {}"
 msgstr ""
 
@@ -953,11 +957,11 @@ msgstr ""
 msgid "No project data"
 msgstr ""
 
-#: PySubtitle/SubtitleProject.py:207
+#: PySubtitle/SubtitleProject.py:213
 msgid "No project file path provided"
 msgstr ""
 
-#: PySubtitle/Providers/Gemini/GeminiClient.py:112
+#: PySubtitle/Providers/Gemini/GeminiClient.py:113
 msgid "No response from Gemini"
 msgstr ""
 
@@ -981,11 +985,11 @@ msgstr ""
 msgid "No subtitles to translate"
 msgstr ""
 
-#: PySubtitle/SubtitleProject.py:110
+#: PySubtitle/SubtitleProject.py:116
 msgid "No subtitles to translate in {}"
 msgstr ""
 
-#: PySubtitle/SubtitleFile.py:346
+#: PySubtitle/Subtitles.py:333
 msgid "No subtitles translated"
 msgstr ""
 
@@ -1017,7 +1021,7 @@ msgstr ""
 msgid "No undo data available"
 msgstr ""
 
-#: PySubtitle/Providers/Gemini/GeminiClient.py:124
+#: PySubtitle/Providers/Gemini/GeminiClient.py:126
 msgid "No valid candidates returned in the response"
 msgstr ""
 
@@ -1153,7 +1157,7 @@ msgstr ""
 msgid "Project Toolbar"
 msgstr ""
 
-#: PySubtitle/SubtitleProject.py:85
+#: PySubtitle/SubtitleProject.py:91
 msgid "Project file loaded"
 msgstr ""
 
@@ -1161,11 +1165,11 @@ msgstr ""
 msgid "Project file path must be specified."
 msgstr ""
 
-#: PySubtitle/SubtitleProject.py:73
+#: PySubtitle/SubtitleProject.py:79
 msgid "Project file {} does not exist"
 msgstr ""
 
-#: PySubtitle/SubtitleProject.py:220
+#: PySubtitle/SubtitleProject.py:226
 msgid "Project file {} not found"
 msgstr ""
 
@@ -1233,7 +1237,7 @@ msgstr ""
 msgid "Reached max_lines limit of ({lines} lines)... finishing"
 msgstr ""
 
-#: PySubtitle/SubtitleProject.py:210
+#: PySubtitle/SubtitleProject.py:216
 msgid "Reading project data from {}"
 msgstr ""
 
@@ -1253,7 +1257,7 @@ msgstr ""
 msgid "Redo {command}"
 msgstr ""
 
-#: PySubtitle/SubtitleProject.py:90
+#: PySubtitle/SubtitleProject.py:96
 msgid "Reloading subtitles from the source file"
 msgstr ""
 
@@ -1261,8 +1265,12 @@ msgstr ""
 msgid "Remove filler_words and filler words from subtitles"
 msgstr ""
 
-#: PySubtitle/SubtitleFile.py:591
+#: PySubtitle/Subtitles.py:578
 msgid "Removing {} translations lines in batch ({},{}) that don't match an original line"
+msgstr ""
+
+#: PySubtitle/Subtitles.py:599
+msgid "Renumbering subtitle lines due to missing indices"
 msgstr ""
 
 #: GUI/Widgets/SelectionView.py:88
@@ -1281,8 +1289,8 @@ msgstr ""
 msgid "Request to server timed out: {error}"
 msgstr ""
 
-#: PySubtitle/Providers/Gemini/GeminiClient.py:115
-msgid "Request was blocked by Gemini: {block_reason}"
+#: PySubtitle/Providers/Gemini/GeminiClient.py:117
+msgid "Request was blocked by Gemini: {block_info}"
 msgstr ""
 
 #: GUI/Widgets/Editors.py:127
@@ -1313,7 +1321,7 @@ msgstr ""
 msgid "Retrying in {sleep_time} seconds..."
 msgstr ""
 
-#: PySubtitle/Providers/Provider_DeepSeek.py:67 PySubtitle/Providers/Provider_OpenRouter.py:147
+#: PySubtitle/Providers/Provider_DeepSeek.py:67 PySubtitle/Providers/Provider_OpenRouter.py:148
 msgid "Reuse connection for multiple requests (otherwise a new connection is established for each)"
 msgstr ""
 
@@ -1341,7 +1349,7 @@ msgstr ""
 msgid "Saving backup copy of the project"
 msgstr ""
 
-#: PySubtitle/SubtitleFile.py:358
+#: PySubtitle/Subtitles.py:345
 msgid "Saving translation to {}"
 msgstr ""
 
@@ -1649,7 +1657,7 @@ msgstr ""
 msgid "Translating {linecount} lines in {scenecount} scenes"
 msgstr ""
 
-#: PySubtitle/SubtitleError.py:40 PySubtitle/SubtitleProject.py:290 PySubtitle/SubtitleTranslator.py:142
+#: PySubtitle/SubtitleError.py:40 PySubtitle/SubtitleProject.py:311 PySubtitle/SubtitleTranslator.py:142
 msgid "Translation aborted"
 msgstr ""
 
@@ -1665,7 +1673,7 @@ msgstr ""
 msgid "Truncating batch to remain within max_lines"
 msgstr ""
 
-#: PySubtitle/Providers/Provider_OpenRouter.py:138
+#: PySubtitle/Providers/Provider_OpenRouter.py:137 PySubtitle/Providers/Provider_OpenRouter.py:139
 msgid "Try a different model family or change filter settings"
 msgstr ""
 
@@ -1701,7 +1709,7 @@ msgstr ""
 msgid "Unable to load instructions from {file}: {error}"
 msgstr ""
 
-#: PySubtitle/Options.py:307
+#: PySubtitle/Options.py:315
 msgid "Unable to load instructions from {}: {}"
 msgstr ""
 
@@ -1721,7 +1729,7 @@ msgstr ""
 msgid "Unable to merge selection ({selection})"
 msgstr ""
 
-#: PySubtitle/Providers/Provider_DeepSeek.py:105 PySubtitle/Providers/Provider_OpenRouter.py:266
+#: PySubtitle/Providers/Provider_DeepSeek.py:105 PySubtitle/Providers/Provider_OpenRouter.py:267
 msgid "Unable to parse server response as JSON: {response_text}"
 msgstr ""
 
@@ -1729,7 +1737,7 @@ msgstr ""
 msgid "Unable to preview batches: {error}"
 msgstr ""
 
-#: PySubtitle/SubtitleProject.py:93
+#: PySubtitle/SubtitleProject.py:99
 msgid "Unable to read project file, starting afresh"
 msgstr ""
 
@@ -1745,7 +1753,7 @@ msgstr ""
 msgid "Unable to retrieve available AI models: {error}"
 msgstr ""
 
-#: PySubtitle/Providers/Provider_DeepSeek.py:109 PySubtitle/Providers/Provider_OpenRouter.py:270
+#: PySubtitle/Providers/Provider_DeepSeek.py:109 PySubtitle/Providers/Provider_OpenRouter.py:271
 msgid "Unable to retrieve available models: {error}"
 msgstr ""
 
@@ -1753,11 +1761,11 @@ msgstr ""
 msgid "Unable to retrieve models"
 msgstr ""
 
-#: PySubtitle/SubtitleProject.py:126
+#: PySubtitle/SubtitleProject.py:132
 msgid "Unable to save original subtitles: {}"
 msgstr ""
 
-#: PySubtitle/SubtitleProject.py:137
+#: PySubtitle/SubtitleProject.py:143
 msgid "Unable to save translation: {}"
 msgstr ""
 
@@ -1849,7 +1857,7 @@ msgstr ""
 msgid "Whether to substitute whole words or partial matches, or choose automatically based on input language"
 msgstr ""
 
-#: PySubtitle/SubtitleFile.py:298
+#: PySubtitle/SubtitleProject.py:279
 msgid "Writing project data to {}"
 msgstr ""
 
@@ -1857,7 +1865,7 @@ msgstr ""
 msgid "access_key"
 msgstr ""
 
-#: PySubtitle/Options.py:50
+#: PySubtitle/Options.py:58
 msgid "add_right_to_left_markers"
 msgstr ""
 
@@ -1873,7 +1881,7 @@ msgstr ""
 msgid "api_version"
 msgstr ""
 
-#: PySubtitle/Options.py:83
+#: PySubtitle/Options.py:91
 msgid "autosave"
 msgstr ""
 
@@ -1881,19 +1889,19 @@ msgstr ""
 msgid "aws_region"
 msgstr ""
 
-#: PySubtitle/Options.py:81
+#: PySubtitle/Options.py:89
 msgid "backoff_time"
 msgstr ""
 
-#: PySubtitle/Options.py:63
+#: PySubtitle/Options.py:71
 msgid "break_dialog_on_one_line"
 msgstr ""
 
-#: PySubtitle/Options.py:62
+#: PySubtitle/Options.py:70
 msgid "break_long_lines"
 msgstr ""
 
-#: PySubtitle/Options.py:74
+#: PySubtitle/Options.py:82
 msgid "convert_wide_dashes"
 msgstr ""
 
@@ -1913,11 +1921,11 @@ msgstr ""
 msgid "endpoint"
 msgstr ""
 
-#: PySubtitle/Options.py:70
+#: PySubtitle/Options.py:78
 msgid "filler_words"
 msgstr ""
 
-#: PySubtitle/Options.py:89
+#: PySubtitle/Options.py:97
 msgid "firstrun"
 msgstr ""
 
@@ -1925,27 +1933,27 @@ msgstr ""
 msgid "free_plan"
 msgstr ""
 
-#: PySubtitle/Options.py:73
+#: PySubtitle/Options.py:81
 msgid "full_width_punctuation"
 msgstr ""
 
-#: PySubtitle/Options.py:49
+#: PySubtitle/Options.py:57
 msgid "include_original"
 msgstr ""
 
-#: PySubtitle/Options.py:47
+#: PySubtitle/Options.py:55
 msgid "instruction_file"
 msgstr ""
 
-#: PySubtitle/Options.py:84
+#: PySubtitle/Options.py:92
 msgid "last_used_path"
 msgstr ""
 
-#: PySubtitle/Options.py:53
+#: PySubtitle/Options.py:61
 msgid "max_batch_size"
 msgstr ""
 
-#: PySubtitle/Options.py:55
+#: PySubtitle/Options.py:63
 msgid "max_characters"
 msgstr ""
 
@@ -1953,7 +1961,7 @@ msgstr ""
 msgid "max_completion_tokens"
 msgstr ""
 
-#: PySubtitle/Options.py:54
+#: PySubtitle/Options.py:62
 msgid "max_context_summaries"
 msgstr ""
 
@@ -1961,27 +1969,27 @@ msgstr ""
 msgid "max_instruct_tokens"
 msgstr ""
 
-#: PySubtitle/Options.py:64
+#: PySubtitle/Options.py:72
 msgid "max_line_duration"
 msgstr ""
 
-#: PySubtitle/Options.py:77
+#: PySubtitle/Options.py:85
 msgid "max_lines"
 msgstr ""
 
-#: PySubtitle/Options.py:56
+#: PySubtitle/Options.py:64
 msgid "max_newlines"
 msgstr ""
 
-#: PySubtitle/Options.py:79
+#: PySubtitle/Options.py:87
 msgid "max_retries"
 msgstr ""
 
-#: PySubtitle/Options.py:57
+#: PySubtitle/Options.py:65
 msgid "max_single_line_length"
 msgstr ""
 
-#: PySubtitle/Options.py:80
+#: PySubtitle/Options.py:88
 msgid "max_summary_length"
 msgstr ""
 
@@ -1989,7 +1997,7 @@ msgstr ""
 msgid "max_thinking_tokens"
 msgstr ""
 
-#: PySubtitle/Options.py:78
+#: PySubtitle/Options.py:86
 msgid "max_threads"
 msgstr ""
 
@@ -1997,23 +2005,23 @@ msgstr ""
 msgid "max_tokens"
 msgstr ""
 
-#: PySubtitle/Options.py:66
+#: PySubtitle/Options.py:74
 msgid "merge_line_duration"
 msgstr ""
 
-#: PySubtitle/Options.py:52
+#: PySubtitle/Options.py:60
 msgid "min_batch_size"
 msgstr ""
 
-#: PySubtitle/Options.py:65
+#: PySubtitle/Options.py:73
 msgid "min_line_duration"
 msgstr ""
 
-#: PySubtitle/Options.py:58
+#: PySubtitle/Options.py:66
 msgid "min_single_line_length"
 msgstr ""
 
-#: PySubtitle/Options.py:67
+#: PySubtitle/Options.py:75
 msgid "min_split_chars"
 msgstr ""
 
@@ -2029,7 +2037,7 @@ msgstr ""
 msgid "multithreaded"
 msgstr ""
 
-#: PySubtitle/Options.py:68
+#: PySubtitle/Options.py:76
 msgid "normalise_dialog_tags"
 msgstr ""
 
@@ -2037,19 +2045,19 @@ msgstr ""
 msgid "only_translation_models"
 msgstr ""
 
-#: PySubtitle/Options.py:59
+#: PySubtitle/Options.py:67
 msgid "postprocess_translation"
 msgstr ""
 
-#: PySubtitle/Options.py:60
+#: PySubtitle/Options.py:68
 msgid "preprocess_subtitles"
 msgstr ""
 
-#: PySubtitle/Options.py:82
+#: PySubtitle/Options.py:90
 msgid "project"
 msgstr ""
 
-#: PySubtitle/Options.py:46
+#: PySubtitle/Options.py:54
 msgid "prompt"
 msgstr ""
 
@@ -2057,11 +2065,11 @@ msgstr ""
 msgid "prompt_template"
 msgstr ""
 
-#: PySubtitle/Options.py:44
+#: PySubtitle/Options.py:52
 msgid "provider"
 msgstr ""
 
-#: PySubtitle/Options.py:45
+#: PySubtitle/Options.py:53
 msgid "provider_settings"
 msgstr ""
 
@@ -2077,11 +2085,11 @@ msgstr ""
 msgid "reasoning_effort"
 msgstr ""
 
-#: PySubtitle/Options.py:69
+#: PySubtitle/Options.py:77
 msgid "remove_filler_words"
 msgstr ""
 
-#: PySubtitle/Options.py:75
+#: PySubtitle/Options.py:83
 msgid "retry_on_error"
 msgstr ""
 
@@ -2089,11 +2097,11 @@ msgstr ""
 msgid "reuse_client"
 msgstr ""
 
-#: PySubtitle/Options.py:61
+#: PySubtitle/Options.py:69
 msgid "save_preprocessed_subtitles"
 msgstr ""
 
-#: PySubtitle/Options.py:51
+#: PySubtitle/Options.py:59
 msgid "scene_threshold"
 msgstr ""
 
@@ -2113,11 +2121,11 @@ msgstr ""
 msgid "single threaded"
 msgstr ""
 
-#: PySubtitle/Options.py:85
+#: PySubtitle/Options.py:93
 msgid "stop_on_error"
 msgstr ""
 
-#: PySubtitle/Options.py:71
+#: PySubtitle/Options.py:79
 msgid "substitution_mode"
 msgstr ""
 
@@ -2133,7 +2141,7 @@ msgstr ""
 msgid "supports_system_messages"
 msgstr ""
 
-#: PySubtitle/Options.py:48
+#: PySubtitle/Options.py:56
 msgid "target_language"
 msgstr ""
 
@@ -2141,7 +2149,7 @@ msgstr ""
 msgid "temperature"
 msgstr ""
 
-#: PySubtitle/Options.py:87
+#: PySubtitle/Options.py:95
 msgid "theme"
 msgstr ""
 
@@ -2153,7 +2161,7 @@ msgstr ""
 msgid "timeout"
 msgstr ""
 
-#: PySubtitle/Options.py:88
+#: PySubtitle/Options.py:96
 msgid "ui_language"
 msgstr ""
 
@@ -2165,15 +2173,15 @@ msgstr ""
 msgid "use_httpx"
 msgstr ""
 
-#: PySubtitle/Options.py:43
+#: PySubtitle/Options.py:51
 msgid "version"
 msgstr ""
 
-#: PySubtitle/Options.py:72
+#: PySubtitle/Options.py:80
 msgid "whitespaces_to_newline"
 msgstr ""
 
-#: PySubtitle/Options.py:86
+#: PySubtitle/Options.py:94
 msgid "write_backup"
 msgstr ""
 
@@ -2237,10 +2245,10 @@ msgstr ""
 msgid "{starting} {threaded} translation"
 msgstr ""
 
-#: PySubtitle/SubtitleFile.py:379
+#: PySubtitle/Subtitles.py:366
 msgid "{} lines were empty and were not written to the output file"
 msgstr ""
 
-#: PySubtitle/SubtitleFile.py:375
+#: PySubtitle/Subtitles.py:362
 msgid "{} lines were invalid and were not written to the output file"
 msgstr ""
