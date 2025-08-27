@@ -394,6 +394,17 @@ class SettingsDialog(QDialog):
         provider_settings = SettingsType(provider_settings)
         self.translation_provider.UpdateSettings(provider_settings)
 
+        # Auto-select an available model
+        selected_model = provider_settings.get_str('model')
+        if selected_model and self.translation_provider.available_models and selected_model not in self.translation_provider.available_models:
+            selected_model = self.translation_provider.available_models[0]
+            provider_settings['model'] = selected_model
+            self.translation_provider.UpdateSettings(provider_settings)
+            self.provider_settings.get_dict(self.translation_provider.name)['model'] = self.translation_provider.selected_model
+            logging.info(_("Auto-selected model {model} for {provider} to ensure valid configuration").format(
+                provider=self.translation_provider.name,
+                model=selected_model))
+
         section_name = self.PROVIDER_SECTION
         section_widget = self._sections.get(section_name)
         if section_widget:
@@ -424,6 +435,7 @@ class SettingsDialog(QDialog):
 
             if self.translation_provider and key in self.translation_provider.refresh_when_changed:
                 self._refresh_provider_options()
+
         else:
             self.settings[key] = value
             self._update_section_visibility()
