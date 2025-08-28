@@ -101,6 +101,7 @@ class SubtitleView(QListView):
 
     def _on_double_click(self, index):
         model = self.model()
+        #TODO: replace the custom double-click subtitle edit widget with inline editor
         item: LineItem = model.data(index, role=Qt.ItemDataRole.UserRole)
         self.editLine.emit(item)
 
