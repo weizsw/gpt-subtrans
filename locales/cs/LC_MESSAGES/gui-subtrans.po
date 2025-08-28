@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: LLM-Subtrans\n"
-"POT-Creation-Date: 2025-08-27 19:54+0000\n"
+"POT-Creation-Date: 2025-08-28 12:27+0000\n"
 "PO-Revision-Date: 2025-08-09 21:00+0000\n"
 "Last-Translator: AI Assistant\n"
 "Language-Team: Czech\n"
@@ -200,6 +200,10 @@ msgstr "Pokusit se komunikovat s koncovým bodem pomocí formátu chatu"
 #: GUI/Widgets/SelectionView.py:87
 msgid "Auto-Split Batch"
 msgstr "Automaticky rozdělit dávku"
+
+#: GUI/SettingsDialog.py:406
+msgid "Auto-selected model {model} for {provider} to ensure valid configuration"
+msgstr "Automaticky vybrán model {model} pro {provider}, aby byla zajištěna platná konfigurace"
 
 #: GUI/Commands/AutoSplitBatchCommand.py:19
 msgid "Auto-splitting batch {scene} batch {batch}"
@@ -1002,6 +1006,10 @@ msgstr "Není specifikován žádný model"
 msgid "No models available"
 msgstr "Žádné dostupné modely"
 
+#: GUI/SettingsDialog.py:399
+msgid "No models available for {provider}"
+msgstr "Žádné modely nejsou k dispozici pro {provider}"
+
 #: PySubtitle/Subtitles.py:310
 msgid "No original subtitles to save to {}"
 msgstr "Žádné původní titulky k uložení do {}"
@@ -1283,7 +1291,7 @@ msgstr "Nastavení poskytovatele"
 msgid "Provider error: {error}"
 msgstr "Chyba poskytovatele: {error}"
 
-#: GUI/SettingsDialog.py:419
+#: GUI/SettingsDialog.py:432
 msgid "Provider is not set"
 msgstr "Poskytovatel není nastaven"
 

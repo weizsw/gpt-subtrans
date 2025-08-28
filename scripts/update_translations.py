@@ -31,7 +31,7 @@ except ImportError:
     print("Warning: python-dotenv not available; environment variables from .env file will not be loaded.")
 
 # Model to use for auto-translation
-free_translation_model = os.getenv('FREE_TRANSLATION_MODEL', 'google/gemini-2.0-flash-exp:free')     # Free but may be rate-limited
+free_translation_model = os.getenv('FREE_TRANSLATION_MODEL', 'moonshotai/kimi-k2:free')     # Free but may be rate-limited
 paid_translation_model = os.getenv('PAID_TRANSLATION_MODEL', 'google/gemini-2.5-flash')              # Fast and reliable but not free
 
 # Add the parent directory to sys.path so we can import PySubtitle modules

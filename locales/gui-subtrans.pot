@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: LLM-Subtrans\n"
-"POT-Creation-Date: 2025-08-27 19:54+0000\n"
+"POT-Creation-Date: 2025-08-28 12:27+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "MIME-Version: 1.0\n"
@@ -183,6 +183,10 @@ msgstr ""
 
 #: GUI/Widgets/SelectionView.py:87
 msgid "Auto-Split Batch"
+msgstr ""
+
+#: GUI/SettingsDialog.py:406
+msgid "Auto-selected model {model} for {provider} to ensure valid configuration"
 msgstr ""
 
 #: GUI/Commands/AutoSplitBatchCommand.py:19
@@ -945,6 +949,10 @@ msgstr ""
 msgid "No models available"
 msgstr ""
 
+#: GUI/SettingsDialog.py:399
+msgid "No models available for {provider}"
+msgstr ""
+
 #: PySubtitle/Subtitles.py:310
 msgid "No original subtitles to save to {}"
 msgstr ""
@@ -1205,7 +1213,7 @@ msgstr ""
 msgid "Provider error: {error}"
 msgstr ""
 
-#: GUI/SettingsDialog.py:419
+#: GUI/SettingsDialog.py:432
 msgid "Provider is not set"
 msgstr ""
 
