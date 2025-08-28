@@ -74,6 +74,7 @@ class ContentView(QWidget):
         self.onSelection.emit()
 
     def _edit_line(self, item : LineItem):
+        #TODO: replace the custom double-click subtitle edit widget with inline edit
         if not isinstance(item, LineItem):
             raise Exception("Double-clicked something unexpected")
 
