@@ -26,3 +26,6 @@ Secrets are stored in a .env file - you must never read the contents of the file
 - **Validation**: Validate inputs with helpful error messages
 - **Console Output**: Avoid Unicode characters (✓ ✗) in print/log messages - Windows console encoding issues
 - **Unit Tests**: Tests should follow a specific structure using methods like log_input_expected_result defined in `Helpers\Test.py`. See `GUI\UnitTests\test_BatchCommands.py` for an example.
+
+## Information
+Consult `docs/architecture.md` for detailed information on the project structure and architecture.

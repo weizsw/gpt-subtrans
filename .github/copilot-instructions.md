@@ -13,6 +13,8 @@ These instructions help AI coding agents work effectively in this repository. Fo
   - User actions -> `GUI/ProjectActions.py` -> queue `GUI/Commands/*` via `GUI/GuiInterface.py` -> commands modify domain objects -> produce `GUI/ViewModel/ViewModelUpdate` patches -> `ProjectDataModel.UpdateViewModel` applies patches -> Qt model/view updates.
   - Long-running operations (translate, split/merge) are Commands. Commands must be thread-safe and use model updates; never mutate Qt widgets from worker threads.
 
+Consult `docs/architecture.md` for detailed information on the project structure and architecture.
+
 ## Code Style
 - **Language version**: The project uses and requires Python 3.10+
 - **Naming**: PascalCase for classes and methods, snake_case for variables
