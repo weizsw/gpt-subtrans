@@ -188,7 +188,8 @@ class Options(SettingsType):
         """
         Get a copy of the settings dictionary with only the default keys included
         """
-        settings = SettingsType({ key: deepcopy(self.get(key)) for key in self.keys() & default_settings.keys() })
+        keys = self.keys() & default_settings.keys()
+        settings = SettingsType({ key: deepcopy(dict.get(self, key)) for key in keys })
         return settings
 
     def LoadSettings(self) -> bool:
