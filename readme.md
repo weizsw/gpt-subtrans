@@ -219,7 +219,7 @@ Other options that can be specified on the command line are detailed below.
 
 The `--project` argument or `PROJECT_FILE` .env setting control whether a project file will be written to disc for the command line.
 
-If enabled, a file will be created with the `.subtrans` extension when a subtitle file is loaded, containing details of the project. It will be updated as the translation progresses. Writing a project file allows, amongst other things, resuming a translation was interrupted.
+If enabled, a file will be created with the `.subtrans` extension when a subtitle file is loaded, containing details of the project. It will be updated as the translation progresses. Writing a project file allows, amongst other things, resuming a translation that was interrupted. It is highly recommended.
 
 ## Advanced usage
 
