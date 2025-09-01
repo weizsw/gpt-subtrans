@@ -22,22 +22,27 @@ class SubtitleProject:
     """
     Handles loading, saving and creation of project files for LLM-Subtrans
     """
-    def __init__(self, options : Options):
+    def __init__(self, persistent : bool = False):
         """
-        Initialise an empty project. Can be initialised from a project file or a subtitle file,
+        A subtitle translation project. 
+        
+        Can be initialised from a project file or a subtitle file,
         or manually configured by assigning a SubtitleFile and updating settings if necessary.
         
-        :param options: Only used to set the project mode
+        :param persistent: if True, the project will be saved to disk and automatically reloaded next time
         """
         self.subtitles : Subtitles = Subtitles()
         self.events = TranslationEvents()
         self.projectfile : str|None = None
-        self.read_project : bool = False
-        self.write_project : bool = False
+        self.existing_project : bool = False
         self.needs_writing : bool = False
         self.lock = threading.RLock()
 
-        self._update_project_mode(options)
+        # By default the project is not persistent, i.e. it will not be saved to a file and automatically reloaded next time
+        self.use_project_file : bool = persistent
+
+        # By default the translated subtitles will be written to file
+        self.write_translation = True
 
     @property
     def target_language(self) -> str|None:
@@ -54,7 +59,7 @@ class SubtitleProject:
     @property
     def any_translated(self) -> bool:
         with self.lock:
-            return True if self.subtitles and self.subtitles.translated else False
+            return bool(self.subtitles and self.subtitles.translated)
 
     def InitialiseProject(self, filepath : str, outputpath : str|None = None, reload_subtitles : bool = False):
         """
@@ -71,16 +76,19 @@ class SubtitleProject:
         project_file_exists : bool = os.path.exists(self.projectfile)
         project_settings : SettingsType = SettingsType()
 
-        if self.projectfile == filepath and not self.read_project:
-            self.read_project = True
-            self.write_project = True
+        # If initialised with a project file, we are implicitly using a project file
+        if filepath == self.projectfile:
+            self.use_project_file = True
 
-        if self.read_project and not project_file_exists:
-            logging.info(_("Project file {} does not exist").format(self.projectfile))
-            self.read_project = False
-            self.load_subtitles = True
+        read_project : bool = self.use_project_file and project_file_exists
+        load_subtitles : bool = reload_subtitles or not read_project
 
-        if self.read_project:
+        if project_file_exists and not read_project:
+            logging.warning(_("Project file {} exists but will not be used").format(self.projectfile))
+
+        if read_project:
+            logging.info(_("Loading existing project file {}").format(self.projectfile))
+
             # Try to load the project file
             subtitles : Subtitles|None = self.ReadProjectFile(self.projectfile)
             project_settings = self.GetProjectSettings()
@@ -91,21 +99,22 @@ class SubtitleProject:
                 logging.info(_("Project file loaded"))
 
                 if subtitles.scenes:
-                    self.load_subtitles = reload_subtitles
-                    if self.load_subtitles:
+                    self.existing_project = True
+                    load_subtitles = reload_subtitles
+                    if load_subtitles:
                         logging.info(_("Reloading subtitles from the source file"))
 
                 else:
                     logging.error(_("Unable to read project file, starting afresh"))
-                    self.load_subtitles = True
+                    load_subtitles = True
 
-        if self.load_subtitles:
+        if load_subtitles:
             try:
                 # (re)load the source subtitle file if required
                 subtitles = self.LoadSubtitleFile(sourcepath)
 
                 # Reapply project settings
-                if self.read_project and project_settings:
+                if read_project and project_settings:
                     subtitles.UpdateProjectSettings(project_settings)
 
             except Exception as e:
@@ -118,7 +127,7 @@ class SubtitleProject:
             if outputpath:
                 subtitles.outputpath = outputpath
 
-        self.needs_writing = self.write_project
+        self.needs_writing = self.use_project_file
 
     def SaveOriginal(self, outputpath : str|None = None):
         """
@@ -176,10 +185,6 @@ class SubtitleProject:
 
             if not self.subtitles.scenes:
                 raise Exception("Can't write project file, no scenes")
-
-            if projectfile and not self.write_project:
-                self.write_project = True
-                self.read_project = True
 
             if not projectfile:
                 projectfile = self.projectfile
@@ -266,7 +271,7 @@ class SubtitleProject:
 
         if self.subtitles.scenes:
             self.subtitles.UpdateOutputPath()
-            self.needs_writing = True
+            self.needs_writing = self.use_project_file
 
     def WriteProjectToFile(self, projectfile: str, encoder_class: type|None = None) -> None:
         """
@@ -285,13 +290,15 @@ class SubtitleProject:
 
     def TranslateSubtitles(self, translator : SubtitleTranslator) -> None:
         """
-        Use the translation provider to translate a project
+        One-stop shop: Use the translation provider to translate a project, then save the translation.
         """
         if not self.subtitles:
             raise Exception("No subtitles to translate")
 
         # Prime new project files
         self.UpdateProjectFile()
+
+        save_translation : bool = self.write_translation and not translator.preview
 
         try:
             translator.events.preprocessed += self._on_preprocessed # type: ignore
@@ -304,14 +311,14 @@ class SubtitleProject:
             translator.events.batch_translated -= self._on_batch_translated # type: ignore
             translator.events.scene_translated -= self._on_scene_translated # type: ignore
 
-            if self.save_subtitles and not translator.aborted:
+            if save_translation and not translator.aborted:
                 self.SaveTranslation()
 
         except TranslationAbortedError:
             logging.info(_("Translation aborted"))
 
         except Exception as e:
-            if self.subtitles and self.save_subtitles and translator.stop_on_error:
+            if save_translation and self.subtitles and translator.stop_on_error:
                 self.SaveTranslation()
 
             logging.error(_("Failed to translate subtitles: {}").format(str(e)))
@@ -333,9 +340,6 @@ class SubtitleProject:
             scene.errors = []
 
             translator.TranslateScene(self.subtitles, scene, batch_numbers=batch_numbers, line_numbers=line_numbers)
-
-            if self.save_subtitles and not translator.aborted:
-                self.SaveTranslation()
 
             return scene
 
@@ -365,35 +369,16 @@ class SubtitleProject:
 
         return batch
 
-    def _update_project_mode(self, options : Options) -> None:
-        """
-        Update the project mode based on the settings... yes, this is a dumb system
-        """
-        project_mode = options.get_str('project', '')
-        if project_mode:
-            project_mode = project_mode.lower()
-
-        self.read_project = project_mode in ["true", "read", "resume", "retranslate", "reparse"]
-        self.write_project = project_mode in ["true", "write", "preview", "resume", "retranslate", "reparse"]
-        self.load_subtitles = project_mode is None or project_mode in ["true", "write", "reload", "preview"]
-        self.save_subtitles = project_mode not in ['preview', 'test']
-
-        options.add("preview", project_mode in ["preview"])
-        options.add("resume", project_mode in ["resume"])
-        options.add("reparse", project_mode in ["reparse"])
-        options.add("retranslate", project_mode in ["retranslate"])
-
     def _on_preprocessed(self, scenes) -> None:
         logging.debug("Pre-processing finished")
-        self.needs_writing = self.write_project
         self.events.preprocessed(scenes)
 
     def _on_batch_translated(self, batch) -> None:
         logging.debug("Batch translated")
-        self.needs_writing = self.write_project
+        self.needs_writing = self.use_project_file
         self.events.batch_translated(batch)
 
     def _on_scene_translated(self, scene) -> None:
         logging.debug("Scene translated")
-        self.needs_writing = self.write_project
+        self.needs_writing = self.use_project_file
         self.events.scene_translated(scene)

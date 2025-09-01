@@ -35,8 +35,9 @@ class SettingsDialog(QDialog):
             'add_right_to_left_markers': (bool, _("Add RTL markers around translated lines that contain primarily right-to-left script on save")),
             'instruction_file': (str, _("Instructions for the translation provider to follow")),
             'prompt': (str, _("The (brief) instruction for each batch of subtitles. Some [tags] are automatically filled in")),
-            'autosave': (bool, _("Automatically save the project after each translation batch")),
+            'project_file': (bool, _("Create a project file to allow resuming or revising translation")),
             'write_backup': (bool, _("Save a backup copy of the project when opening it")),
+            'autosave': (bool, _("Automatically save the project/translation after each scene is translated")),
             # 'autosplit_incomplete': (bool, "If true, incomplete translations will be split into smaller batches and retried"),
             'retry_on_error': (bool, _("If true, translations that fail validation will be retried with a note about the error")),
             'stop_on_error': (bool, _("Stop translating if an error is encountered"))
@@ -91,6 +92,7 @@ class SettingsDialog(QDialog):
     _prepostprocessor_setting = [ _preprocessor_setting, _postprocessor_setting ]
 
     VISIBILITY_DEPENDENCIES = {
+        'write_backup': { 'project_file': True },
         # 'Processing' : [
         #     { 'preprocess_subtitles': True },
         #     { 'postprocess_translation': True }
