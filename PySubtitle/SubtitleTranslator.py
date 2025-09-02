@@ -107,7 +107,7 @@ class SubtitleTranslator:
 
         if not subtitles.scenes:
             if reprocess_translated:
-                logging.warning(_("Previous translations not found, starting fresh..."))
+                logging.warning(_("No previous translations found, starting fresh..."))
             subtitles.AutoBatch(self.batcher)
 
         if not subtitles.scenes:
