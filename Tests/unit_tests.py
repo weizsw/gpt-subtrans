@@ -9,6 +9,19 @@ sys.path.append(base_path)
 
 from PySubtitle.Helpers.Tests import create_logfile
 
+def discover_tests_in_directory(loader : unittest.TestLoader, test_dir : str, base_dir : str, handle_import_errors : bool = False) -> unittest.TestSuite:
+    """Discover tests in a specific directory with optional error handling."""
+    if not os.path.exists(test_dir):
+        return unittest.TestSuite()
+    
+    if handle_import_errors:
+        try:
+            return loader.discover(test_dir, pattern='test_*.py', top_level_dir=base_dir)
+        except (ImportError, ModuleNotFoundError):
+            return unittest.TestSuite()
+    else:
+        return loader.discover(test_dir, pattern='test_*.py', top_level_dir=base_dir)
+
 def discover_tests(base_dir=None, separate_suites=False):
     """Automatically discover all test modules following naming conventions.
     
@@ -23,28 +36,15 @@ def discover_tests(base_dir=None, separate_suites=False):
     original_dir = os.getcwd()
     
     try:
-        # Change to base directory for discovery
         os.chdir(base_dir)
         
-        # Discover tests in PySubtitle.UnitTests
         pysubtitle_dir = os.path.join(base_dir, 'PySubtitle', 'UnitTests')
-        if os.path.exists(pysubtitle_dir):
-            pysubtitle_tests = loader.discover(pysubtitle_dir, pattern='test_*.py', top_level_dir=base_dir)
-        else:
-            pysubtitle_tests = unittest.TestSuite()
+        pysubtitle_tests = discover_tests_in_directory(loader, pysubtitle_dir, base_dir)
         
-        # Discover tests in GUI.UnitTests  
         gui_dir = os.path.join(base_dir, 'GUI', 'UnitTests')
-        if os.path.exists(gui_dir):
-            try:
-                gui_tests = loader.discover(gui_dir, pattern='test_*.py', top_level_dir=base_dir)
-            except (ImportError, ModuleNotFoundError):
-                gui_tests = unittest.TestSuite()
-        else:
-            gui_tests = unittest.TestSuite()
+        gui_tests = discover_tests_in_directory(loader, gui_dir, base_dir, handle_import_errors=True)
     
     finally:
-        # Restore original directory
         os.chdir(original_dir)
     
     if separate_suites:
