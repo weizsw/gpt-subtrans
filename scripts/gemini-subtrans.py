@@ -1,13 +1,10 @@
 import os
-import sys
 import logging
 
-# Add the parent directory to the sys path so that modules can be found
-base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-sys.path.append(base_path)
+from check_imports import check_required_imports
+check_required_imports(['PySubtitle', 'google.genai', 'google.api_core'], 'gemini')
 
 from scripts.subtrans_common import InitLogger, CreateArgParser, CreateOptions, CreateTranslator, CreateProject
-
 from PySubtitle.Options import Options
 from PySubtitle.SubtitleProject import SubtitleProject
 from PySubtitle.SubtitleTranslator import SubtitleTranslator
