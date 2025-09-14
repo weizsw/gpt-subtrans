@@ -10,7 +10,6 @@ Always run the unit_tests at the end of a task to validate the change.
 
 ## Console Output
 Avoid Unicode characters (✓ ✗) in print/log messages as these trigger Windows console errors
-
 ## Commands
 - Run all unit tests: `python tests/unit_tests.py` 
 - Run single test: `python -m unittest PySubtitle.UnitTests.test_MODULE` or `python -m unittest GUI.UnitTests.test_MODULE`
