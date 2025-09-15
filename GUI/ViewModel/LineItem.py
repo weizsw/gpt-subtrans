@@ -20,7 +20,7 @@ class LineItem(QStandardItem):
         self.line_model : dict[str, str|int|float] = model
         self.height = max(GetLineHeight(self.line_text), GetLineHeight(self.translation)) if self.translation else GetLineHeight(self.line_text)
 
-        self.setData(self.line_model, Qt.ItemDataRole.UserRole)
+        self._format_and_set_data()
 
     def Update(self, line_update : dict[str, str|int|float]) -> None:
         if not isinstance(line_update, dict):
@@ -36,7 +36,7 @@ class LineItem(QStandardItem):
 
         self.height = max(GetLineHeight(self.line_text), GetLineHeight(self.translation)) if self.translation else GetLineHeight(self.line_text)
 
-        self.setData(self.line_model, Qt.ItemDataRole.UserRole)
+        self._format_and_set_data()
 
     def __str__(self) -> str:
         return f"{self.number}: {self.start} --> {self.end} | {Linearise(self.line_text)}"
@@ -51,7 +51,7 @@ class LineItem(QStandardItem):
 
         start = self.line_model['start']
         if not isinstance(start, str):
-            raise ViewModelError(f"Model field {'start'} is not a string: {self.line_model}")
+            raise ViewModelError(f"Model field 'start' is not a string: {self.line_model}")
 
         return start
 
@@ -63,7 +63,7 @@ class LineItem(QStandardItem):
         end = self.line_model['end']
 
         if not isinstance(end, str):
-            raise ViewModelError(f"Model field {'end'} is not a string: {self.line_model}")
+            raise ViewModelError(f"Model field 'end' is not a string: {self.line_model}")
 
         return end
 
@@ -74,7 +74,7 @@ class LineItem(QStandardItem):
 
         duration = self.line_model['duration']
         if not isinstance(duration, str):
-            raise ViewModelError(f"Model field {'duration'} is not a string: {self.line_model}")
+            raise ViewModelError(f"Model field 'duration' is not a string: {self.line_model}")
 
         return duration
 
@@ -85,7 +85,7 @@ class LineItem(QStandardItem):
 
         gap = self.line_model['gap']
         if not isinstance(gap, str):
-            raise ViewModelError(f"Model field {'gap'} is not a string: {self.line_model}")
+            raise ViewModelError(f"Model field 'gap' is not a string: {self.line_model}")
 
         return gap
 
@@ -96,7 +96,7 @@ class LineItem(QStandardItem):
 
         style = self.line_model['style']
         if style is not None and not isinstance(style, str):
-            raise ViewModelError(f"Model field {'style'} is not a string: {self.line_model}")
+            raise ViewModelError(f"Model field 'style' is not a string: {self.line_model}")
 
         return style
 
@@ -107,7 +107,15 @@ class LineItem(QStandardItem):
 
         text = self.line_model['text']
         if not isinstance(text, str):
-            raise ViewModelError(f"Model field {'text'} is not a string: {self.line_model}")
+            raise ViewModelError(f"Model field 'text' is not a string: {self.line_model}")
+        
+        return text
+
+    @property
+    def formatted_text(self) -> str:
+        text = self.line_model.get('formatted_text', self.line_model.get('text', ''))
+        if not isinstance(text, str):
+            raise ViewModelError(f"Model field 'text' is not a string: {self.line_model}")
         
         return text
 
@@ -120,7 +128,7 @@ class LineItem(QStandardItem):
 
     @property
     def translation_text(self) -> str:
-        translation = self.line_model.get('translation', None)
+        translation = self.line_model.get('formatted_translation', self.line_model.get('translation'))
         if translation is None or not isinstance(translation, str):
             return blank_line
         return translation
@@ -132,7 +140,7 @@ class LineItem(QStandardItem):
 
         scene = self.line_model['scene']
         if not isinstance(scene, int):
-            raise ViewModelError(f"Model field {'scene'} is not an integer: {self.line_model}")
+            raise ViewModelError(f"Model field 'scene' is not an integer: {self.line_model}")
 
         return scene
 
@@ -143,6 +151,30 @@ class LineItem(QStandardItem):
 
         batch = self.line_model['batch']
         if not isinstance(batch, int):
-            raise ViewModelError(f"Model field {'batch'} is not an integer: {self.line_model}")
+            raise ViewModelError(f"Model field 'batch' is not an integer: {self.line_model}")
 
         return batch
+
+    def _format_and_set_data(self) -> None:
+        """
+        Format text for GUI display and set the data on the model.
+        """
+        if 'text' in self.line_model and isinstance(self.line_model['text'], str):
+            self.line_model['formatted_text'] = self._format_text_for_display(self.line_model['text'])
+        else:
+            self.line_model['formatted_text'] = blank_line
+
+        if 'translation' in self.line_model and isinstance(self.line_model['translation'], str):
+            self.line_model['formatted_translation'] = self._format_text_for_display(self.line_model['translation'])
+        else:
+            self.line_model['formatted_translation'] = blank_line
+
+        self.setData(self.line_model, Qt.ItemDataRole.UserRole)
+
+    def _format_text_for_display(self, text : str) -> str:
+        """
+        Format text for GUI display by converting soft line breaks to spaces.
+        """
+        if not text:
+            return text
+        return text.replace('<wbr>', ' ')
