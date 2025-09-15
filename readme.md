@@ -158,12 +158,12 @@ During the installing process, you can choose to input an API key for each selec
     source ./envsubtrans/bin/activate   # Mac/Linux
     ```
 
-4. Install the project with :
+4. Install the project (add the -e switch for an editable install if you want to modify the code):
 
     ```sh
-    pip install .                   # Minimal install of command line tools with support for OpenRouter or Custom Server
-    pip install ".[gui]"            # Core module and default provider with GUI module
-    pip install ".[gui,openai,gemini,claude,mistral,bedrock]"   # Full install with optional providers (delete to taste)
+    pip install -e .                   # Minimal install of command line tools with support for OpenRouter or Custom Server
+    pip install -e ".[gui]"            # Core module and default provider with GUI module
+    pip install -e ".[gui,openai,gemini,claude,mistral,bedrock]"   # Full install with optional providers (delete to taste)
     ```
 
 ## Usage
