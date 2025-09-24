@@ -430,9 +430,10 @@ Dialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,Hello ASS!
         log_input_expected_result("format after setting output path", ".srt", project.subtitles.file_format)
         self.assertEqual(project.subtitles.file_format, ".srt")
         
-        project.subtitles.AutoBatch(SubtitleBatcher(options))
-        project.subtitles._duplicate_originals_as_translations()
-        project.needs_writing = True
+        with project.GetEditor() as editor:
+            editor.AutoBatch(SubtitleBatcher(options))
+            editor.DuplicateOriginalsAsTranslations()
+
         project.SaveTranslation()
         
         log_input_expected_result("output file exists", True, os.path.exists(out_path))
@@ -471,9 +472,10 @@ Dialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,Hello ASS!
         log_input_expected_result("format after setting output path", ".ass", project.subtitles.file_format)
         self.assertEqual(project.subtitles.file_format, ".ass")
         
-        project.subtitles.AutoBatch(SubtitleBatcher(options))
-        project.subtitles._duplicate_originals_as_translations()
-        project.needs_writing = True
+        with project.GetEditor() as editor:
+            editor.AutoBatch(SubtitleBatcher(options))
+            editor.DuplicateOriginalsAsTranslations()
+
         project.SaveTranslation()
         
         log_input_expected_result("output file exists", True, os.path.exists(out_path))
@@ -510,9 +512,9 @@ Dialogue: 0,0:00:01.00,0:00:02.00,Default,,0,0,0,,Hello ASS!
         log_input_expected_result("project.subtitles not None", True, project.subtitles is not None)
         self.assertIsNotNone(project.subtitles)
         
-        project.subtitles.AutoBatch(SubtitleBatcher(options))
-        project.subtitles._duplicate_originals_as_translations()
-        project.needs_writing = True
+        with project.GetEditor() as editor:
+            editor.AutoBatch(SubtitleBatcher(options))
+            editor.DuplicateOriginalsAsTranslations()
         
         # Create and write project file
         with tempfile.NamedTemporaryFile(delete=False, suffix=".subtrans") as tmp_project:

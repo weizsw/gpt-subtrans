@@ -5,6 +5,7 @@ from PySubtrans.Helpers.TestCases import DummyProvider, PrepareSubtitles, Subtit
 from PySubtrans.Helpers.Tests import log_info, log_input_expected_result, log_test_name
 from PySubtrans.SubtitleBatch import SubtitleBatch
 from PySubtrans.SubtitleBatcher import SubtitleBatcher
+from PySubtrans.SubtitleEditor import SubtitleEditor
 from PySubtrans.Subtitles import Subtitles
 from PySubtrans.SubtitleScene import SubtitleScene
 from PySubtrans.SubtitleTranslator import SubtitleTranslator
@@ -33,8 +34,10 @@ class SubtitleTranslatorTests(SubtitleTestCase):
             self.assertEqual(originals.linecount, reference.linecount)
 
             batcher = SubtitleBatcher(self.options)
-            originals.AutoBatch(batcher)
-            reference.AutoBatch(batcher)
+            with SubtitleEditor(originals) as editor:
+                editor.AutoBatch(batcher)
+            with SubtitleEditor(reference) as editor:
+                editor.AutoBatch(batcher)
 
             self.assertEqual(len(originals.scenes), len(reference.scenes))
 
@@ -43,8 +46,8 @@ class SubtitleTranslatorTests(SubtitleTestCase):
                 self.assertEqual(originals.scenes[i].linecount, reference.scenes[i].linecount)
 
             translator = SubtitleTranslator(self.options, translation_provider=provider)
-            translator.events.batch_translated += lambda batch: self.validate_batch(batch, original=originals, reference=reference) # type: ignore
-            translator.events.scene_translated += lambda scene: self.validate_scene(scene, original=originals, reference=reference) # type: ignore
+            translator.events.batch_translated += lambda batch: self.validate_batch(batch, original=originals, reference=reference)
+            translator.events.scene_translated += lambda scene: self.validate_scene(scene, original=originals, reference=reference)
 
             translator.TranslateSubtitles(originals)
 
@@ -56,8 +59,8 @@ class SubtitleTranslatorTests(SubtitleTestCase):
         log_info(f"Scene: {batch.context.get('scene')}")
         self.assertIsNotNone(batch.context.get('scene'))
 
-        self.assertEqual(batch.context.get('movie_name'), original.movie_name)
-        self.assertEqual(batch.context.get('description'), original.settings.get('description'))
+        self.assertEqual(batch.context.get('movie_name'), original.settings.get_str('movie_name'))
+        self.assertEqual(batch.context.get('description'), original.settings.get_str('description'))
         batch_names = ParseNames(batch.context.get('names'))
         original_names = ParseNames(original.settings.get('names'))
         self.assertSequenceEqual(batch_names, original_names)
@@ -106,8 +109,10 @@ class SubtitleTranslatorTests(SubtitleTestCase):
             self.assertEqual(originals.linecount, reference.linecount)
 
             batcher = SubtitleBatcher(self.options)
-            originals.AutoBatch(batcher)
-            reference.AutoBatch(batcher)
+            with SubtitleEditor(originals) as editor:
+                editor.AutoBatch(batcher)
+            with SubtitleEditor(reference) as editor:
+                editor.AutoBatch(batcher)
 
             self.assertEqual(len(originals.scenes), len(reference.scenes))
 

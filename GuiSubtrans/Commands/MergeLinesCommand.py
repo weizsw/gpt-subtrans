@@ -1,12 +1,16 @@
+import logging
+from typing import TYPE_CHECKING
+
 from GuiSubtrans.Command import Command, CommandError, UndoError
 from GuiSubtrans.ProjectDataModel import ProjectDataModel
 from GuiSubtrans.ViewModel.ViewModelUpdate import ModelUpdate
-from PySubtrans.SubtitleBatch import SubtitleBatch
-from PySubtrans.Subtitles import Subtitles
-from PySubtrans.SubtitleProject import SubtitleProject
 from PySubtrans.Helpers.Localization import _
+from PySubtrans.SubtitleBatch import SubtitleBatch
+from PySubtrans.SubtitleProject import SubtitleProject
+from PySubtrans.Subtitles import Subtitles
 
-import logging
+if TYPE_CHECKING:
+    from PySubtrans.SubtitleEditor import SubtitleEditor
 
 class MergeLinesCommand(Command):
     """
@@ -21,7 +25,8 @@ class MergeLinesCommand(Command):
         if not self.datamodel or not self.datamodel.project:
             raise CommandError(_("No project data"), command=self)
 
-        subtitles : Subtitles = self.datamodel.project.subtitles
+        project: SubtitleProject = self.datamodel.project
+        subtitles : Subtitles = project.subtitles
 
         if not subtitles:
             raise CommandError(_("No subtitles"), command=self)
@@ -50,7 +55,8 @@ class MergeLinesCommand(Command):
 
             self.undo_data.append((batch.scene, batch.number, originals, translated))
 
-            merged_line, merged_translated = subtitles.MergeLinesInBatch(batch.scene, batch.number, batch_lines)
+            with project.GetEditor() as editor:
+                merged_line, merged_translated = editor.MergeLinesInBatch(batch.scene, batch.number, batch_lines)
 
             if not merged_line:
                 raise CommandError(_("Failed to merge lines"), command=self)

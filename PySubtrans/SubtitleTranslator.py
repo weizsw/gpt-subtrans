@@ -3,14 +3,13 @@ import logging
 import threading
 from typing import Any
 
-from PySubtrans.Helpers.SettingsHelpers import GetStrSetting
+from PySubtrans.Helpers.ContextHelpers import GetBatchContext
 from PySubtrans.Helpers.SubtitleHelpers import MergeTranslations
 from PySubtrans.Helpers.Localization import _, tr
 from PySubtrans.Helpers.Text import Linearise, SanitiseSummary
 from PySubtrans.Instructions import DEFAULT_TASK_TYPE, Instructions
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.Substitutions import Substitutions
-from PySubtrans.SubtitleBatcher import SubtitleBatcher
 from PySubtrans.SubtitleLine import SubtitleLine
 from PySubtrans.SubtitleProcessor import SubtitleProcessor
 from PySubtrans.Translation import Translation
@@ -86,8 +85,6 @@ class SubtitleTranslator:
         if not self.client:
             raise ProviderError(_("Unable to create translation client"), translation_provider)
 
-        self.batcher = SubtitleBatcher(settings)
-
         self.postprocessor = SubtitleProcessor(settings) if settings.get('postprocess_translation') else None
 
     def StopTranslating(self):
@@ -105,16 +102,7 @@ class SubtitleTranslator:
             logging.info(_("Resuming translation"))
 
         if not subtitles.scenes:
-            if self.retranslate or self.reparse:
-                logging.warning(_("No previous translations found, starting fresh..."))
-            subtitles.AutoBatch(self.batcher)
-
-        if not subtitles.scenes:
-            raise TranslationImpossibleError(_("No scenes to translate"))
-
-        if self.resume or self.retranslate:
-            if not any(scene.any_translated for scene in subtitles.scenes):
-                logging.warning(_("No previous translations found, starting fresh..."))
+            raise TranslationImpossibleError(_("Subtitles must be batched before translation"))
 
         logging.info(_("Translating {linecount} lines in {scenecount} scenes").format(linecount=subtitles.linecount, scenecount=subtitles.scenecount))
 
@@ -151,7 +139,7 @@ class SubtitleTranslator:
         if translations:
             logging.info(_("Successfully translated {count} lines!").format(count=len(translations)))
 
-        if untranslated and not self.max_lines:
+        if untranslated and not self.max_lines and not self.preview:
             logging.warning(_("Failed to translate {count} lines:").format(count=len(untranslated)))
             for line in untranslated:
                 logging.info(_("Untranslated > {number}. {text}").format(number=line.number, text=line.text))
@@ -168,7 +156,7 @@ class SubtitleTranslator:
             context = {}
 
             for batch in batches:
-                context = subtitles.GetBatchContext(scene.number, batch.number, self.max_history)
+                context = GetBatchContext(subtitles, scene.number, batch.number, self.max_history)
 
                 try:
                     self.TranslateBatch(batch, line_numbers, context)
@@ -198,7 +186,7 @@ class SubtitleTranslator:
                     break
 
             # Update the scene summary based on the best available information (we hope)
-            scene.summary = self._get_best_summary([scene.summary, GetStrSetting(context, 'scene'), GetStrSetting(context, 'summary')])
+            scene.summary = self._get_best_summary([scene.summary, context.get('scene'), context.get('summary')])
 
             # Notify observers the scene was translated
             self.events.scene_translated(scene)

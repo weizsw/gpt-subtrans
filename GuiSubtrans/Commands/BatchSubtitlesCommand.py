@@ -1,4 +1,7 @@
 from copy import deepcopy
+import logging
+from typing import TYPE_CHECKING
+
 from GuiSubtrans.Command import Command, CommandError
 from GuiSubtrans.Commands.SaveProjectFile import SaveProjectFile
 from GuiSubtrans.ProjectDataModel import ProjectDataModel
@@ -9,7 +12,8 @@ from PySubtrans.SubtitleBatcher import SubtitleBatcher
 from PySubtrans.SubtitleProcessor import SubtitleProcessor
 from PySubtrans.SubtitleProject import SubtitleProject
 
-import logging
+if TYPE_CHECKING:
+    from PySubtrans.SubtitleEditor import SubtitleEditor
 
 class BatchSubtitlesCommand(Command):
     """
@@ -30,20 +34,21 @@ class BatchSubtitlesCommand(Command):
         if not project or not project.subtitles or not project.subtitles.originals:
             raise CommandError(_("No subtitles to batch"), command=self)
 
-        if self.preprocess_subtitles:
-            originals = deepcopy(project.subtitles.originals)
-            preprocessor = SubtitleProcessor(self.options)
-            project.subtitles.PreProcess(preprocessor)
+        with project.GetEditor() as editor:
+            if self.preprocess_subtitles:
+                originals = deepcopy(project.subtitles.originals)
+                preprocessor = SubtitleProcessor(self.options)
+                editor.PreProcess(preprocessor)
 
-            if self.options.get('save_preprocessed', False):
-                changed = len(originals) != len(project.subtitles.originals) or any(o != n for o, n in zip(originals, project.subtitles.originals))
-                if changed:
-                    output_path = GetOutputPath(project.subtitles.sourcepath, "preprocessed", project.subtitles.file_format)
-                    logging.info(f"Saving preprocessed subtitles to {output_path}")
-                    project.SaveOriginal(output_path)
+                if self.options.get('save_preprocessed', False):
+                    changed = len(originals) != len(project.subtitles.originals) or any(o != n for o, n in zip(originals, project.subtitles.originals))
+                    if changed:
+                        output_path = GetOutputPath(project.subtitles.sourcepath, "preprocessed", project.subtitles.file_format)
+                        logging.info(f"Saving preprocessed subtitles to {output_path}")
+                        project.SaveOriginal(output_path)
 
-        batcher : SubtitleBatcher = SubtitleBatcher(self.options)
-        project.subtitles.AutoBatch(batcher)
+            batcher : SubtitleBatcher = SubtitleBatcher(self.options)
+            editor.AutoBatch(batcher)
 
         if project.use_project_file:
             self.commands_to_queue.append(SaveProjectFile(project=project))
