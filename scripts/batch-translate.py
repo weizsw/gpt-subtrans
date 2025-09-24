@@ -61,18 +61,18 @@ from PySubtrans.SettingsType import redact_sensitive_values
 DEFAULT_OPTIONS = SettingsType({
     'source_path': './subtitles',
     'destination_path': './translated',
-    'target_language': 'Spanish',                   # The language to translate subtitles to
+    'target_language': 'English',                   # The language to translate subtitles to
     'output_format': None,                          # Optional format override, e.g. "srt". If not specified, inferred from source file.
     'provider': "OpenRouter",                       # Translation provider to use, e.g. "Gemini"
     'api_key': None,                                # Your API key for the selected provider
-    'model': "deepseek/deepseek-chat-v3.1:free",    # Your preferred model name
+    'model': "x-ai/grok-4-fast:free",               # Your preferred model name
     'prompt': 'Translate these subtitles into [target_language]',       # High level prompt template
     'instruction_file': 'instructions.txt',         # Optional file containing detailed instructions
     'scene_threshold': 60.0,                        # Scene detection threshold in seconds
     'max_batch_size': 100,                          # Maximum number of lines to include in each translation batch
     'preprocess_subtitles': True,                   # Whether to apply preprocessing steps to the subtitles before translation
     'postprocess_translation': True,                # Whether to apply postprocessing steps to the translated subtitles
-    'log_path': './batch_translate.log',
+    'log_path': './batch-translate.log',
     'preview': False,                               # Set to True to exercise the workflow without calling the API to execute translations.
 })
 
@@ -94,6 +94,7 @@ class BatchJobConfig:
         self.prompt = self.options.get_str('prompt')
         self.provider = self.options.get_str('provider')
         self.model = self.options.get_str('model')
+        self.instruction_file = self.options.get_str('instruction_file')
 
 class BatchProcessor:
     """Coordinate discovery and translation of subtitle files."""
@@ -118,6 +119,9 @@ class BatchProcessor:
         self.logger.info("Writing translated files to %s", destination_root)
         self.logger.info("Using provider: %s with model: %s", self.translation_provider.name, self.translation_provider.selected_model or "default")
         self.logger.info("Prompt: %s", self.config.prompt)
+
+        if self.config.instruction_file:
+            self.logger.info("Instructions file: %s", self.config.instruction_file)
 
         if self.config.target_language:
             self.logger.info("Target language: %s", self.config.target_language)
@@ -267,27 +271,6 @@ class BatchProcessor:
 
         return translation_provider
 
-def parse_args(argv : list[str]|None = None) -> argparse.Namespace:
-    """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description="Batch translate subtitles with PySubtrans")
-    parser.add_argument("source", nargs="?", help="Directory containing subtitle files")
-    parser.add_argument("destination", nargs="?", help="Directory to write translated subtitles")
-    parser.add_argument("--provider", help="Translation provider name")
-    parser.add_argument("--model", help="Model identifier for the provider")
-    parser.add_argument("--apikey", dest="api_key", help="API key for the provider")
-    parser.add_argument("--prompt", help="High level translation prompt")
-    parser.add_argument("--language", dest="target_language", help="Target language for translation")
-    parser.add_argument("--option", action="append", default=[], metavar="KEY=VALUE",
-                        help="Override additional Options settings (repeatable)")
-    parser.add_argument("--output-format", dest="output_format", help="Override the output subtitle format (e.g. srt)")
-    parser.add_argument("--log-file", dest="log_file", help="Path to write the detailed log file")
-    parser.add_argument("--verbose", action="store_true", help="Enable verbose console logging")
-    parser.add_argument("--preview", dest="preview", action="store_true", help="Enable preview mode")
-    parser.add_argument("--no-preview", dest="preview", action="store_false", help="Disable preview mode")
-    parser.set_defaults(preview=None)
-    return parser.parse_args(argv)
-
-
 
 def build_config(args : argparse.Namespace) -> BatchJobConfig:
     """Combine DEFAULT_OPTIONS with command line arguments."""
@@ -312,6 +295,8 @@ def build_config(args : argparse.Namespace) -> BatchJobConfig:
         settings['prompt'] = args.prompt
     if args.target_language is not None:
         settings['target_language'] = args.target_language
+    if args.instruction_file is not None:
+        settings['instruction_file'] = args.instruction_file
     if args.preview is not None:
         settings['preview'] = args.preview
 
@@ -447,8 +432,8 @@ class ProgressDisplay:
             parts.append(f"lines {self._processed_lines}/{self._total_lines}")
         # if self._last_batch_summary:
         #     parts.append(f"last batch {self._last_batch_label}: {self._shorten(self._last_batch_summary)}")
-        if self._last_scene_summary:
-            parts.append(f"scene {self._last_scene_label}: {self._shorten(self._last_scene_summary)}")
+        #if self._last_scene_summary:
+        #    parts.append(f"scene {self._last_scene_label}: {self._shorten(self._last_scene_summary)}")
         if self._preview:
             parts.append("preview")
         message = " | ".join(parts)
@@ -496,9 +481,31 @@ def configure_logging(log_path : str, verbose : bool) -> None:
     console_handler.addFilter(BatchScriptFilter())
     logging.root.addHandler(console_handler)
 
+def parse_args(argv : list[str]|None = None) -> argparse.Namespace:
+    """Parse command line arguments."""
+    parser = argparse.ArgumentParser(description="Batch translate subtitles with PySubtrans")
+    parser.add_argument("source", nargs="?", help="Directory containing subtitle files")
+    parser.add_argument("destination", nargs="?", help="Directory to write translated subtitles")
+    parser.add_argument("--provider", help="Translation provider name")
+    parser.add_argument("--model", help="Model identifier for the provider")
+    parser.add_argument("--apikey", dest="api_key", help="API key for the provider")
+    parser.add_argument("--prompt", help="High level translation prompt")
+    parser.add_argument("--language", dest="target_language", help="Target language for translation")
+    parser.add_argument("--output-format", dest="output_format", help="Override the output subtitle format (e.g. srt)")
+    parser.add_argument("--instructions", dest="instruction_file", help="Path to a file containing detailed instructions for the translator (system prompt)")
+    parser.add_argument("--log-file", dest="log_file", help="Path to write the detailed log file")
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose console logging")
+    parser.add_argument("--preview", dest="preview", action="store_true", help="Enable preview mode")
+    parser.add_argument("--option", action="append", default=[], metavar="KEY=VALUE",
+                        help="Override additional Options settings (repeatable)")
+    parser.set_defaults(preview=None)
+    return parser.parse_args(argv)
+
+
 
 def main(argv : list[str]|None = None) -> int:
     """Entry point for command line execution."""
+
     args = parse_args(argv)
     config = build_config(args)
     configure_logging(config.log_path, args.verbose)
@@ -510,10 +517,6 @@ def main(argv : list[str]|None = None) -> int:
     logging.info("Source directory: %s", str(config.source_path))
     logging.info("Destination directory: %s", str(config.destination_path))
     logging.info("Provider: %s", config.provider)
-    if config.model:
-        logging.info("Model: %s", config.model)
-    logging.info("Prompt: %s", config.options.GetInstructions().prompt or "unspecified")
-    logging.info("Target language: %s", config.options.target_language or "unspecified")
     if config.output_format:
         logging.info("Output format override: %s", config.output_format)
 
@@ -527,11 +530,13 @@ def main(argv : list[str]|None = None) -> int:
     )
 
     try:
-
+        # Initialize the batch processor
         processor = BatchProcessor(config)
 
         try:
+            # Run the batch processing workflow
             stats = processor.run()
+
         except SubtitleError as exc:
             logging.error("Batch processing failed: %s", exc)
             return 1
