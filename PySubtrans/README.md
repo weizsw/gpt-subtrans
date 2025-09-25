@@ -197,8 +197,7 @@ PySubtrans is designed to be modular. The helper functions above are convenient 
   openrouter = OpenRouterProvider(SettingsType({
       'api_key': 'your_openrouter_api_key',
       'use_default_model': False,
-      'model_family': "Google",  # Note: should be 
-  "Google" not "Gemini"
+      'model_family': "Gemini",
       'model': "Gemini 2.5 Flash Lite",
       'temperature': 0.2
   }))
@@ -433,18 +432,12 @@ There are many possible and correct ways to use PySubtrans. [LLM-Subtrans](https
 
 ### Batch automation example
 
-The repository also includes [`scripts/batch_translate.py`](../scripts/batch_translate.py) as a ready-to-run batch sample. The script shows how to:
+The [LLM-Subtrans](https://github.com/machinewrapped/llm-subtrans)repository also includes [`scripts/batch_translate.py`](https://github.com/machinewrapped/llm-subtrans/scripts/batch_translate.py) as a ready-to-run sample. The script shows how to:
 
 - build an `Options` instance with `init_options`, including command line overrides for provider, model and preview settings,
 - walk a source directory using `SubtitleFormatRegistry.enumerate_formats()` to filter files that PySubtrans can translate,
 - load subtitles with `init_subtitles`, initialise a `TranslationProvider` and `SubtitleTranslator`, and subscribe to translator events to provide live progress feedback, and
 - save translations to a mirrored directory structure while writing a detailed execution log to disk.
-
-Existing translations are skipped automatically, allowing you to resume long-running jobs without reprocessing completed files.
-
-Preview mode can be enabled with `--preview` to exercise the entire pipeline without sending requests to a translation provider, which is helpful for smoke-testing workflows or validating settings.
-
-_Documentation opportunity_: a dedicated README section covering translator events and preview mode would complement the sample script and make it easier for new users to discover these features without reading the source code.
 
 ## If you need to know more
 
