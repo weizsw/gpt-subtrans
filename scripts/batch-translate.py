@@ -16,7 +16,7 @@ Important options:
 - model: Specific model to use
 - target_language: The language subtitles should be translated into
 - prompt: A more specific prompt to give the translator (e.g. "Translate these subtitles into French and make them funny")
-- instruction_file: Path to a file containing detailed custom instructions for the translator
+- instruction_file: Path to a file containing detailed custom instructions for the translator (examples can be downloaded from the LLM-Subtrans repository)
 - output_format: (optionally) write all translated subtitles using a specific file format (e.g. ".srt")
 - preview: Exercise the workflow without making any API calls to the translation provider
 
@@ -67,7 +67,7 @@ DEFAULT_OPTIONS = SettingsType({
     'api_key': None,                                # Your API key for the selected provider
     'model': "x-ai/grok-4-fast:free",               # Your preferred model name
     'prompt': 'Translate these subtitles into [target_language]',       # High level prompt template
-    'instruction_file': 'instructions.txt',         # Optional file containing detailed instructions
+    'instruction_file': 'instructions.txt',         # Optional file containing detailed instructions for the translator
     'scene_threshold': 60.0,                        # Scene detection threshold in seconds
     'max_batch_size': 100,                          # Maximum number of lines to include in each translation batch
     'preprocess_subtitles': True,                   # Whether to apply preprocessing steps to the subtitles before translation
