@@ -12,7 +12,7 @@ import tempfile
 import shutil
 from pathlib import Path
 
-def run_command(cmd : list[str], cwd : str = None, capture_output : bool = True, env : dict = None) -> subprocess.CompletedProcess:
+def run_command(cmd : list[str], cwd : str|None = None, capture_output : bool = True, env : dict|None = None) -> subprocess.CompletedProcess:
     """Run a command and return the result"""
     print(f"Running: {' '.join(cmd)}")
     try:
