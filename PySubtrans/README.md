@@ -197,7 +197,7 @@ PySubtrans is designed to be modular. The helper functions above are convenient 
   openrouter = OpenRouterProvider(SettingsType({
       'api_key': 'your_openrouter_api_key',
       'use_default_model': False,
-      'model_family': "Gemini",
+      'model_family': "Google",  # Note: should be "Google" not "Gemini"
       'model': "Gemini 2.5 Flash Lite",
       'temperature': 0.2
   }))
