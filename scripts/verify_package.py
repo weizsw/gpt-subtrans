@@ -202,11 +202,12 @@ def main():
             print("Import verification failed!")
             return 1
 
-        # Copy UnitTests directory to the virtual environment
-        print("\nCopying UnitTests to virtual environment...")
+        # Copy PySubtransTests and TestData to the virtual environment
+        print("\nCopying PySubtransTests to virtual environment...")
         script_dir = Path(__file__).parent
         project_root = script_dir.parent
-        source_tests = project_root / "PySubtrans" / "UnitTests"
+        source_tests = project_root / "tests" / "PySubtransTests"
+        source_testdata = project_root / "tests" / "TestData"
 
         if source_tests.exists():
             # Find the installed PySubtrans package location in the venv
@@ -215,17 +216,34 @@ def main():
             if 'PYTHONPATH' in env:
                 del env['PYTHONPATH']  # Remove local development path
 
-            result = run_command([venv_python, "-c", "import sys; import PySubtrans; import os; print(os.path.dirname(PySubtrans.__file__))"],
+            result = run_command([venv_python, "-c", "import sys; import PySubtrans; import os; print(os.path.dirname(os.path.dirname(PySubtrans.__file__)))"],
                                 cwd=temp_dir, env=env)
             if result.returncode == 0:
-                package_dir = result.stdout.strip()
-                target_tests = os.path.join(package_dir, "UnitTests")
+                site_packages_dir = result.stdout.strip()
+                target_tests_root = os.path.join(site_packages_dir, "tests")
+                target_tests = os.path.join(target_tests_root, "PySubtransTests")
+                target_testdata = os.path.join(target_tests_root, "TestData")
 
+                print(f"Creating tests directory structure in site-packages")
                 print(f"Copying {source_tests} to {target_tests}")
+                print(f"Copying {source_testdata} to {target_testdata}")
                 try:
-                    # Copy without __pycache__ directories to avoid file locks
+                    # Create tests directory and copy with proper structure
+                    os.makedirs(target_tests_root, exist_ok=True)
                     shutil.copytree(source_tests, target_tests,
                                     ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+                    if source_testdata.exists():
+                        shutil.copytree(source_testdata, target_testdata,
+                                        ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
+
+                    # Create __init__.py files to make it a proper package
+                    with open(os.path.join(target_tests_root, "__init__.py"), 'w') as f:
+                        f.write("# Test package\n")
+                    with open(os.path.join(target_tests, "__init__.py"), 'w') as f:
+                        f.write("# PySubtrans tests\n")
+                    with open(os.path.join(target_testdata, "__init__.py"), 'w') as f:
+                        f.write("# Test data\n")
+
                 except Exception as e:
                     print(f"Error copying tests: {e}")
                     return 1
@@ -233,7 +251,7 @@ def main():
                 print("Could not locate installed PySubtrans package")
                 return 1
         else:
-            print(f"Warning: UnitTests directory not found at {source_tests}")
+            print(f"Warning: PySubtransTests directory not found at {source_tests}")
             return 1
 
         # Run the copied unit tests directly
@@ -248,17 +266,23 @@ def main():
     """Run the PySubtrans unit tests"""
     loader = unittest.TestLoader()
 
-    # Find the installed PySubtrans UnitTests
+    # Find the copied tests in site-packages/tests/
     import PySubtrans
+    import sys
     package_dir = os.path.dirname(PySubtrans.__file__)
-    test_dir = os.path.join(package_dir, "UnitTests")
+    site_packages_dir = os.path.dirname(package_dir)
+    test_dir = os.path.join(site_packages_dir, "tests", "PySubtransTests")
+
+    # Add the site-packages directory to sys.path so relative imports work
+    if site_packages_dir not in sys.path:
+        sys.path.insert(0, site_packages_dir)
 
     if not os.path.exists(test_dir):
-        print("UnitTests directory not found!")
+        print("PySubtransTests directory not found!")
         return 1
 
     # Discover and run tests, excluding localization tests since they depend on LLM-Subtrans project structure
-    suite = loader.discover(test_dir, pattern='test_*.py')
+    suite = loader.discover(test_dir, pattern='test_*.py', top_level_dir=site_packages_dir)
 
     # Filter out localization tests since they require the full project structure
     filtered_tests = []

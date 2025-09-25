@@ -1,12 +1,12 @@
 from GuiSubtrans.ProjectDataModel import ProjectDataModel
-from GuiSubtrans.UnitTests.DataModelHelpers import CreateTestDataModel
+from .DataModelHelpers import CreateTestDataModel
 from PySubtrans.Helpers.TestCases import SubtitleTestCase
 from PySubtrans.Helpers.Tests import log_input_expected_result, log_test_name
 from PySubtrans.Options import Options, SettingsType
 from PySubtrans.Subtitles import Subtitles
 from PySubtrans.Formats.SrtFileHandler import SrtFileHandler
 from PySubtrans.SubtitleProject import SubtitleProject
-from GuiSubtrans.UnitTests.TestData.chinese_dinner import chinese_dinner_data
+from ..TestData.chinese_dinner import chinese_dinner_data
 
 class DataModelTests(SubtitleTestCase):
     def test_ProjectOptionsDecoupling(self):

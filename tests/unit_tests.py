@@ -54,10 +54,10 @@ def discover_tests(base_dir=None, separate_suites=False):
     try:
         os.chdir(base_dir)
         
-        pysubtrans_dir = os.path.join(base_dir, 'PySubtrans', 'UnitTests')
+        pysubtrans_dir = os.path.join(base_dir, 'tests', 'PySubtransTests')
         pysubtitle_tests = discover_tests_in_directory(loader, pysubtrans_dir, base_dir)
-        
-        guisubtrans_dir = os.path.join(base_dir, 'GuiSubtrans', 'UnitTests')
+
+        guisubtrans_dir = os.path.join(base_dir, 'tests', 'GuiTests')
         gui_available, gui_dependency_error = _check_gui_dependencies()
         if gui_available:
             gui_tests = discover_tests_in_directory(loader, guisubtrans_dir, base_dir, handle_import_errors=True)

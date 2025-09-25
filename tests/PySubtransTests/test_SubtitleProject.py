@@ -9,7 +9,7 @@ from PySubtrans.SubtitleBatcher import SubtitleBatcher
 from PySubtrans.SubtitleProject import SubtitleProject
 from PySubtrans.SubtitleScene import SubtitleScene
 from PySubtrans.Subtitles import Subtitles
-from PySubtrans.UnitTests.TestData.chinese_dinner import chinese_dinner_data
+from ..TestData.chinese_dinner import chinese_dinner_data
 
 
 class SubtitleProjectTests(SubtitleTestCase):

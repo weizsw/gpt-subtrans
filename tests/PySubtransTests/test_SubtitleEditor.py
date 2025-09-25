@@ -10,7 +10,7 @@ from PySubtrans.SubtitleBatcher import SubtitleBatcher
 from PySubtrans.SubtitleEditor import SubtitleEditor
 from PySubtrans.SubtitleLine import SubtitleLine
 from PySubtrans.Subtitles import Subtitles
-from PySubtrans.UnitTests.TestData.chinese_dinner import chinese_dinner_data
+from ..TestData.chinese_dinner import chinese_dinner_data
 
 class SubtitleEditorTests(SubtitleTestCase):
     """Test suite for SubtitleEditor class functionality"""

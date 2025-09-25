@@ -2,11 +2,11 @@ from copy import deepcopy
 
 from GuiSubtrans.Commands.ReparseTranslationsCommand import ReparseTranslationsCommand
 from GuiSubtrans.ProjectDataModel import ProjectDataModel
-from GuiSubtrans.UnitTests.DataModelHelpers import CreateTestDataModelBatched
+from .DataModelHelpers import CreateTestDataModelBatched
 from PySubtrans.Helpers.TestCases import SubtitleTestCase, AddResponsesFromMap
 from PySubtrans.Helpers.Tests import log_info, log_input_expected_result, log_test_name
 from PySubtrans.Subtitles import Subtitles
-from PySubtrans.UnitTests.TestData.chinese_dinner import chinese_dinner_data
+from ..TestData.chinese_dinner import chinese_dinner_data
 
 class ReparseTranslationsCommandTest(SubtitleTestCase):
     def __init__(self, methodName):

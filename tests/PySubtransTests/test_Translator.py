@@ -10,7 +10,7 @@ from PySubtrans.Subtitles import Subtitles
 from PySubtrans.SubtitleScene import SubtitleScene
 from PySubtrans.SubtitleTranslator import SubtitleTranslator
 
-from PySubtrans.UnitTests.TestData.chinese_dinner import chinese_dinner_data
+from ..TestData.chinese_dinner import chinese_dinner_data
 
 class SubtitleTranslatorTests(SubtitleTestCase):
     def __init__(self, methodName):

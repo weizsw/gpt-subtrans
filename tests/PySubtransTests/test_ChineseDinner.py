@@ -13,7 +13,7 @@ from PySubtrans.Formats.SrtFileHandler import SrtFileHandler
 from PySubtrans.SubtitleLine import SubtitleLine
 from PySubtrans.SubtitleProject import SubtitleProject
 from PySubtrans.SubtitleScene import SubtitleScene
-from PySubtrans.UnitTests.TestData.chinese_dinner import chinese_dinner_data
+from ..TestData.chinese_dinner import chinese_dinner_data
 
 class ChineseDinnerTests(SubtitleTestCase):
     def __init__(self, methodName):

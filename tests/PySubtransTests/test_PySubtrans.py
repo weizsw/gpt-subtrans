@@ -14,7 +14,7 @@ from PySubtrans import (
     init_translation_provider,
 )
 from PySubtrans.Helpers.TestCases import DummyProvider  # noqa: F401 - ensure provider is registered
-from PySubtrans.UnitTests.TestData.chinese_dinner import chinese_dinner_json_data
+from ..TestData.chinese_dinner import chinese_dinner_json_data
 from PySubtrans.Helpers.Tests import (
     log_input_expected_error,
     log_input_expected_result,

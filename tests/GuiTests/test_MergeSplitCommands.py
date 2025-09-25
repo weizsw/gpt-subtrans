@@ -8,11 +8,11 @@ from GuiSubtrans.Commands.SplitBatchCommand import SplitBatchCommand
 from GuiSubtrans.Commands.SplitSceneCommand import SplitSceneCommand
 from GuiSubtrans.ProjectDataModel import ProjectDataModel
 
-from GuiSubtrans.UnitTests.DataModelHelpers import CreateTestDataModelBatched
+from .DataModelHelpers import CreateTestDataModelBatched
 from PySubtrans.Helpers.TestCases import SubtitleTestCase
 from PySubtrans.Helpers.Tests import log_input_expected_result, log_test_name
 from PySubtrans.Subtitles import Subtitles
-from PySubtrans.UnitTests.TestData.chinese_dinner import chinese_dinner_data
+from ..TestData.chinese_dinner import chinese_dinner_data
 
 class MergeSplitCommandsTests(SubtitleTestCase):
     command_test_cases = [

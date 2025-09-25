@@ -9,11 +9,11 @@ from GuiSubtrans.Commands.SaveTranslationFile import SaveTranslationFile
 from GuiSubtrans.Commands.StartTranslationCommand import StartTranslationCommand
 from GuiSubtrans.Commands.TranslateSceneCommand import TranslateSceneCommand
 from GuiSubtrans.ProjectDataModel import ProjectDataModel
-from GuiSubtrans.UnitTests.DataModelHelpers import CreateTestDataModelBatched
+from .DataModelHelpers import CreateTestDataModelBatched
 
 from PySubtrans.SubtitleBatch import SubtitleBatch
 from PySubtrans.Subtitles import Subtitles
-from PySubtrans.UnitTests.TestData.chinese_dinner import chinese_dinner_data
+from ..TestData.chinese_dinner import chinese_dinner_data
 
 test_cases = [
     {

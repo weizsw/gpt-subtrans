@@ -3,11 +3,11 @@ from copy import deepcopy
 from typing import Any
 
 from GuiSubtrans.Commands.MergeLinesCommand import MergeLinesCommand
-from GuiSubtrans.UnitTests.DataModelHelpers import CreateTestDataModelBatched
+from .DataModelHelpers import CreateTestDataModelBatched
 from PySubtrans.Helpers.TestCases import SubtitleTestCase
 from PySubtrans.Helpers.Tests import log_input_expected_result, log_test_name
 from PySubtrans.Subtitles import Subtitles
-from PySubtrans.UnitTests.TestData.chinese_dinner import chinese_dinner_data
+from ..TestData.chinese_dinner import chinese_dinner_data
 
 class MergeLinesCommandTest(SubtitleTestCase):
     merge_lines_test_cases = [
