@@ -56,7 +56,7 @@ class TranslateSceneCommand(Command):
 
         self.translator = SubtitleTranslator(options, translation_provider, resume=self.resume)
 
-        self.translator.events.batch_translated += self._on_batch_translated # type: ignore
+        self.translator.events.batch_translated.connect(self._on_batch_translated)
 
         try:
             scene = project.subtitles.GetScene(self.scene_number)
@@ -93,8 +93,9 @@ class TranslateSceneCommand(Command):
             if self.translator and self.translator.stop_on_error:
                 self.terminal = True
 
-        if self.translator:
-            self.translator.events.batch_translated -= self._on_batch_translated # type: ignore
+        finally:
+            if self.translator:
+                self.translator.events.batch_translated.disconnect(self._on_batch_translated)
 
         return True
 
@@ -102,7 +103,7 @@ class TranslateSceneCommand(Command):
         if self.translator:
             self.translator.StopTranslating()
 
-    def _on_batch_translated(self, batch : SubtitleBatch):
+    def _on_batch_translated(self, _sender, batch : SubtitleBatch):
         # Update viewmodel as each batch is translated
         if self.datamodel and batch.translated:
             update = ModelUpdate()
