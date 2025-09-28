@@ -29,6 +29,7 @@ class TranslateSceneCommand(Command):
         self.batch_numbers : list[int]|None = batch_numbers
         self.line_numbers : list[int]|None = line_numbers
         self.can_undo = False
+        self.processed_lines : set[tuple[int, int, int]] = set()  # Track (scene, batch, line) to avoid redundant updates
 
     def execute(self) -> bool:
         if self.batch_numbers:
@@ -57,6 +58,10 @@ class TranslateSceneCommand(Command):
         self.translator = SubtitleTranslator(options, translation_provider, resume=self.resume)
 
         self.translator.events.batch_translated.connect(self._on_batch_translated)
+        self.translator.events.batch_updated.connect(self._on_batch_updated)
+        self.translator.events.error.connect(self._on_error)
+        self.translator.events.warning.connect(self._on_warning)
+        self.translator.events.info.connect(self._on_info)
 
         try:
             scene = project.subtitles.GetScene(self.scene_number)
@@ -96,6 +101,10 @@ class TranslateSceneCommand(Command):
         finally:
             if self.translator:
                 self.translator.events.batch_translated.disconnect(self._on_batch_translated)
+                self.translator.events.batch_updated.disconnect(self._on_batch_updated)
+                self.translator.events.error.disconnect(self._on_error)
+                self.translator.events.warning.disconnect(self._on_warning)
+                self.translator.events.info.disconnect(self._on_info)
 
         return True
 
@@ -117,4 +126,38 @@ class TranslateSceneCommand(Command):
             })
 
             self.datamodel.UpdateViewModel(update)
+
+    def _on_batch_updated(self, _sender, batch : SubtitleBatch):
+        # Handle streaming updates with only new line translations (avoid redundant updates)
+        if not self.datamodel or not batch.translated:
+            return
+
+        # Find lines that haven't been processed yet
+        new_lines = {}
+        for line in batch.translated:
+            if line.number:
+                line_key = (batch.scene, batch.number, line.number)
+                if line_key not in self.processed_lines:
+                    new_lines[line.number] = { 'translation' : line.text }
+                    self.processed_lines.add(line_key)
+
+        # Only create update if there are new lines to process
+        if new_lines:
+            update = ModelUpdate()
+            update.batches.update((batch.scene, batch.number), {
+                'lines' : new_lines
+            })
+            self.datamodel.UpdateViewModel(update)
+
+    def _on_error(self, _sender, message : str):
+        """Handle error events from translator"""
+        logging.error(message)
+
+    def _on_warning(self, _sender, message : str):
+        """Handle warning events from translator"""
+        logging.warning(message)
+
+    def _on_info(self, _sender, message : str):
+        """Handle info events from translator"""
+        logging.info(message)
 

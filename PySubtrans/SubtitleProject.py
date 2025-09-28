@@ -417,6 +417,7 @@ class SubtitleProject:
         translator.events.preprocessed.connect(self._on_preprocessed)
         translator.events.batch_translated.connect(self._on_batch_translated)
         translator.events.scene_translated.connect(self._on_scene_translated)
+        translator.events.connect_default_loggers()
 
         try:
             translator.TranslateSubtitles(self.subtitles)
@@ -439,6 +440,7 @@ class SubtitleProject:
             translator.events.preprocessed.disconnect(self._on_preprocessed)
             translator.events.batch_translated.disconnect(self._on_batch_translated)
             translator.events.scene_translated.disconnect(self._on_scene_translated)
+            translator.events.disconnect_default_loggers()
 
     def TranslateScene(self, translator : SubtitleTranslator, scene_number : int, batch_numbers : list[int]|None = None, line_numbers : list[int]|None = None) -> SubtitleScene|None:
         """
@@ -452,6 +454,7 @@ class SubtitleProject:
 
         translator.events.preprocessed.connect(self._on_preprocessed)
         translator.events.batch_translated.connect(self._on_batch_translated)
+        translator.events.connect_default_loggers()
 
         try:
             scene : SubtitleScene = self.subtitles.GetScene(scene_number)
@@ -468,21 +471,7 @@ class SubtitleProject:
         finally:
             translator.events.preprocessed.disconnect(self._on_preprocessed)
             translator.events.batch_translated.disconnect(self._on_batch_translated)
-
-
-    def _on_preprocessed(self, sender, scenes) -> None:
-        logging.debug("Pre-processing finished")
-        self.events.preprocessed.send(self, scenes=scenes)
-
-    def _on_batch_translated(self, sender, batch) -> None:
-        logging.debug("Batch translated")
-        self.needs_writing = self.use_project_file
-        self.events.batch_translated.send(self, batch=batch)
-
-    def _on_scene_translated(self, sender, scene) -> None:
-        logging.debug("Scene translated")
-        self.needs_writing = self.use_project_file
-        self.events.scene_translated.send(self, scene=scene)
+            translator.events.disconnect_default_loggers()
 
     def _set_project_setting(self, setting_name, value):
         """
@@ -519,5 +508,20 @@ class SubtitleProject:
 
         if not settings.get('substitution_mode'):
             settings['substitution_mode'] = "Partial Words" if settings.get('match_partial_words') else "Auto"
+
+
+    def _on_preprocessed(self, sender, scenes) -> None:
+        logging.debug("Pre-processing finished")
+        self.events.preprocessed.send(self, scenes=scenes)
+
+    def _on_batch_translated(self, sender, batch) -> None:
+        logging.debug("Batch translated")
+        self.needs_writing = self.use_project_file
+        self.events.batch_translated.send(self, batch=batch)
+
+    def _on_scene_translated(self, sender, scene) -> None:
+        logging.debug("Scene translated")
+        self.needs_writing = self.use_project_file
+        self.events.scene_translated.send(self, scene=scene)
 
 

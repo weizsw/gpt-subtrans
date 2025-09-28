@@ -9,6 +9,7 @@ from PySubtrans.SubtitleLine import SubtitleLine
 from PySubtrans.TranslationParser import TranslationParser
 from PySubtrans.TranslationPrompt import TranslationPrompt, default_prompt_template
 from PySubtrans.Translation import Translation
+from PySubtrans.TranslationRequest import TranslationRequest, StreamingCallback
 
 linesep = '\n'
 
@@ -23,6 +24,7 @@ class TranslationClient:
         self.settings: SettingsType = SettingsType(settings)
         self.instructions: str|None = settings.get_str('instructions')
         self.retry_instructions: str|None = settings.get_str('retry_instructions')
+        self.enable_streaming: bool = settings.get_bool('stream_responses', False) and self.supports_streaming
         self.aborted: bool = False
 
         if not self.instructions:
@@ -68,6 +70,10 @@ class TranslationClient:
     def backoff_time(self) -> float:
         return self.settings.get_float('backoff_time') or 5.0
 
+    @property
+    def supports_streaming(self) -> bool:
+        return self.settings.get_bool('supports_streaming', False)
+
     def BuildTranslationPrompt(self, user_prompt : str, instructions : str, lines : list[SubtitleLine], context : dict) -> TranslationPrompt:
         """
         Generate a translation prompt for the context
@@ -81,14 +87,20 @@ class TranslationClient:
         prompt.GenerateMessages(instructions, lines, context)
         return prompt
 
-    def RequestTranslation(self, prompt : TranslationPrompt, temperature : float|None = None) -> Translation|None:
+    def RequestTranslation(self, prompt : TranslationPrompt, temperature : float|None = None, streaming_callback : StreamingCallback = None) -> Translation|None:
         """
         Generate the messages to request a translation
         """
         start_time = time.monotonic()
 
+        if self.aborted:
+            return None
+
+        # Create a translation request to encapsulate the operation
+        request = TranslationRequest(prompt, streaming_callback)
+
         # Perform the translation
-        translation = self._request_translation(prompt, temperature)
+        translation = self._request_translation(request, temperature)
 
         if self.aborted or translation is None:
             return None
@@ -120,11 +132,11 @@ class TranslationClient:
         self._abort()
         pass
 
-    def _request_translation(self, prompt : TranslationPrompt, temperature : float|None = None) -> Translation|None:
+    def _request_translation(self, request: TranslationRequest, temperature: float|None = None) -> Translation|None:
         """
         Make a request to the API to provide a translation
         """
-        _ = prompt, temperature  # Mark as accessed to avoid lint warnings
+        _ = request, temperature  # Mark as accessed to avoid lint warnings
         raise NotImplementedError
 
     def _abort(self) -> None:
