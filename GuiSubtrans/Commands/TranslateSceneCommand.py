@@ -128,7 +128,7 @@ class TranslateSceneCommand(Command):
             self.datamodel.UpdateViewModel(update)
 
     def _on_batch_updated(self, _sender, batch : SubtitleBatch):
-        # Handle streaming updates with only new line translations (avoid redundant updates)
+        """ Handle streaming updates with only new line translations (avoid redundant updates) """
         if not self.datamodel or not batch.translated:
             return
 
@@ -141,12 +141,17 @@ class TranslateSceneCommand(Command):
                     new_lines[line.number] = { 'translation' : line.text }
                     self.processed_lines.add(line_key)
 
-        # Only create update if there are new lines to process
+        update = ModelUpdate()
         if new_lines:
-            update = ModelUpdate()
             update.batches.update((batch.scene, batch.number), {
                 'lines' : new_lines
             })
+        if batch.summary:
+            update.batches.update((batch.scene, batch.number), {
+                'summary' : batch.summary
+            })
+
+        if update.has_update:
             self.datamodel.UpdateViewModel(update)
 
     def _on_error(self, _sender, message : str):

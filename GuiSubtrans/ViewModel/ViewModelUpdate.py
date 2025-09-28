@@ -10,7 +10,8 @@ class ModelUpdate:
         self.batches : ModelUpdateSection = ModelUpdateSection()
         self.lines : ModelUpdateSection = ModelUpdateSection()
 
-    def HasUpdate(self) -> bool:
+    @property
+    def has_update(self) -> bool:
         """ Returns True if there are any updates """
         return self.scenes.has_updates or self.batches.has_updates or self.lines.has_updates
 

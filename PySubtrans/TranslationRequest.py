@@ -60,10 +60,7 @@ class TranslationRequest:
         # Extract complete section and emit update
         complete_section = self.accumulated_text[:last_double_newline + 2]
         if complete_section.strip():
-            partial_translation = Translation({
-                'text': complete_section,
-                'partial': True
-            })
+            partial_translation = Translation({'text': complete_section})
             self.streaming_callback(partial_translation)
 
         # Mark as processed
