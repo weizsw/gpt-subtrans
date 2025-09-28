@@ -20,6 +20,22 @@ from PySubtrans.SubtitleLine import SubtitleLine
 from PySubtrans.Helpers.Localization import _
 
 class ProjectViewModel(QStandardItemModel):
+    """
+    The view model for a GuiSubtrans project.
+
+    This maintains a PySide6 hierarchical model that represents the project data with the following structure:
+    - SceneItem (SubtitleScene)
+        - BatchItem (SubtitleBatch)
+            - LineItem (SubtitleLine)
+
+    PySide6 viewmodel updates must be processed on the main thread, so all updates to the viewmodel should be performed
+    via the AddUpdate method, which queues the update and signals the main thread to process it.
+
+    The ViewModel maintains a map of model items to viewmodel items based on their .number property for fast lookup.
+
+    Any updates that modify the structure of the model (additions/removals) should invoke .SetLayoutChanged() to trigger a remap
+    of the viewmodel and emit a layoutChanged signal to update depenedent views after the updates are processed.
+    """
     updatesPending = Signal()
 
     def __init__(self):
@@ -29,6 +45,7 @@ class ProjectViewModel(QStandardItemModel):
         self.update_lock = QRecursiveMutex()
         self.debug_view : bool = os.environ.get("DEBUG_MODE") == "1"
         self.task_type : str = DEFAULT_TASK_TYPE
+        self._layout_changed : bool = False
 
     def getRootItem(self) -> QStandardItem:
         return self.invisibleRootItem()
@@ -71,9 +88,23 @@ class ProjectViewModel(QStandardItemModel):
             logging.error(f"Error updating viewmodel: {e}")
 
         finally:
+            # Rebuild the model map
             self.Remap()
 
+            # Emit layoutChanged after remap if required by updates
+            # TODO: should we wait until all pending updates are processed?
+            if self._layout_changed:
+                self._layout_changed = False
+                self.layoutChanged.emit()
+
+    def SetLayoutChanged(self) -> None:
+        """ Mark the model as needing a layoutChanged emit """
+        self._layout_changed = True
+
     def CreateModel(self, data : Subtitles, task_type : str|None = None) -> None:
+        """
+        Create the model from the given subtitles data
+        """
         if not isinstance(data, Subtitles):
             raise ValueError(_("Can only model subtitle files"))
 
@@ -224,7 +255,6 @@ class ProjectViewModel(QStandardItemModel):
         root_item = self.getRootItem()
         insert_row = scene_item.number - 1
 
-        self.beginInsertRows(QModelIndex(), insert_row, insert_row)
         if insert_row >= root_item.rowCount():
             root_item.appendRow(scene_item)
         else:
@@ -243,8 +273,6 @@ class ProjectViewModel(QStandardItemModel):
                 logging.error(f"Expected SceneItem during AddScene at row {i}, got {type(child).__name__}")
         self.model = {item.number: item for item in scene_items}
 
-        self.endInsertRows()
-
     def ReplaceScene(self, scene : SubtitleScene):
         logging.debug(f"Replacing scene {scene.number}")
         if not isinstance(scene, SubtitleScene):
@@ -259,10 +287,8 @@ class ProjectViewModel(QStandardItemModel):
         root_item.removeRow(row)
         self.endRemoveRows()
 
-        self.beginInsertRows(QModelIndex(), row, row)
         root_item.insertRow(row, scene_item)
         self.model[scene.number] = scene_item
-        self.endInsertRows()
 
         self.getRootItem().emitDataChanged()
 
@@ -313,12 +339,7 @@ class ProjectViewModel(QStandardItemModel):
         if not scene_item:
             raise ViewModelError(f"Scene {batch.scene} not found")
 
-        scene_index = self.indexFromItem(scene_item)
-        insert_row = batch_item.number - 1
-
-        self.beginInsertRows(scene_index, insert_row, insert_row)
         scene_item.AddBatchItem(batch_item)
-        self.endInsertRows()
 
         scene_item.emitDataChanged()
 
@@ -337,9 +358,7 @@ class ProjectViewModel(QStandardItemModel):
 
         batch_item : BatchItem = self.CreateBatchItem(batch.scene, batch)
 
-        self.beginInsertRows(scene_index, batch_index.row(), batch_index.row())
         scene_item.insertRow(batch_index.row(), batch_item)
-        self.endInsertRows()
 
         scene_item.batches[batch.number] = batch_item
         scene_item.emitDataChanged()
@@ -432,7 +451,6 @@ class ProjectViewModel(QStandardItemModel):
                     f"Expected LineItem for line {previous_line_number} in scene {scene_number} batch {batch_number}, got {type(previous_line_item).__name__ if previous_line_item is not None else 'None'}"
                 )
 
-        # self.beginInsertRows(self.indexFromItem(batch_item), ??, ??)
         batch_item.AddLineItem(line.number, {
                 'scene': scene_number,
                 'batch': batch_number,
@@ -446,8 +464,6 @@ class ProjectViewModel(QStandardItemModel):
 
         if line.translation:
             batch_item.AddTranslation(line.number, line.translation)
-
-        # self.endInsertRows()
 
         batch_item.emitDataChanged()
 

@@ -11,8 +11,16 @@ from GuiSubtrans.ViewModel.ViewModelItem import ViewModelItem
 from GuiSubtrans.Widgets.Widgets import LineItemView
 
 class SubtitleListModel(QAbstractProxyModel):
+    """
+    A proxy model that filters subtitle lines to only show selected scenes or batches from the ProjectViewModel.
+
+    The model maintains a list of visible lines based on the selected batches in the ProjectSelection.
+
+    The model maps indices from the proxy model to the source model and vice versa.
+    """
     def __init__(self, viewmodel : ProjectViewModel, parent : QWidget|None = None):
         super().__init__(parent)
+
         self.viewmodel : ProjectViewModel = viewmodel
         self.selected_batch_numbers = []
         self.visible = []
@@ -20,12 +28,20 @@ class SubtitleListModel(QAbstractProxyModel):
         self.size_map : dict = {}
 
         # Connect signals to update mapping when source model changes
+        # TODO: investigate whether any other signals on the base model should be handled to trigger a refresh of the proxy model.
+        # layoutChanged is a pretty high-level signal that should cover most cases,
+        # but perhaps we can be more granular to avoid a complete refresh of the view.
         if self.viewmodel:
             self.setSourceModel(self.viewmodel)
             self.viewmodel.layoutChanged.connect(self._update_visible_batches)
             self.viewmodel.dataChanged.connect(self._on_data_changed)
 
     def ShowSelection(self, selection : ProjectSelection):
+        """
+        Update the model to show lines from the selected batches or scenes.
+
+        If no selection is made, show all lines.
+        """
         if selection.selected_batches:
             batch_numbers = [(batch.scene, batch.number) for batch in selection.selected_batches]
         elif selection.selected_scenes:
@@ -35,7 +51,12 @@ class SubtitleListModel(QAbstractProxyModel):
 
         self.ShowSelectedBatches(batch_numbers)
 
-    def ShowSelectedBatches(self, batch_numbers):
+    def ShowSelectedBatches(self, batch_numbers : list[tuple[int, int]]):
+        """
+        Filter the model to only show lines from the selected batches.
+
+        Builds a list of visible lines and a mapping from line numbers to model rows for efficient index mapping.
+        """
         self.selected_batch_numbers = batch_numbers
         viewmodel = self.viewmodel
         visible = []
@@ -173,14 +194,6 @@ class SubtitleListModel(QAbstractProxyModel):
 
         return None
 
-    def _update_visible_batches(self):
-        if self.selected_batch_numbers:
-            self.ShowSelectedBatches(self.selected_batch_numbers)
-        else:
-            self.ShowSelection(ProjectSelection())
-
-        self.layoutChanged.emit()
-
     def _on_data_changed(self, top_left, bottom_right, roles=None):
         """
         Forward dataChanged signals from ProjectViewModel to SubtitleView
@@ -190,18 +203,59 @@ class SubtitleListModel(QAbstractProxyModel):
         source_item = self.viewmodel.itemFromIndex(top_left)
 
         if isinstance(source_item, LineItem):
-            # Find this line's row in our proxy model using the visible_row_map
+            # Emit dataChanged for the corresponding index in the proxy model
             proxy_row = self.visible_row_map.get(source_item.number)
             if proxy_row is not None:
-                # Emit dataChanged for this specific row in the proxy model
                 proxy_index = self.index(proxy_row, 0)
                 self.dataChanged.emit(proxy_index, proxy_index, roles or [])
+
         elif isinstance(source_item, BatchItem):
-            # When a batch changes (e.g., lines added/removed), refresh the visible list
-            # This handles cases like line deletion where the visible list becomes stale
+            # When a batch is updated, refresh the visible lines list to force a remap of the indices
             self._update_visible_batches()
 
-    def _reset_visible_batches(self):
-        self.ShowSelection(ProjectSelection())
+    def _update_visible_batches(self):
+        """
+        Refresh the visible subtitles based on the currently selected batches
+        """
+        visible_batches = self._get_valid_batches(self.selected_batch_numbers)
+        if visible_batches:
+            self.ShowSelectedBatches(visible_batches)
+        else:
+            self.ShowSelection(ProjectSelection())
 
+        self.layoutChanged.emit()
+
+    def _get_valid_batches(self, selected_batch_numbers : list[tuple[int, int]]) -> list[tuple[int, int]]:
+        """
+        Get valid batch selections, using smart fallbacks if the selected batches are no longer available.
+        """
+        if not selected_batch_numbers:
+            return []
+
+        available_batches = set(self.viewmodel.GetBatchNumbers())
+
+        # No batches available at all... this doesn't bode well
+        if not available_batches:
+            return []
+
+        # First try to show the originally selected batches
+        existing_selections = [batch for batch in selected_batch_numbers if batch in available_batches]
+        if existing_selections:
+            return existing_selections
+
+        # None of the selected batches exist anymore, find a smart fallback
+        max_scene = max(scene_num for scene_num, _ in selected_batch_numbers)
+
+        # Try to select the next scene (where selected content most likely moved)
+        next_scene_batches = [(s, b) for s, b in available_batches if s == max_scene + 1]
+        if next_scene_batches:
+            return next_scene_batches
+
+        # Fallback: all batches from the current scene
+        current_scene_batches = [(s, b) for s, b in available_batches if s == max_scene]
+        if current_scene_batches:
+            return current_scene_batches
+
+        # Last resort: show all available batches
+        return sorted(available_batches)
 
