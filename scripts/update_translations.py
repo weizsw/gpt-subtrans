@@ -2,6 +2,9 @@
 """
 One-stop localization workflow for LLM-Subtrans.
 
+Install the required gettext tools first, e.g.
+https://mlocati.github.io/articles/gettext-iconv-windows.html
+
 Runs the end-to-end flow:
     1) Extract translatable strings -> locales/gui-subtrans.pot
     2) Merge POT into every locale's PO and compile MO catalogs
@@ -31,7 +34,7 @@ except ImportError:
     print("Warning: python-dotenv not available; environment variables from .env file will not be loaded.")
 
 # Model to use for auto-translation
-free_translation_model = os.getenv('FREE_TRANSLATION_MODEL', 'moonshotai/kimi-k2:free')     # Free but may be rate-limited
+free_translation_model = os.getenv('FREE_TRANSLATION_MODEL', 'x-ai/grok-4-fast:free')               # Free but may be rate-limited or disappear
 paid_translation_model = os.getenv('PAID_TRANSLATION_MODEL', 'google/gemini-2.5-flash')              # Fast and reliable but not free
 
 base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -66,7 +69,7 @@ def auto_translate_strings(untranslated: dict[str,str], target_language: str, pa
     """Call OpenRouter API to translate untranslated strings."""
     api_key = os.getenv('OPENROUTER_API_KEY')
     if not api_key:
-        print("Warning: OPENROUTER_API_KEY not found in environment variables")
+        print("Warning: OPENROUTER_API_KEY not found in environment variables", file=sys.stderr)
         return {}
     
     if not untranslated:
@@ -354,32 +357,35 @@ def run_cmd(cmd: list[str]) -> None:
         subprocess.check_call(cmd)
     except FileNotFoundError:
         # gettext utils may be missing; skip gracefully
-        print(f"Skipping: {' '.join(cmd)} (tool not found)")
+        print(f"ERROR: Skipping command due to missing tool: {' '.join(cmd)}", file=sys.stderr)
+        print(f"       Please install gettext utilities to enable this functionality.", file=sys.stderr)
     except subprocess.CalledProcessError as e:
-        print(f"Command failed: {' '.join(cmd)} -> {e}")
+        print(f"ERROR: Command failed: {' '.join(cmd)}", file=sys.stderr)
+        print(f"       Exit code: {e.returncode}", file=sys.stderr)
 
 
 def run_extract_strings() -> None:
     """Run scripts/extract_strings.py to refresh POT (and English PO)."""
     script = os.path.join(base_path, 'scripts', 'extract_strings.py')
     if not os.path.exists(script):
-        print(f"extract_strings.py not found at {script}")
+        print(f"ERROR: extract_strings.py not found at {script}", file=sys.stderr)
         return
     try:
         subprocess.check_call([sys.executable, script])
     except subprocess.CalledProcessError as e:
+        print(f"ERROR: extract_strings.py failed with exit code {e.returncode}", file=sys.stderr)
         raise Exception(f"extract_strings.py failed: {e}")
 
 
 def merge_and_compile(languages: list[str]|None = None):
     if not os.path.exists(POT_PATH):
-        print(f"POT not found at {POT_PATH}. Run extract_strings.py first.")
+        print(f"ERROR: POT not found at {POT_PATH}. Run extract_strings.py first.", file=sys.stderr)
         return
 
     # Get available languages dynamically
     languages = languages or get_available_locales()
     if not languages:
-        print("No locales found. Please ensure locale directories exist in the locales folder.")
+        print("ERROR: No locales found. Please ensure locale directories exist in the locales folder.", file=sys.stderr)
         return
 
     for lang in languages:
@@ -396,21 +402,21 @@ def merge_and_compile(languages: list[str]|None = None):
             if clean_po_file(po_path):
                 print(f"Normalized msgid wrapping: {po_path}")
         except Exception as e:
-            print(f"Warning: could not clean {po_path}: {e}")
+            print(f"WARNING: could not clean {po_path}: {e}", file=sys.stderr)
 
         # Ensure header completeness (Plural-Forms, etc.)
         try:
             if ensure_header_fields(po_path, lang):
                 print(f"Updated header fields: {po_path}")
         except Exception as e:
-            print(f"Warning: could not ensure header fields for {po_path}: {e}")
+            print(f"WARNING: could not ensure header fields for {po_path}: {e}", file=sys.stderr)
 
         # Fix any msgid/msgstr trailing \n parity issues that cause msgfmt fatal errors
         try:
             if fix_newline_parity(po_path):
                 print(f"Fixed newline parity: {po_path}")
         except Exception as e:
-            print(f"Warning: could not fix newline parity for {po_path}: {e}")
+            print(f"WARNING: could not fix newline parity for {po_path}: {e}", file=sys.stderr)
 
         # Compile MO (msgfmt)
         run_cmd(['msgfmt', '-o', mo_path, po_path])
@@ -655,7 +661,7 @@ def _parse_translations_file(path: str) -> dict[str,str]:
     except FileNotFoundError:
         return {}
     except Exception as e:
-        print(f"Warning: could not parse manual translations in {path}: {e}")
+        print(f"Warning: could not parse manual translations in {path}: {e}", file=sys.stderr)
         return {}
 
 
