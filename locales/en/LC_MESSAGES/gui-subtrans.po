@@ -1,24 +1,25 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: LLM-Subtrans\n"
-"POT-Creation-Date: 2025-09-25 20:06+0000\n"
-"PO-Revision-Date: 2025-09-25 20:06+0000\n"
+"POT-Creation-Date: 2025-09-28 09:24+0000\n"
+"PO-Revision-Date: 2025-09-28 09:24+0000\n"
 "Last-Translator: Auto-generated\n"
+"Language: en\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
-"Language: en\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: GuiSubtrans/ViewModel/BatchItem.py:206 GuiSubtrans/ViewModel/SceneItem.py:141
+#: GuiSubtrans/ViewModel/BatchItem.py:206
+#: GuiSubtrans/ViewModel/SceneItem.py:141
 msgid "1 line"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_DeepSeek.py:58
+#: PySubtrans/Providers/Provider_DeepSeek.py:59
 msgid "A DeepSeek API key is required to use this provider (https://platform.deepseek.com/api_keys)"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Gemini.py:67
+#: PySubtrans/Providers/Provider_Gemini.py:71
 msgid "A Google Gemini API key is required to use this provider (https://makersuite.google.com/app/apikey)"
 msgstr ""
 
@@ -26,11 +27,19 @@ msgstr ""
 msgid "A Mistral API key is required to use this provider (https://console.mistral.ai/api-keys/)"
 msgstr ""
 
-#: GuiSubtrans/NewProjectSettings.py:32 PySubtrans/Providers/Provider_DeepSeek.py:66 PySubtrans/Providers/Provider_OpenAI.py:100 PySubtrans/Providers/Provider_OpenRouter.py:135
+#: GuiSubtrans/NewProjectSettings.py:32
+#: PySubtrans/Providers/Provider_DeepSeek.py:67
+#: PySubtrans/Providers/Provider_OpenAI.py:101
+#: PySubtrans/Providers/Provider_OpenRouter.py:136
 msgid "AI model to use as the translator"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Azure.py:85 PySubtrans/Providers/Provider_DeepSeek.py:122 PySubtrans/Providers/Provider_Gemini.py:102 PySubtrans/Providers/Provider_Mistral.py:118 PySubtrans/Providers/Provider_OpenAI.py:164 PySubtrans/Providers/Provider_OpenRouter.py:191
+#: PySubtrans/Providers/Provider_Azure.py:85
+#: PySubtrans/Providers/Provider_DeepSeek.py:124
+#: PySubtrans/Providers/Provider_Gemini.py:111
+#: PySubtrans/Providers/Provider_Mistral.py:118
+#: PySubtrans/Providers/Provider_OpenAI.py:166
+#: PySubtrans/Providers/Provider_OpenRouter.py:193
 msgid "API Key is required"
 msgstr ""
 
@@ -38,7 +47,7 @@ msgstr ""
 msgid "API Timeout, retrying in {backoff_time} seconds..."
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:28
+#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:29
 msgid "API base must be set in .env or provided as an argument"
 msgstr ""
 
@@ -50,19 +59,21 @@ msgstr ""
 msgid "API key if needed (this is normally not needed for a local server)"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:25 PySubtrans/Providers/Clients/MistralClient.py:24 PySubtrans/Providers/Clients/OpenAIClient.py:32
+#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:26
+#: PySubtrans/Providers/Clients/MistralClient.py:25
+#: PySubtrans/Providers/Clients/OpenAIClient.py:32
 msgid "API key must be set in .env or provided as an argument"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:31
+#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:32
 msgid "API version must be set in .env or provided as an argument"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/BedrockClient.py:63
+#: PySubtrans/Providers/Clients/BedrockClient.py:64
 msgid "AWS region must be set in .env or provided as an argument"
 msgstr ""
 
-#: GuiSubtrans/Commands/TranslateSceneCommand.py:83
+#: GuiSubtrans/Commands/TranslateSceneCommand.py:88
 msgid "Aborted translation of scene {scene}"
 msgstr ""
 
@@ -78,7 +89,7 @@ msgstr ""
 msgid "About this program"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/BedrockClient.py:57
+#: PySubtrans/Providers/Clients/BedrockClient.py:58
 msgid "Access key must be set in .env or provided as an argument"
 msgstr ""
 
@@ -110,7 +121,8 @@ msgstr ""
 msgid "Advanced"
 msgstr ""
 
-#: GuiSubtrans/ProjectActions.py:133 GuiSubtrans/ProjectActions.py:161 GuiSubtrans/ProjectActions.py:163
+#: GuiSubtrans/ProjectActions.py:133 GuiSubtrans/ProjectActions.py:161
+#: GuiSubtrans/ProjectActions.py:163
 msgid "All Files"
 msgstr ""
 
@@ -126,11 +138,16 @@ msgstr ""
 msgid "Alternative to max_tokens for some servers"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Bedrock.py:10 PySubtrans/Providers/Provider_Bedrock.py:184
+#: PySubtrans/Providers/Provider_Bedrock.py:10
+#: PySubtrans/Providers/Provider_Bedrock.py:184
 msgid "Amazon Boto3 SDK is not installed. Bedrock provider will not be available"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_DeepSeek.py:69 PySubtrans/Providers/Provider_Gemini.py:76 PySubtrans/Providers/Provider_Mistral.py:73 PySubtrans/Providers/Provider_OpenAI.py:110 PySubtrans/Providers/Provider_OpenRouter.py:146
+#: PySubtrans/Providers/Provider_DeepSeek.py:71
+#: PySubtrans/Providers/Provider_Gemini.py:82
+#: PySubtrans/Providers/Provider_Mistral.py:73
+#: PySubtrans/Providers/Provider_OpenAI.py:112
+#: PySubtrans/Providers/Provider_OpenRouter.py:148
 msgid "Amount of random variance to add to translations. Generally speaking, none is best"
 msgstr ""
 
@@ -142,7 +159,7 @@ msgstr ""
 msgid "An AWS secret access key is required"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Claude.py:100
+#: PySubtrans/Providers/Provider_Claude.py:102
 msgid "An Anthropic Claude API key is required to use this provider (https://console.anthropic.com/settings/keys)"
 msgstr ""
 
@@ -158,15 +175,15 @@ msgstr ""
 msgid "An Azure API version is required"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenAI.py:89
+#: PySubtrans/Providers/Provider_OpenAI.py:90
 msgid "An OpenAI API key is required to use this provider (https://platform.openai.com/account/api-keys)"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenRouter.py:110
+#: PySubtrans/Providers/Provider_OpenRouter.py:111
 msgid "An OpenRouter API key is required to use this provider (https://openrouter.ai/keys)"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AnthropicClient.py:156
+#: PySubtrans/Providers/Clients/AnthropicClient.py:179
 msgid "Anthropic API error: {error}, retrying in {sleep_time} seconds..."
 msgstr ""
 
@@ -174,7 +191,7 @@ msgstr ""
 msgid "Anthropic SDK is not installed. Claude provider will not be available"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AnthropicClient.py:91
+#: PySubtrans/Providers/Clients/AnthropicClient.py:93
 msgid "Anthropic account quota reached, please upgrade your plan or wait until it renews"
 msgstr ""
 
@@ -186,7 +203,7 @@ msgstr ""
 msgid "Auto-Split Batch"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:411
+#: GuiSubtrans/SettingsDialog.py:412
 msgid "Auto-selected model {model} for {provider} to ensure valid configuration"
 msgstr ""
 
@@ -202,7 +219,8 @@ msgstr ""
 msgid "Avoid creating a new batch smaller than this"
 msgstr ""
 
-#: GuiSubtrans/Commands/EditBatchCommand.py:36 GuiSubtrans/Commands/EditBatchCommand.py:64
+#: GuiSubtrans/Commands/EditBatchCommand.py:36
+#: GuiSubtrans/Commands/EditBatchCommand.py:64
 msgid "Batch ({scene},{batch}) not found"
 msgstr ""
 
@@ -218,7 +236,7 @@ msgstr ""
 msgid "Can only autosplit a single batch"
 msgstr ""
 
-#: GuiSubtrans/ViewModel/ViewModel.py:86
+#: GuiSubtrans/ViewModel/ViewModel.py:88
 msgid "Can only model subtitle files"
 msgstr ""
 
@@ -242,7 +260,8 @@ msgstr ""
 msgid "Cannot delete scenes or batches yet"
 msgstr ""
 
-#: GuiSubtrans/Commands/SplitBatchCommand.py:35 GuiSubtrans/Commands/SplitBatchCommand.py:80
+#: GuiSubtrans/Commands/SplitBatchCommand.py:35
+#: GuiSubtrans/Commands/SplitBatchCommand.py:80
 msgid "Cannot find scene {scene} batch {batch}"
 msgstr ""
 
@@ -262,11 +281,11 @@ msgstr ""
 msgid "Cannot redo the last command"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenRouter.py:169
+#: PySubtrans/Providers/Provider_OpenRouter.py:171
 msgid "Cannot retrieve model list, check API key"
 msgstr ""
 
-#: PySubtrans/SubtitleProject.py:493
+#: PySubtrans/SubtitleProject.py:482
 msgid "Cannot set {setting_name}, no subtitles loaded"
 msgstr ""
 
@@ -282,15 +301,17 @@ msgstr ""
 msgid "Cannot undo the last command"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_DeepSeek.py:73 PySubtrans/Providers/Provider_Mistral.py:78 PySubtrans/Providers/Provider_OpenAI.py:113
+#: PySubtrans/Providers/Provider_DeepSeek.py:75
+#: PySubtrans/Providers/Provider_Mistral.py:78
+#: PySubtrans/Providers/Provider_OpenAI.py:115
 msgid "Check API key and base URL and try again"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenRouter.py:141
+#: PySubtrans/Providers/Provider_OpenRouter.py:142
 msgid "Check API key and try again"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Gemini.py:81
+#: PySubtrans/Providers/Provider_Gemini.py:90
 msgid "Check API key is authorized and try again"
 msgstr ""
 
@@ -298,11 +319,14 @@ msgstr ""
 msgid "CheckProviderSettings: {error}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/CustomClient.py:114
+#: PySubtrans/Providers/Clients/CustomClient.py:163
+#: PySubtrans/Providers/Clients/CustomClient.py:193
 msgid "Client error: {status_code} {text}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AnthropicClient.py:109 PySubtrans/Providers/Clients/ChatGPTClient.py:32 PySubtrans/Providers/Clients/OpenAIReasoningClient.py:34
+#: PySubtrans/Providers/Clients/AnthropicClient.py:105
+#: PySubtrans/Providers/Clients/ChatGPTClient.py:33
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:53
 msgid "Client is not initialized"
 msgstr ""
 
@@ -314,8 +338,12 @@ msgstr ""
 msgid "Consider a new scene to have started after this many seconds without subtitles"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AnthropicClient.py:83
+#: PySubtrans/Providers/Clients/AnthropicClient.py:85
 msgid "Content must be a list of messages"
+msgstr ""
+
+#: PySubtrans/Providers/Clients/GeminiClient.py:131
+msgid "Content must be a string for Gemini"
 msgstr ""
 
 #: GuiSubtrans/Widgets/Editors.py:142
@@ -362,7 +390,8 @@ msgstr ""
 msgid "Deleting lines {lines}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:34 PySubtrans/Providers/Clients/AzureOpenAIClient.py:84
+#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:35
+#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:85
 msgid "Deployment name must be set in .env or provided as an argument"
 msgstr ""
 
@@ -394,11 +423,13 @@ msgstr ""
 msgid "Divide any batches larger than this into multiple batches"
 msgstr ""
 
-#: GuiSubtrans/EditInstructionsDialog.py:23 GuiSubtrans/Widgets/ProjectSettings.py:136
+#: GuiSubtrans/EditInstructionsDialog.py:23
+#: GuiSubtrans/Widgets/ProjectSettings.py:136
 msgid "Edit Instructions"
 msgstr ""
 
-#: GuiSubtrans/Commands/EditBatchCommand.py:31 GuiSubtrans/Commands/EditLineCommand.py:35
+#: GuiSubtrans/Commands/EditBatchCommand.py:31
+#: GuiSubtrans/Commands/EditLineCommand.py:35
 msgid "Edit data must be a dictionary"
 msgstr ""
 
@@ -410,7 +441,15 @@ msgstr ""
 msgid "Editing line {line}"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Claude.py:114
+#: PySubtrans/Providers/Provider_Gemini.py:81
+msgid "Enable reasoning capabilities for more complex translations (increases cost)"
+msgstr ""
+
+#: PySubtrans/Providers/Provider_DeepSeek.py:68
+msgid "Enable streaming responses for real-time translation updates"
+msgstr ""
+
+#: PySubtrans/Providers/Provider_Claude.py:117
 msgid "Enable thinking mode for translations"
 msgstr ""
 
@@ -426,11 +465,11 @@ msgstr ""
 msgid "Error"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/BedrockClient.py:138
+#: PySubtrans/Providers/Clients/BedrockClient.py:139
 msgid "Error communicating with Bedrock: {error}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AnthropicClient.py:166
+#: PySubtrans/Providers/Clients/AnthropicClient.py:189
 msgid "Error communicating with provider"
 msgstr ""
 
@@ -442,7 +481,8 @@ msgstr ""
 msgid "Error executing {type}: {str}"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_DeepSeek.py:96 PySubtrans/Providers/Provider_OpenRouter.py:231
+#: PySubtrans/Providers/Provider_DeepSeek.py:98
+#: PySubtrans/Providers/Provider_OpenRouter.py:233
 msgid "Error fetching models: {status} {text}"
 msgstr ""
 
@@ -474,11 +514,12 @@ msgstr ""
 msgid "Error saving settings to {}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:168
+#: PySubtrans/SubtitleTranslator.py:174
 msgid "Error translating scene {scene} batch {batch}: {error}"
 msgstr ""
 
-#: GuiSubtrans/Commands/TranslateSceneCommand.py:88 GuiSubtrans/Commands/TranslateSceneCommand.py:92
+#: GuiSubtrans/Commands/TranslateSceneCommand.py:93
+#: GuiSubtrans/Commands/TranslateSceneCommand.py:97
 msgid "Error translating scene {scene}: {error}"
 msgstr ""
 
@@ -490,15 +531,15 @@ msgstr ""
 msgid "Error: {error}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:178
+#: PySubtrans/SubtitleTranslator.py:184
 msgid "Errors encountered translating scene {scene} batch {batch}"
 msgstr ""
 
-#: GuiSubtrans/Commands/TranslateSceneCommand.py:75
+#: GuiSubtrans/Commands/TranslateSceneCommand.py:80
 msgid "Errors translating scene {scene} - aborting translation"
 msgstr ""
 
-#: GuiSubtrans/Commands/TranslateSceneCommand.py:74
+#: GuiSubtrans/Commands/TranslateSceneCommand.py:79
 msgid "Errors: {errors}"
 msgstr ""
 
@@ -518,19 +559,24 @@ msgstr ""
 msgid "Expected a dictionary, got a {type}"
 msgstr ""
 
-#: GuiSubtrans/ViewModel/ViewModel.py:355 GuiSubtrans/ViewModel/ViewModel.py:460
+#: GuiSubtrans/ViewModel/ViewModel.py:366
+#: GuiSubtrans/ViewModel/ViewModel.py:474
 msgid "Expected a patch dictionary"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AnthropicClient.py:168 PySubtrans/Providers/Clients/AzureOpenAIClient.py:148 PySubtrans/Providers/Clients/GeminiClient.py:177 PySubtrans/Providers/Clients/MistralClient.py:129 PySubtrans/Providers/Clients/OpenAIClient.py:150
+#: PySubtrans/Providers/Clients/AnthropicClient.py:191
+#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:149
+#: PySubtrans/Providers/Clients/GeminiClient.py:111
+#: PySubtrans/Providers/Clients/MistralClient.py:130
+#: PySubtrans/Providers/Clients/OpenAIClient.py:150
 msgid "Failed to communicate with provider after {max_retries} retries"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/CustomClient.py:190
+#: PySubtrans/Providers/Clients/CustomClient.py:139
 msgid "Failed to communicate with server after {max_retries} retries"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/CustomClient.py:167
+#: PySubtrans/Providers/Clients/CustomClient.py:116
 msgid "Failed to connect to server at {server_address}{endpoint}"
 msgstr ""
 
@@ -538,15 +584,20 @@ msgstr ""
 msgid "Failed to create new batch after splitting"
 msgstr ""
 
-#: PySubtrans/SubtitleFormatRegistry.py:146 PySubtrans/SubtitleFormatRegistry.py:160
+#: PySubtrans/SubtitleFormatRegistry.py:146
+#: PySubtrans/SubtitleFormatRegistry.py:160
 msgid "Failed to detect subtitle format: {}"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenAI.py:183
+#: PySubtrans/Providers/Clients/CustomClient.py:232
+msgid "Failed to establish streaming connection: {error}"
+msgstr ""
+
+#: PySubtrans/Providers/Provider_OpenAI.py:185
 msgid "Failed to initialise OpenAI SDK. OpenAI provider will not be available"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AnthropicClient.py:70
+#: PySubtrans/Providers/Clients/AnthropicClient.py:71
 msgid "Failed to initialize Anthropic client"
 msgstr ""
 
@@ -570,11 +621,13 @@ msgstr ""
 msgid "Failed to parse SRT: {}"
 msgstr ""
 
-#: PySubtrans/Formats/SSAFileHandler.py:95 PySubtrans/Formats/VttFileHandler.py:72
+#: PySubtrans/Formats/SSAFileHandler.py:95
+#: PySubtrans/Formats/VttFileHandler.py:72
 msgid "Failed to parse content: {}"
 msgstr ""
 
-#: PySubtrans/Formats/SSAFileHandler.py:84 PySubtrans/Formats/VttFileHandler.py:50
+#: PySubtrans/Formats/SSAFileHandler.py:84
+#: PySubtrans/Formats/VttFileHandler.py:50
 msgid "Failed to parse file: {}"
 msgstr ""
 
@@ -582,7 +635,8 @@ msgstr ""
 msgid "Failed to parse subtitles string: {}"
 msgstr ""
 
-#: PySubtrans/Formats/SSAFileHandler.py:71 PySubtrans/Formats/SSAFileHandler.py:142
+#: PySubtrans/Formats/SSAFileHandler.py:71
+#: PySubtrans/Formats/SSAFileHandler.py:142
 msgid "Failed to parse subtitles: {}"
 msgstr ""
 
@@ -590,15 +644,15 @@ msgstr ""
 msgid "Failed to switch language - restart the application: {error}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:129
+#: PySubtrans/SubtitleTranslator.py:132
 msgid "Failed to translate scene {scene}... stopping translation"
 msgstr ""
 
-#: PySubtrans/SubtitleProject.py:435
+#: PySubtrans/SubtitleProject.py:436
 msgid "Failed to translate subtitles: {}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:143
+#: PySubtrans/SubtitleTranslator.py:146
 msgid "Failed to translate {count} lines:"
 msgstr ""
 
@@ -612,6 +666,14 @@ msgstr ""
 
 #: PySubtrans/SubtitleFormatRegistry.py:63
 msgid "Format cannot be deduced from filename or extension '{name}'. Available formats: {formats}"
+msgstr ""
+
+#: PySubtrans/TranslationParser.py:174
+msgid "Found fuzzy match for line {number} in translations"
+msgstr ""
+
+#: PySubtrans/TranslationParser.py:203
+msgid "Found unclosed tag {tag} in translation"
 msgstr ""
 
 #: GuiSubtrans/MainWindow.py:30 GuiSubtrans/MainWindow.py:182
@@ -642,31 +704,31 @@ msgstr ""
 msgid "Gap: {gap}, Length: {duration}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/GeminiClient.py:183
+#: PySubtrans/Providers/Clients/GeminiClient.py:117
 msgid "Gemini request failure {error}, retrying in {sleep_time} seconds..."
 msgstr ""
 
-#: PySubtrans/Providers/Clients/GeminiClient.py:136
+#: PySubtrans/Providers/Clients/GeminiClient.py:244
 msgid "Gemini response exceeded token limit"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/GeminiClient.py:157
+#: PySubtrans/Providers/Clients/GeminiClient.py:265
 msgid "Gemini response has no valid content parts"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/GeminiClient.py:162
+#: PySubtrans/Providers/Clients/GeminiClient.py:270
 msgid "Gemini response is empty"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/GeminiClient.py:142
+#: PySubtrans/Providers/Clients/GeminiClient.py:250
 msgid "Gemini response was blocked for recitation"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/GeminiClient.py:139
+#: PySubtrans/Providers/Clients/GeminiClient.py:247
 msgid "Gemini response was blocked for safety reasons"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/GeminiClient.py:145
+#: PySubtrans/Providers/Clients/GeminiClient.py:253
 msgid "Gemini response was incomplete"
 msgstr ""
 
@@ -690,7 +752,7 @@ msgstr ""
 msgid "Higher temperature introduces more randomness to the translation (default 0.0)"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:237
+#: PySubtrans/SubtitleTranslator.py:244
 msgid "Hit API token limit, retrying batch without context..."
 msgstr ""
 
@@ -738,7 +800,7 @@ msgstr ""
 msgid "Invalid response received, retrying in {backoff_time} seconds..."
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:63
+#: PySubtrans/SubtitleTranslator.py:65
 msgid "Invalid substitutions list, must be a dictionary, list or string"
 msgstr ""
 
@@ -762,7 +824,7 @@ msgstr ""
 msgid "Language to translate the subtitles to"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Gemini.py:168
+#: PySubtrans/Providers/Provider_Gemini.py:177
 msgid "Latest Google AI SDK (google-genai) is not installed. Gemini provider will not be available. Run installer or `pip install google-genai` to fix."
 msgstr ""
 
@@ -778,11 +840,13 @@ msgstr ""
 msgid "Line item {row} has no line number"
 msgstr ""
 
-#: GuiSubtrans/Commands/EditLineCommand.py:40 GuiSubtrans/Commands/EditLineCommand.py:87
+#: GuiSubtrans/Commands/EditLineCommand.py:40
+#: GuiSubtrans/Commands/EditLineCommand.py:87
 msgid "Line {line} not found in any batch"
 msgstr ""
 
-#: GuiSubtrans/Commands/EditLineCommand.py:44 GuiSubtrans/Commands/EditLineCommand.py:91
+#: GuiSubtrans/Commands/EditLineCommand.py:44
+#: GuiSubtrans/Commands/EditLineCommand.py:91
 msgid "Line {line} not found in batch ({scene},{batch})"
 msgstr ""
 
@@ -790,15 +854,17 @@ msgstr ""
 msgid "Line {line}: {start} --> {end}"
 msgstr ""
 
-#: GuiSubtrans/ViewModel/BatchItem.py:212 GuiSubtrans/ViewModel/SceneItem.py:147
+#: GuiSubtrans/ViewModel/BatchItem.py:212
+#: GuiSubtrans/ViewModel/SceneItem.py:147
 msgid "Lines {first}-{last} ({start} -> {end})"
 msgstr ""
 
-#: GuiSubtrans/ViewModel/ViewModel.py:534
+#: GuiSubtrans/ViewModel/ViewModel.py:553
 msgid "Lines {lines} not found in batch {batch}"
 msgstr ""
 
-#: GuiSubtrans/EditInstructionsDialog.py:40 GuiSubtrans/EditInstructionsDialog.py:135
+#: GuiSubtrans/EditInstructionsDialog.py:40
+#: GuiSubtrans/EditInstructionsDialog.py:135
 msgid "Load Instructions"
 msgstr ""
 
@@ -822,11 +888,11 @@ msgstr ""
 msgid "Logo generated with <a href=\"https://qwen.ai/home\">Qwen3</a>"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:277
+#: PySubtrans/SubtitleTranslator.py:284
 msgid "Made substitutions in input:\n{replaced}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:331
+#: PySubtrans/SubtitleTranslator.py:342
 msgid "Made substitutions in output:\n{replaced}"
 msgstr ""
 
@@ -838,11 +904,14 @@ msgstr ""
 msgid "Max batch size is less than min batch size"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_DeepSeek.py:70 PySubtrans/Providers/Provider_Gemini.py:77 PySubtrans/Providers/Provider_Mistral.py:74 PySubtrans/Providers/Provider_OpenRouter.py:147
+#: PySubtrans/Providers/Provider_DeepSeek.py:72
+#: PySubtrans/Providers/Provider_Gemini.py:83
+#: PySubtrans/Providers/Provider_Mistral.py:74
+#: PySubtrans/Providers/Provider_OpenRouter.py:149
 msgid "Maximum API requests per minute."
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenAI.py:101
+#: PySubtrans/Providers/Provider_OpenAI.py:102
 msgid "Maximum OpenAI API requests per minute. Mainly useful if you are on the restricted free plan"
 msgstr ""
 
@@ -858,7 +927,8 @@ msgstr ""
 msgid "Maximum length of the context summary to include with each translation batch"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_DeepSeek.py:68 PySubtrans/Providers/Provider_OpenRouter.py:145
+#: PySubtrans/Providers/Provider_DeepSeek.py:70
+#: PySubtrans/Providers/Provider_OpenRouter.py:147
 msgid "Maximum number of output tokens to return in the response."
 msgstr ""
 
@@ -866,7 +936,7 @@ msgstr ""
 msgid "Maximum number of simultaneous translation threads for fast translation"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenAI.py:105
+#: PySubtrans/Providers/Provider_OpenAI.py:106
 msgid "Maximum tokens a completion can contain (only applicable for -instruct models)"
 msgstr ""
 
@@ -918,7 +988,7 @@ msgstr ""
 msgid "Mistral SDK not installed. Mistral provider will not be available"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/MistralClient.py:64
+#: PySubtrans/Providers/Clients/MistralClient.py:65
 msgid "Mistral account quota reached, please upgrade your plan or wait until it renews"
 msgstr ""
 
@@ -926,11 +996,11 @@ msgstr ""
 msgid "Model"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/BedrockClient.py:66
+#: PySubtrans/Providers/Clients/BedrockClient.py:67
 msgid "Model ID must be provided as an argument"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenRouter.py:126
+#: PySubtrans/Providers/Provider_OpenRouter.py:127
 msgid "Model family/provider to choose from"
 msgstr ""
 
@@ -946,7 +1016,7 @@ msgstr ""
 msgid "Names"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/CustomClient.py:173
+#: PySubtrans/Providers/Clients/CustomClient.py:122
 msgid "Network error communicating with server: {error}"
 msgstr ""
 
@@ -954,11 +1024,23 @@ msgstr ""
 msgid "No batches found for lines to merge"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AnthropicClient.py:128 PySubtrans/Providers/Clients/AzureOpenAIClient.py:115 PySubtrans/Providers/Clients/ChatGPTClient.py:57 PySubtrans/Providers/Clients/ChatGPTClient.py:73 PySubtrans/Providers/Clients/CustomClient.py:138 PySubtrans/Providers/Clients/MistralClient.py:104 PySubtrans/Providers/Clients/MistralClient.py:120
+#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:116
+#: PySubtrans/Providers/Clients/ChatGPTClient.py:60
+#: PySubtrans/Providers/Clients/ChatGPTClient.py:76
+#: PySubtrans/Providers/Clients/CustomClient.py:351
+#: PySubtrans/Providers/Clients/MistralClient.py:105
+#: PySubtrans/Providers/Clients/MistralClient.py:121
 msgid "No choices returned in the response"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AnthropicClient.py:80 PySubtrans/Providers/Clients/BedrockClient.py:76 PySubtrans/Providers/Clients/ChatGPTClient.py:38 PySubtrans/Providers/Clients/GeminiClient.py:71 PySubtrans/Providers/Clients/MistralClient.py:53 PySubtrans/Providers/Clients/MistralClient.py:81 PySubtrans/Providers/Clients/OpenAIReasoningClient.py:40 PySubtrans/TranslationPrompt.py:153
+#: PySubtrans/Providers/Clients/AnthropicClient.py:82
+#: PySubtrans/Providers/Clients/BedrockClient.py:77
+#: PySubtrans/Providers/Clients/ChatGPTClient.py:39
+#: PySubtrans/Providers/Clients/GeminiClient.py:84
+#: PySubtrans/Providers/Clients/MistralClient.py:54
+#: PySubtrans/Providers/Clients/MistralClient.py:82
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:86
+#: PySubtrans/TranslationPrompt.py:153
 msgid "No content provided for translation"
 msgstr ""
 
@@ -982,7 +1064,7 @@ msgstr ""
 msgid "No file path specified"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:224
+#: PySubtrans/SubtitleTranslator.py:230
 msgid "No instructions provided for translation"
 msgstr ""
 
@@ -998,15 +1080,21 @@ msgstr ""
 msgid "No lines were deleted"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AnthropicClient.py:112 PySubtrans/Providers/Clients/ChatGPTClient.py:35 PySubtrans/Providers/Clients/GeminiClient.py:89 PySubtrans/Providers/Clients/MistralClient.py:78 PySubtrans/Providers/Clients/OpenAIReasoningClient.py:37
+#: PySubtrans/Providers/Clients/AnthropicClient.py:140
+#: PySubtrans/Providers/Clients/ChatGPTClient.py:36
+#: PySubtrans/Providers/Clients/GeminiClient.py:100
+#: PySubtrans/Providers/Clients/GeminiClient.py:127
+#: PySubtrans/Providers/Clients/MistralClient.py:79
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:56
 msgid "No model specified"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenRouter.py:137 PySubtrans/Providers/Provider_OpenRouter.py:139
+#: PySubtrans/Providers/Provider_OpenRouter.py:138
+#: PySubtrans/Providers/Provider_OpenRouter.py:140
 msgid "No models available"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:404
+#: GuiSubtrans/SettingsDialog.py:405
 msgid "No models available for {provider}"
 msgstr ""
 
@@ -1018,11 +1106,34 @@ msgstr ""
 msgid "No output path specified, saving to {}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/BedrockClient.py:117
+#: PySubtrans/Providers/Clients/BedrockClient.py:118
 msgid "No output returned in the response"
 msgstr ""
 
-#: GuiSubtrans/Commands/DeleteLinesCommand.py:32 GuiSubtrans/Commands/DeleteLinesCommand.py:65 GuiSubtrans/Commands/EditBatchCommand.py:24 GuiSubtrans/Commands/EditBatchCommand.py:54 GuiSubtrans/Commands/EditLineCommand.py:28 GuiSubtrans/Commands/EditLineCommand.py:77 GuiSubtrans/Commands/EditSceneCommand.py:21 GuiSubtrans/Commands/EditSceneCommand.py:49 GuiSubtrans/Commands/MergeBatchesCommand.py:30 GuiSubtrans/Commands/MergeBatchesCommand.py:64 GuiSubtrans/Commands/MergeLinesCommand.py:26 GuiSubtrans/Commands/MergeLinesCommand.py:82 GuiSubtrans/Commands/MergeScenesCommand.py:27 GuiSubtrans/Commands/MergeScenesCommand.py:61 GuiSubtrans/Commands/ReparseTranslationsCommand.py:33 GuiSubtrans/Commands/ReparseTranslationsCommand.py:101 GuiSubtrans/Commands/SaveProjectFile.py:19 GuiSubtrans/Commands/SplitBatchCommand.py:23 GuiSubtrans/Commands/SplitBatchCommand.py:70 GuiSubtrans/Commands/SplitSceneCommand.py:23 GuiSubtrans/Commands/SplitSceneCommand.py:52 GuiSubtrans/Commands/SwapTextAndTranslations.py:32 GuiSubtrans/Commands/TranslateSceneCommand.py:40 GuiSubtrans/GuiInterface.py:275 GuiSubtrans/GuiInterface.py:290
+#: GuiSubtrans/Commands/DeleteLinesCommand.py:32
+#: GuiSubtrans/Commands/DeleteLinesCommand.py:65
+#: GuiSubtrans/Commands/EditBatchCommand.py:24
+#: GuiSubtrans/Commands/EditBatchCommand.py:54
+#: GuiSubtrans/Commands/EditLineCommand.py:28
+#: GuiSubtrans/Commands/EditLineCommand.py:77
+#: GuiSubtrans/Commands/EditSceneCommand.py:21
+#: GuiSubtrans/Commands/EditSceneCommand.py:49
+#: GuiSubtrans/Commands/MergeBatchesCommand.py:30
+#: GuiSubtrans/Commands/MergeBatchesCommand.py:64
+#: GuiSubtrans/Commands/MergeLinesCommand.py:26
+#: GuiSubtrans/Commands/MergeLinesCommand.py:82
+#: GuiSubtrans/Commands/MergeScenesCommand.py:27
+#: GuiSubtrans/Commands/MergeScenesCommand.py:61
+#: GuiSubtrans/Commands/ReparseTranslationsCommand.py:33
+#: GuiSubtrans/Commands/ReparseTranslationsCommand.py:101
+#: GuiSubtrans/Commands/SaveProjectFile.py:19
+#: GuiSubtrans/Commands/SplitBatchCommand.py:23
+#: GuiSubtrans/Commands/SplitBatchCommand.py:70
+#: GuiSubtrans/Commands/SplitSceneCommand.py:23
+#: GuiSubtrans/Commands/SplitSceneCommand.py:52
+#: GuiSubtrans/Commands/SwapTextAndTranslations.py:32
+#: GuiSubtrans/Commands/TranslateSceneCommand.py:41
+#: GuiSubtrans/GuiInterface.py:275 GuiSubtrans/GuiInterface.py:290
 msgid "No project data"
 msgstr ""
 
@@ -1034,7 +1145,7 @@ msgstr ""
 msgid "No project or subtitles to load"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/GeminiClient.py:113
+#: PySubtrans/Providers/Clients/GeminiClient.py:221
 msgid "No response from Gemini"
 msgstr ""
 
@@ -1050,11 +1161,18 @@ msgstr ""
 msgid "No scenes were created from the subtitles"
 msgstr ""
 
-#: GuiSubtrans/Commands/AutoSplitBatchCommand.py:27 GuiSubtrans/Commands/DeleteLinesCommand.py:37 GuiSubtrans/Commands/MergeLinesCommand.py:32 GuiSubtrans/Commands/SplitBatchCommand.py:28 GuiSubtrans/Commands/SplitBatchCommand.py:75 GuiSubtrans/Commands/SplitSceneCommand.py:28 GuiSubtrans/Commands/SplitSceneCommand.py:57 GuiSubtrans/ProjectActions.py:422
+#: GuiSubtrans/Commands/AutoSplitBatchCommand.py:27
+#: GuiSubtrans/Commands/DeleteLinesCommand.py:37
+#: GuiSubtrans/Commands/MergeLinesCommand.py:32
+#: GuiSubtrans/Commands/SplitBatchCommand.py:28
+#: GuiSubtrans/Commands/SplitBatchCommand.py:75
+#: GuiSubtrans/Commands/SplitSceneCommand.py:28
+#: GuiSubtrans/Commands/SplitSceneCommand.py:57
+#: GuiSubtrans/ProjectActions.py:422
 msgid "No subtitles"
 msgstr ""
 
-#: GuiSubtrans/Commands/TranslateSceneCommand.py:45
+#: GuiSubtrans/Commands/TranslateSceneCommand.py:46
 msgid "No subtitles in project"
 msgstr ""
 
@@ -1062,7 +1180,7 @@ msgstr ""
 msgid "No subtitles to batch"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:99
+#: PySubtrans/SubtitleTranslator.py:102
 msgid "No subtitles to translate"
 msgstr ""
 
@@ -1074,15 +1192,15 @@ msgstr ""
 msgid "No subtitles translated"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/BedrockClient.py:69
+#: PySubtrans/Providers/Clients/BedrockClient.py:70
 msgid "No system prompt provided"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:74
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:139
 msgid "No text content found in response"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/CustomClient.py:157
+#: PySubtrans/Providers/Clients/CustomClient.py:370
 msgid "No text returned in the response"
 msgstr ""
 
@@ -1090,7 +1208,7 @@ msgstr ""
 msgid "No translation provider available"
 msgstr ""
 
-#: GuiSubtrans/Commands/TranslateSceneCommand.py:52
+#: GuiSubtrans/Commands/TranslateSceneCommand.py:53
 msgid "No translation provider configured"
 msgstr ""
 
@@ -1098,11 +1216,14 @@ msgstr ""
 msgid "No translation providers available. Please install one or more providers."
 msgstr ""
 
-#: GuiSubtrans/Commands/EditBatchCommand.py:57 GuiSubtrans/Commands/EditLineCommand.py:80 GuiSubtrans/Commands/EditSceneCommand.py:52 GuiSubtrans/Commands/MergeLinesCommand.py:85
+#: GuiSubtrans/Commands/EditBatchCommand.py:57
+#: GuiSubtrans/Commands/EditLineCommand.py:80
+#: GuiSubtrans/Commands/EditSceneCommand.py:52
+#: GuiSubtrans/Commands/MergeLinesCommand.py:85
 msgid "No undo data available"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/GeminiClient.py:126
+#: PySubtrans/Providers/Clients/GeminiClient.py:234
 msgid "No valid candidates returned in the response"
 msgstr ""
 
@@ -1158,7 +1279,7 @@ msgstr ""
 msgid "OK"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenRouter.py:119
+#: PySubtrans/Providers/Provider_OpenRouter.py:120
 msgid "Only show models from the translation category"
 msgstr ""
 
@@ -1178,15 +1299,15 @@ msgstr ""
 msgid "OpenAI SDK not installed. Azure provider will not be available"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:130
+#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:131
 msgid "OpenAI account quota reached, please upgrade your plan"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:135
+#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:136
 msgid "OpenAI error {error}, retrying in {sleep_time}..."
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Claude.py:120
+#: PySubtrans/Providers/Provider_Claude.py:123
 msgid "Optional proxy server to use for requests (e.g. https://api.not-anthropic.com/"
 msgstr ""
 
@@ -1234,7 +1355,9 @@ msgstr ""
 msgid "Processing"
 msgstr ""
 
-#: GuiSubtrans/NewProjectSettings.py:44 GuiSubtrans/Widgets/ProjectSettings.py:39 GuiSubtrans/Widgets/ProjectSettings.py:87
+#: GuiSubtrans/NewProjectSettings.py:44
+#: GuiSubtrans/Widgets/ProjectSettings.py:39
+#: GuiSubtrans/Widgets/ProjectSettings.py:87
 msgid "Project Settings"
 msgstr ""
 
@@ -1290,7 +1413,7 @@ msgstr ""
 msgid "Provider error: {error}"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:437
+#: GuiSubtrans/SettingsDialog.py:438
 msgid "Provider is not set"
 msgstr ""
 
@@ -1314,11 +1437,11 @@ msgstr ""
 msgid "Rate limit hit, retrying in {backoff_time} seconds..."
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:124
+#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:125
 msgid "Rate limit hit, retrying in {retry_seconds} seconds..."
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:185
+#: PySubtrans/SubtitleTranslator.py:191
 msgid "Reached max_lines limit of ({lines} lines)... finishing"
 msgstr ""
 
@@ -1366,15 +1489,15 @@ msgstr ""
 msgid "Reparse batches {batches}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:205
+#: PySubtrans/SubtitleTranslator.py:211
 msgid "Reparsing scene {scene} batch {batch} with {count} lines..."
 msgstr ""
 
-#: PySubtrans/Providers/Clients/CustomClient.py:179
+#: PySubtrans/Providers/Clients/CustomClient.py:128
 msgid "Request to server timed out: {error}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/GeminiClient.py:117
+#: PySubtrans/Providers/Clients/GeminiClient.py:225
 msgid "Request was blocked by Gemini: {block_info}"
 msgstr ""
 
@@ -1390,27 +1513,29 @@ msgstr ""
 msgid "Resuming"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:102
+#: PySubtrans/SubtitleTranslator.py:105
 msgid "Resuming translation"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:391
+#: PySubtrans/SubtitleTranslator.py:402
 msgid "Retry failed validation: {errors}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:393
+#: PySubtrans/SubtitleTranslator.py:404
 msgid "Retry passed validation"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/CustomClient.py:195
+#: PySubtrans/Providers/Clients/CustomClient.py:144
 msgid "Retrying in {sleep_time} seconds..."
 msgstr ""
 
-#: PySubtrans/Providers/Provider_DeepSeek.py:67 PySubtrans/Providers/Provider_OpenRouter.py:148
+#: PySubtrans/Providers/Provider_DeepSeek.py:69
+#: PySubtrans/Providers/Provider_OpenRouter.py:150
 msgid "Reuse connection for multiple requests (otherwise a new connection is established for each)"
 msgstr ""
 
-#: GuiSubtrans/EditInstructionsDialog.py:41 GuiSubtrans/EditInstructionsDialog.py:151
+#: GuiSubtrans/EditInstructionsDialog.py:41
+#: GuiSubtrans/EditInstructionsDialog.py:151
 msgid "Save Instructions"
 msgstr ""
 
@@ -1446,7 +1571,8 @@ msgstr ""
 msgid "Saving translation to {}"
 msgstr ""
 
-#: GuiSubtrans/ViewModel/SceneItem.py:32 GuiSubtrans/ViewModel/SceneItem.py:146 GuiSubtrans/Widgets/Editors.py:86
+#: GuiSubtrans/ViewModel/SceneItem.py:32 GuiSubtrans/ViewModel/SceneItem.py:146
+#: GuiSubtrans/Widgets/Editors.py:86
 msgid "Scene {num}"
 msgstr ""
 
@@ -1454,19 +1580,19 @@ msgstr ""
 msgid "Scene {scene} Batch {batch}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:120
+#: PySubtrans/SubtitleTranslator.py:123
 msgid "Scene {scene} already translated {linecount} lines..."
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:210
+#: PySubtrans/SubtitleTranslator.py:216
 msgid "Scene {scene} batch {batch} already translated {lines} lines..."
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:251
+#: PySubtrans/SubtitleTranslator.py:258
 msgid "Scene {scene} batch {batch} failed validation, requesting retranslation"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:340
+#: PySubtrans/SubtitleTranslator.py:351
 msgid "Scene {scene} batch {batch}: {translated} lines and {untranslated} untranslated."
 msgstr ""
 
@@ -1478,7 +1604,7 @@ msgstr ""
 msgid "Seconds to wait before retrying a failed translation"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/BedrockClient.py:60
+#: PySubtrans/Providers/Clients/BedrockClient.py:61
 msgid "Secret access key must be set in .env or provided as an argument"
 msgstr ""
 
@@ -1494,7 +1620,8 @@ msgstr ""
 msgid "Server address or endpoint is not set"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/CustomClient.py:118
+#: PySubtrans/Providers/Clients/CustomClient.py:167
+#: PySubtrans/Providers/Clients/CustomClient.py:197
 msgid "Server error: {status_code} {text}"
 msgstr ""
 
@@ -1550,6 +1677,21 @@ msgstr ""
 msgid "Stop translation"
 msgstr ""
 
+#: PySubtrans/Providers/Provider_Claude.py:113
+#: PySubtrans/Providers/Provider_Gemini.py:80
+#: PySubtrans/Providers/Provider_OpenAI.py:110
+#: PySubtrans/Providers/Provider_OpenRouter.py:146
+msgid "Stream translations in realtime as they are generated"
+msgstr ""
+
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:228
+msgid "Streaming did not complete successfully"
+msgstr ""
+
+#: PySubtrans/Providers/Clients/CustomClient.py:219
+msgid "Streaming error: {error}"
+msgstr ""
+
 #: GuiSubtrans/Widgets/ProjectSettings.py:135
 msgid "Substitution Mode"
 msgstr ""
@@ -1570,7 +1712,7 @@ msgstr ""
 msgid "Subtitles have not been batched"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:105
+#: PySubtrans/SubtitleTranslator.py:108
 msgid "Subtitles must be batched before translation"
 msgstr ""
 
@@ -1582,7 +1724,7 @@ msgstr ""
 msgid "Subtrans projects"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:140
+#: PySubtrans/SubtitleTranslator.py:143
 msgid "Successfully translated {count} lines!"
 msgstr ""
 
@@ -1590,11 +1732,11 @@ msgstr ""
 msgid "Summary"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:410
+#: PySubtrans/SubtitleTranslator.py:421
 msgid "Summary was truncated from {original} to {truncated} characters"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:348
+#: PySubtrans/SubtitleTranslator.py:359
 msgid "Summary: {summary}"
 msgstr ""
 
@@ -1610,7 +1752,9 @@ msgstr ""
 msgid "System instructions for the translator"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AnthropicClient.py:77 PySubtrans/Providers/Clients/GeminiClient.py:68
+#: PySubtrans/Providers/Clients/AnthropicClient.py:79
+#: PySubtrans/Providers/Clients/AnthropicClient.py:149
+#: PySubtrans/Providers/Clients/GeminiClient.py:81
 msgid "System prompt is required"
 msgstr ""
 
@@ -1646,7 +1790,8 @@ msgstr ""
 msgid "The Azure API base URL to use for requests."
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:22 PySubtrans/Providers/Clients/OpenAIClient.py:27
+#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:23
+#: PySubtrans/Providers/Clients/OpenAIClient.py:27
 msgid "The OpenAI library is out of date and must be updated"
 msgstr ""
 
@@ -1654,7 +1799,7 @@ msgstr ""
 msgid "The address of the server"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_DeepSeek.py:59
+#: PySubtrans/Providers/Provider_DeepSeek.py:60
 msgid "The base URL to use for requests (default is https://api.deepseek.com)"
 msgstr ""
 
@@ -1662,7 +1807,7 @@ msgstr ""
 msgid "The base URL to use for requests (default is https://api.mistral.ai)"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenAI.py:90
+#: PySubtrans/Providers/Provider_OpenAI.py:91
 msgid "The base URL to use for requests - leave as default unless you know you need something else"
 msgstr ""
 
@@ -1674,7 +1819,7 @@ msgstr ""
 msgid "The language of the application interface"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenAI.py:108
+#: PySubtrans/Providers/Provider_OpenAI.py:109
 msgid "The level of reasoning effort to use for the model"
 msgstr ""
 
@@ -1690,11 +1835,11 @@ msgstr ""
 msgid "The maximum number of tokens to generate in a single request"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Claude.py:118
+#: PySubtrans/Providers/Provider_Claude.py:121
 msgid "The maximum number of tokens to use for thinking"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Claude.py:113
+#: PySubtrans/Providers/Provider_Claude.py:116
 msgid "The maximum number of tokens to use for translations"
 msgstr ""
 
@@ -1702,15 +1847,15 @@ msgstr ""
 msgid "The model ID (for local servers this is usually not required"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Claude.py:110
+#: PySubtrans/Providers/Provider_Claude.py:112
 msgid "The model to use for translations"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Claude.py:112
+#: PySubtrans/Providers/Provider_Claude.py:115
 msgid "The rate limit to use for translations (default 60.0)"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Claude.py:111
+#: PySubtrans/Providers/Provider_Claude.py:114
 msgid "The temperature to use for translations (default 0.0)"
 msgstr ""
 
@@ -1722,39 +1867,46 @@ msgstr ""
 msgid "Timeout for the request in seconds (default 300)"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AnthropicClient.py:94 PySubtrans/Providers/Clients/MistralClient.py:67 PySubtrans/Providers/Clients/OpenAIClient.py:75
+#: PySubtrans/Providers/Provider_Gemini.py:87
+msgid "Token budget for reasoning. Higher values increase cost"
+msgstr ""
+
+#: PySubtrans/Providers/Clients/AnthropicClient.py:96
+#: PySubtrans/Providers/Clients/MistralClient.py:68
+#: PySubtrans/Providers/Clients/OpenAIClient.py:75
 msgid "Too many tokens in translation"
 msgstr ""
 
-#: GuiSubtrans/Widgets/SelectionView.py:56 GuiSubtrans/Widgets/SelectionView.py:86
+#: GuiSubtrans/Widgets/SelectionView.py:56
+#: GuiSubtrans/Widgets/SelectionView.py:86
 msgid "Translate Selection"
 msgstr ""
 
-#: GuiSubtrans/Commands/TranslateSceneCommand.py:37
+#: GuiSubtrans/Commands/TranslateSceneCommand.py:38
 msgid "Translating scene number {scene}"
 msgstr ""
 
-#: GuiSubtrans/Commands/TranslateSceneCommand.py:35
+#: GuiSubtrans/Commands/TranslateSceneCommand.py:36
 msgid "Translating scene number {scene} batch {batches}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AnthropicClient.py:24
+#: PySubtrans/Providers/Clients/AnthropicClient.py:25
 msgid "Translating with Anthropic {model}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:36
+#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:37
 msgid "Translating with Azure OpenAI deployment {deployment_name}, API-version {api_version}, API Base: {api_base}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/BedrockClient.py:21
+#: PySubtrans/Providers/Clients/BedrockClient.py:22
 msgid "Translating with Bedrock model {model_id}, using region: {aws_region}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/GeminiClient.py:35
+#: PySubtrans/Providers/Clients/GeminiClient.py:38
 msgid "Translating with Gemini {model} model"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/MistralClient.py:26
+#: PySubtrans/Providers/Clients/MistralClient.py:27
 msgid "Translating with Mistral model {model}, using server: {server_url}"
 msgstr ""
 
@@ -1762,23 +1914,24 @@ msgstr ""
 msgid "Translating with model {model}, Using API Base: {api_base}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/CustomClient.py:28
+#: PySubtrans/Providers/Clients/CustomClient.py:30
 msgid "Translating with server at {server_address}{endpoint}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:107
+#: PySubtrans/SubtitleTranslator.py:110
 msgid "Translating {linecount} lines in {scenecount} scenes"
 msgstr ""
 
-#: PySubtrans/SubtitleError.py:40 PySubtrans/SubtitleProject.py:428 PySubtrans/SubtitleTranslator.py:133
+#: PySubtrans/SubtitleError.py:40 PySubtrans/SubtitleProject.py:429
+#: PySubtrans/SubtitleTranslator.py:136
 msgid "Translation aborted"
 msgstr ""
 
-#: PySubtrans/SubtitleProject.py:432
+#: PySubtrans/SubtitleProject.py:433
 msgid "Translation failed, saving partial results"
 msgstr ""
 
-#: GuiSubtrans/Commands/TranslateSceneCommand.py:55
+#: GuiSubtrans/Commands/TranslateSceneCommand.py:56
 msgid "Translation provider settings are invalid"
 msgstr ""
 
@@ -1790,11 +1943,12 @@ msgstr ""
 msgid "Translation response error: {error}, retrying in {backoff_time} seconds..."
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:288
+#: PySubtrans/SubtitleTranslator.py:295
 msgid "Truncating batch to remain within max_lines"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenRouter.py:137 PySubtrans/Providers/Provider_OpenRouter.py:139
+#: PySubtrans/Providers/Provider_OpenRouter.py:138
+#: PySubtrans/Providers/Provider_OpenRouter.py:140
 msgid "Try a different model family or change filter settings"
 msgstr ""
 
@@ -1810,11 +1964,11 @@ msgstr ""
 msgid "Unable to create option widget for {key}: {error}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:83
+#: PySubtrans/SubtitleTranslator.py:85
 msgid "Unable to create provider client: {error}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:86
+#: PySubtrans/SubtitleTranslator.py:88
 msgid "Unable to create translation client"
 msgstr ""
 
@@ -1822,15 +1976,17 @@ msgstr ""
 msgid "Unable to create {provider} provider: {error}"
 msgstr ""
 
-#: GuiSubtrans/Commands/EditBatchCommand.py:28 GuiSubtrans/Commands/EditLineCommand.py:32
+#: GuiSubtrans/Commands/EditBatchCommand.py:28
+#: GuiSubtrans/Commands/EditLineCommand.py:32
 msgid "Unable to edit batch because datamodel is invalid"
 msgstr ""
 
-#: GuiSubtrans/Commands/ReparseTranslationsCommand.py:51 GuiSubtrans/Commands/ReparseTranslationsCommand.py:112
+#: GuiSubtrans/Commands/ReparseTranslationsCommand.py:51
+#: GuiSubtrans/Commands/ReparseTranslationsCommand.py:112
 msgid "Unable to find batch {batch} in scene {scene}"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Claude.py:159
+#: PySubtrans/Providers/Provider_Claude.py:162
 msgid "Unable to initialise Anthropic SDK. Claude provider will not be available"
 msgstr ""
 
@@ -1846,7 +2002,7 @@ msgstr ""
 msgid "Unable to load {file} ({error})"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:323
+#: PySubtrans/SubtitleTranslator.py:334
 msgid "Unable to match {count} lines with a source line"
 msgstr ""
 
@@ -1854,7 +2010,8 @@ msgstr ""
 msgid "Unable to merge selection ({selection})"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_DeepSeek.py:105 PySubtrans/Providers/Provider_OpenRouter.py:267
+#: PySubtrans/Providers/Provider_DeepSeek.py:107
+#: PySubtrans/Providers/Provider_OpenRouter.py:269
 msgid "Unable to parse server response as JSON: {response_text}"
 msgstr ""
 
@@ -1866,23 +2023,27 @@ msgstr ""
 msgid "Unable to read project file, starting afresh"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Claude.py:143
+#: PySubtrans/Providers/Provider_Claude.py:146
 msgid "Unable to retrieve Claude model list: {error}"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Gemini.py:125
+#: PySubtrans/Providers/Provider_Gemini.py:134
 msgid "Unable to retrieve Gemini model list: {error}"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Bedrock.py:142 PySubtrans/Providers/Provider_Mistral.py:105 PySubtrans/Providers/Provider_OpenAI.py:149
+#: PySubtrans/Providers/Provider_Bedrock.py:142
+#: PySubtrans/Providers/Provider_Mistral.py:105
+#: PySubtrans/Providers/Provider_OpenAI.py:151
 msgid "Unable to retrieve available AI models: {error}"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_DeepSeek.py:109 PySubtrans/Providers/Provider_OpenRouter.py:271
+#: PySubtrans/Providers/Provider_DeepSeek.py:111
+#: PySubtrans/Providers/Provider_OpenRouter.py:273
 msgid "Unable to retrieve available models: {error}"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenAI.py:100 PySubtrans/Providers/Provider_OpenAI.py:113
+#: PySubtrans/Providers/Provider_OpenAI.py:101
+#: PySubtrans/Providers/Provider_OpenAI.py:115
 msgid "Unable to retrieve models"
 msgstr ""
 
@@ -1922,15 +2083,16 @@ msgstr ""
 msgid "Undoing edit line {line}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:146
+#: PySubtrans/Providers/Clients/AzureOpenAIClient.py:147
 msgid "Unexpected error communicating with OpenAI"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/CustomClient.py:184
+#: PySubtrans/Providers/Clients/CustomClient.py:133
 msgid "Unexpected error communicating with server"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/MistralClient.py:127 PySubtrans/Providers/Clients/OpenAIClient.py:147
+#: PySubtrans/Providers/Clients/MistralClient.py:128
+#: PySubtrans/Providers/Clients/OpenAIClient.py:147
 msgid "Unexpected error communicating with the provider"
 msgstr ""
 
@@ -1938,7 +2100,8 @@ msgstr ""
 msgid "Unexpected error parsing SRT: {}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/ChatGPTClient.py:52 PySubtrans/Providers/Clients/MistralClient.py:99
+#: PySubtrans/Providers/Clients/ChatGPTClient.py:55
+#: PySubtrans/Providers/Clients/MistralClient.py:100
 msgid "Unexpected response type: {response_type}"
 msgstr ""
 
@@ -1950,7 +2113,7 @@ msgstr ""
 msgid "Unrecoverable error in {name}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:145
+#: PySubtrans/SubtitleTranslator.py:148
 msgid "Untranslated > {number}. {text}"
 msgstr ""
 
@@ -1958,11 +2121,11 @@ msgstr ""
 msgid "Use parallel threads for translation requests (may be faster but may not work with the server)"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenRouter.py:111
+#: PySubtrans/Providers/Provider_OpenRouter.py:112
 msgid "Use the default model and hide advanced model options"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenAI.py:94
+#: PySubtrans/Providers/Provider_OpenAI.py:95
 msgid "Use the httpx library for requests. May help if you receive a 307 redirect error with a custom api_base"
 msgstr ""
 
@@ -1970,7 +2133,7 @@ msgstr ""
 msgid "User Prompt:\n {text}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/CustomClient.py:32
+#: PySubtrans/Providers/Clients/CustomClient.py:34
 msgid "Using model: {model}"
 msgstr ""
 
@@ -1998,11 +2161,20 @@ msgstr "Access Key"
 msgid "add_right_to_left_markers"
 msgstr "Add Right To Left Markers"
 
-#: PySubtrans/Providers/Provider_Azure.py:0 PySubtrans/Providers/Provider_DeepSeek.py:0 PySubtrans/Providers/Provider_OpenAI.py:0
+#: PySubtrans/Providers/Provider_Azure.py:0
+#: PySubtrans/Providers/Provider_DeepSeek.py:0
+#: PySubtrans/Providers/Provider_OpenAI.py:0
 msgid "api_base"
 msgstr "API Base"
 
-#: PySubtrans/Providers/Provider_Azure.py:0 PySubtrans/Providers/Provider_Claude.py:0 PySubtrans/Providers/Provider_Custom.py:0 PySubtrans/Providers/Provider_DeepSeek.py:0 PySubtrans/Providers/Provider_Gemini.py:0 PySubtrans/Providers/Provider_Mistral.py:0 PySubtrans/Providers/Provider_OpenAI.py:0 PySubtrans/Providers/Provider_OpenRouter.py:0
+#: PySubtrans/Providers/Provider_Azure.py:0
+#: PySubtrans/Providers/Provider_Claude.py:0
+#: PySubtrans/Providers/Provider_Custom.py:0
+#: PySubtrans/Providers/Provider_DeepSeek.py:0
+#: PySubtrans/Providers/Provider_Gemini.py:0
+#: PySubtrans/Providers/Provider_Mistral.py:0
+#: PySubtrans/Providers/Provider_OpenAI.py:0
+#: PySubtrans/Providers/Provider_OpenRouter.py:0
 msgid "api_key"
 msgstr "API Key"
 
@@ -2034,11 +2206,14 @@ msgstr "Break Long Lines"
 msgid "convert_wide_dashes"
 msgstr "Convert Wide Dashes"
 
-#: PySubtrans/Providers/Clients/GeminiClient.py:36 PySubtrans/Providers/Clients/MistralClient.py:27 PySubtrans/Providers/Clients/MistralClient.py:28 PySubtrans/Providers/Clients/OpenAIClient.py:35
+#: PySubtrans/Providers/Clients/GeminiClient.py:39
+#: PySubtrans/Providers/Clients/MistralClient.py:28
+#: PySubtrans/Providers/Clients/MistralClient.py:29
+#: PySubtrans/Providers/Clients/OpenAIClient.py:35
 msgid "default"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AnthropicClient.py:25
+#: PySubtrans/Providers/Clients/AnthropicClient.py:26
 msgid "default model"
 msgstr ""
 
@@ -2046,7 +2221,12 @@ msgstr ""
 msgid "deployment_name"
 msgstr "Deployment Name"
 
-#: PySubtrans/Providers/Provider_Custom.py:0 PySubtrans/Providers/Provider_DeepSeek.py:0
+#: PySubtrans/Providers/Provider_Gemini.py:0
+msgid "enable_thinking"
+msgstr "Enable Thinking"
+
+#: PySubtrans/Providers/Provider_Custom.py:0
+#: PySubtrans/Providers/Provider_DeepSeek.py:0
 msgid "endpoint"
 msgstr "Endpoint"
 
@@ -2130,7 +2310,11 @@ msgstr "Max Thinking Tokens"
 msgid "max_threads"
 msgstr "Max Threads"
 
-#: PySubtrans/Providers/Provider_Bedrock.py:0 PySubtrans/Providers/Provider_Claude.py:0 PySubtrans/Providers/Provider_Custom.py:0 PySubtrans/Providers/Provider_DeepSeek.py:0 PySubtrans/Providers/Provider_OpenRouter.py:0
+#: PySubtrans/Providers/Provider_Bedrock.py:0
+#: PySubtrans/Providers/Provider_Claude.py:0
+#: PySubtrans/Providers/Provider_Custom.py:0
+#: PySubtrans/Providers/Provider_DeepSeek.py:0
+#: PySubtrans/Providers/Provider_OpenRouter.py:0
 msgid "max_tokens"
 msgstr "Max Tokens"
 
@@ -2154,7 +2338,14 @@ msgstr "Min Single Line Length"
 msgid "min_split_chars"
 msgstr "Min Split Chars"
 
-#: PySubtrans/Providers/Provider_Bedrock.py:0 PySubtrans/Providers/Provider_Claude.py:0 PySubtrans/Providers/Provider_Custom.py:0 PySubtrans/Providers/Provider_DeepSeek.py:0 PySubtrans/Providers/Provider_Gemini.py:0 PySubtrans/Providers/Provider_Mistral.py:0 PySubtrans/Providers/Provider_OpenAI.py:0 PySubtrans/Providers/Provider_OpenRouter.py:0
+#: PySubtrans/Providers/Provider_Bedrock.py:0
+#: PySubtrans/Providers/Provider_Claude.py:0
+#: PySubtrans/Providers/Provider_Custom.py:0
+#: PySubtrans/Providers/Provider_DeepSeek.py:0
+#: PySubtrans/Providers/Provider_Gemini.py:0
+#: PySubtrans/Providers/Provider_Mistral.py:0
+#: PySubtrans/Providers/Provider_OpenAI.py:0
+#: PySubtrans/Providers/Provider_OpenRouter.py:0
 msgid "model"
 msgstr "Model"
 
@@ -2214,7 +2405,13 @@ msgstr "Provider Settings"
 msgid "proxy"
 msgstr "Proxy"
 
-#: PySubtrans/Providers/Provider_Bedrock.py:0 PySubtrans/Providers/Provider_Claude.py:0 PySubtrans/Providers/Provider_DeepSeek.py:0 PySubtrans/Providers/Provider_Gemini.py:0 PySubtrans/Providers/Provider_Mistral.py:0 PySubtrans/Providers/Provider_OpenAI.py:0 PySubtrans/Providers/Provider_OpenRouter.py:0
+#: PySubtrans/Providers/Provider_Bedrock.py:0
+#: PySubtrans/Providers/Provider_Claude.py:0
+#: PySubtrans/Providers/Provider_DeepSeek.py:0
+#: PySubtrans/Providers/Provider_Gemini.py:0
+#: PySubtrans/Providers/Provider_Mistral.py:0
+#: PySubtrans/Providers/Provider_OpenAI.py:0
+#: PySubtrans/Providers/Provider_OpenRouter.py:0
 msgid "rate_limit"
 msgstr "Rate Limit"
 
@@ -2242,7 +2439,8 @@ msgstr "Retranslate"
 msgid "retry_on_error"
 msgstr "Retry On Error"
 
-#: PySubtrans/Providers/Provider_DeepSeek.py:0 PySubtrans/Providers/Provider_OpenRouter.py:0
+#: PySubtrans/Providers/Provider_DeepSeek.py:0
+#: PySubtrans/Providers/Provider_OpenRouter.py:0
 msgid "reuse_client"
 msgstr "Reuse Client"
 
@@ -2258,7 +2456,8 @@ msgstr "Scene Threshold"
 msgid "secret_access_key"
 msgstr "Secret Access Key"
 
-#: PySubtrans/Providers/Provider_Custom.py:0 PySubtrans/Providers/Provider_OpenRouter.py:0
+#: PySubtrans/Providers/Provider_Custom.py:0
+#: PySubtrans/Providers/Provider_OpenRouter.py:0
 msgid "server_address"
 msgstr "Server Address"
 
@@ -2273,6 +2472,14 @@ msgstr ""
 #: PySubtrans/Options.py:98
 msgid "stop_on_error"
 msgstr "Stop On Error"
+
+#: PySubtrans/Providers/Provider_Claude.py:0
+#: PySubtrans/Providers/Provider_DeepSeek.py:0
+#: PySubtrans/Providers/Provider_Gemini.py:0
+#: PySubtrans/Providers/Provider_OpenAI.py:0
+#: PySubtrans/Providers/Provider_OpenRouter.py:0
+msgid "stream_responses"
+msgstr "Stream Responses"
 
 #: PySubtrans/Options.py:80
 msgid "substitution_mode"
@@ -2294,7 +2501,14 @@ msgstr "Supports System Messages"
 msgid "target_language"
 msgstr "Target Language"
 
-#: PySubtrans/Providers/Provider_Bedrock.py:0 PySubtrans/Providers/Provider_Claude.py:0 PySubtrans/Providers/Provider_Custom.py:0 PySubtrans/Providers/Provider_DeepSeek.py:0 PySubtrans/Providers/Provider_Gemini.py:0 PySubtrans/Providers/Provider_Mistral.py:0 PySubtrans/Providers/Provider_OpenAI.py:0 PySubtrans/Providers/Provider_OpenRouter.py:0
+#: PySubtrans/Providers/Provider_Bedrock.py:0
+#: PySubtrans/Providers/Provider_Claude.py:0
+#: PySubtrans/Providers/Provider_Custom.py:0
+#: PySubtrans/Providers/Provider_DeepSeek.py:0
+#: PySubtrans/Providers/Provider_Gemini.py:0
+#: PySubtrans/Providers/Provider_Mistral.py:0
+#: PySubtrans/Providers/Provider_OpenAI.py:0
+#: PySubtrans/Providers/Provider_OpenRouter.py:0
 msgid "temperature"
 msgstr "Temperature"
 
@@ -2305,6 +2519,10 @@ msgstr "Theme"
 #: PySubtrans/Providers/Provider_Claude.py:0
 msgid "thinking"
 msgstr "Thinking"
+
+#: PySubtrans/Providers/Provider_Gemini.py:0
+msgid "thinking_budget"
+msgstr "Thinking Budget"
 
 #: PySubtrans/Providers/Provider_Custom.py:0
 msgid "timeout"
