@@ -56,7 +56,7 @@ class TranslationParser:
             ]
         return patterns
 
-    def ProcessTranslation(self, translation : Translation) -> list[SubtitleLine]|None:
+    def ProcessTranslation(self, translation : Translation, validate : bool = True) -> list[SubtitleLine]|None:
         """
         Extract lines from a batched translation, using the
         pre-defined pattern to match each line, or a list of fallbacks
@@ -90,11 +90,12 @@ class TranslationParser:
 
         self.translated = MergeTranslations(self.translated, list(self.translations.values()))
 
-        self.errors = self.ValidateTranslations()
-
-        if self.errors and self.translated:
-            self._fix_unclosed_tags()
+        if validate:
             self.errors = self.ValidateTranslations()
+
+            if self.errors and self.translated:
+                self._fix_unclosed_tags()
+                self.errors = self.ValidateTranslations()
 
         return self.translated
 

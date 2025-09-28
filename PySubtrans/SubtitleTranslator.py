@@ -450,15 +450,12 @@ class SubtitleTranslator:
         if not translation or not translation.has_translation:
             return
 
-        # Apply the translation to the subtitles
         parser = self.client.GetParser(self.task_type)
         try:
-            parser.ProcessTranslation(translation)
+            parser.ProcessTranslation(translation, validate=False)
 
-            # Try to match the translations with the original lines
             translated, _ = parser.MatchTranslations(batch.originals)
 
-            # Assign the translated lines to the batch
             if line_numbers:
                 translated = [line for line in translated if line.number in line_numbers]
 
