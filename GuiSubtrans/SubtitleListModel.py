@@ -59,7 +59,7 @@ class SubtitleListModel(QAbstractProxyModel):
                 if (scene_item.number, batch_item.number) in batch_numbers:
                     lines = batch_item.lines
                     visible_lines = [ (scene_item.number, batch_item.number, line) for line in lines.keys() ]
-                    visible.extend(visible_lines)
+                    visible.extend(sorted(visible_lines))
 
         self.visible = visible
         self.visible_row_map = { item[2] : row for row, item in enumerate(self.visible) }
@@ -150,6 +150,7 @@ class SubtitleListModel(QAbstractProxyModel):
                     logging.debug(f"Invalid item in source model found for index {index.row()}, {index.column()}: {type(qItem).__name__}")
                 else:
                     logging.debug(f"No item in source model found for index {index.row()}, {index.column()}")
+                return None
 
         if not item:
             item = LineItem(-1, { 'start' : "0:00:00,000", 'end' : "0:00:00,000",  'text' : "Invalid index" })
@@ -195,6 +196,10 @@ class SubtitleListModel(QAbstractProxyModel):
                 # Emit dataChanged for this specific row in the proxy model
                 proxy_index = self.index(proxy_row, 0)
                 self.dataChanged.emit(proxy_index, proxy_index, roles or [])
+        elif isinstance(source_item, BatchItem):
+            # When a batch changes (e.g., lines added/removed), refresh the visible list
+            # This handles cases like line deletion where the visible list becomes stale
+            self._update_visible_batches()
 
     def _reset_visible_batches(self):
         self.ShowSelection(ProjectSelection())
