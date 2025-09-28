@@ -59,7 +59,7 @@ class BatchItem(ViewModelItem):
 
     @property
     def translated_count(self) -> int:
-        return len([line for line in self.lines.values() if line.translation is not None])
+        return len([line for line in self.lines.values() if line and line.translation is not None])
 
     @property
     def all_translated(self) -> bool:
@@ -170,19 +170,16 @@ class BatchItem(ViewModelItem):
                 if row_item.number < line_number:
                     continue
 
-                # Insert the new line at the first opportunity
-                if line_item:
-                    self.insertRow(row, line_item)
-                    self.lines[line_number] = line_item
-                    line_item = None  # type: ignore
-                    if row_item.number > line_number:
-                        # No need to adjust the following line numbers
-                        break
+                assert row_item.number != line_number
+                assert line_item is not None
 
-                row_item.number = row_item.number + 1
-                self.lines[row_item.number] = row_item
+                # Insert the new line at the first opportunity
+                self.insertRow(row, line_item)
+                self.lines[line_number] = line_item
+                break
 
         self._invalidate_first_and_last()
+        self.setData(self.batch_model, Qt.ItemDataRole.UserRole)
 
     def AddTranslation(self, line_number : int, translation_text : str|None):
         """
