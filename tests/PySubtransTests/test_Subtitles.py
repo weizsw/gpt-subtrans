@@ -4,11 +4,13 @@ from datetime import timedelta
 
 from PySubtrans.SubtitleLine import SubtitleLine
 from PySubtrans.Helpers.Text import split_sequences, standard_filler_words
-from PySubtrans.Helpers.Tests import log_info, log_input_expected_result, log_test_name
+from PySubtrans.Helpers.TestCases import LoggedTestCase
+from PySubtrans.Helpers.Tests import log_info, log_input_expected_result
 from PySubtrans.Helpers.SubtitleHelpers import MergeSubtitles, MergeTranslations, FindSplitPoint, GetProportionalDuration
 from PySubtrans.SubtitleProcessor import SubtitleProcessor
 
-class TestSubtitles(unittest.TestCase):
+
+class TestSubtitles(LoggedTestCase):
 
     example_line_1 = SubtitleLine("1\n00:00:01,000 --> 00:00:02,000\nThis is line 1")
     example_line_2 = SubtitleLine("2\n00:00:02,500 --> 00:00:03,500\nThis is line 2")
@@ -39,7 +41,6 @@ class TestSubtitles(unittest.TestCase):
     ]
 
     def test_MergeSubtitles(self):
-        log_test_name("MergeSubtitles")
         for source, expected in self.merge_subtitles_cases:
             with self.subTest(source=source):
                 lines = [SubtitleLine(line) for line in source]
@@ -72,7 +73,6 @@ class TestSubtitles(unittest.TestCase):
     ]
 
     def test_MergeTranslations(self):
-        log_test_name("MergeTranslations")
         for group_1, group_2, expected in self.merge_translation_cases:
             with self.subTest(group_1=group_1, group_2=group_2):
                 merged_lines = MergeTranslations(group_1, group_2)
@@ -102,7 +102,6 @@ class TestSubtitles(unittest.TestCase):
     ]
 
     def test_FindSplitPoint(self):
-        log_test_name("FindSplitPoint")
         split_patterns = [regex.compile(sequence) for sequence in split_sequences]
 
         min_duration = timedelta(seconds=1)
@@ -129,14 +128,13 @@ class TestSubtitles(unittest.TestCase):
     ]
 
     def test_GetProportionalDuration(self):
-        log_test_name("GetProportionalDuration")
         for line, characters, min_duration, expected_duration in self.proportional_duration_cases:
             with self.subTest(line=line, characters=characters):
                 result = GetProportionalDuration(line, characters, min_duration=min_duration)
                 log_input_expected_result((line.text, characters, min_duration.total_seconds()), expected_duration, result)
                 self.assertEqual(result, expected_duration)
 
-class SubtitleProcessorTests(unittest.TestCase):
+class SubtitleProcessorTests(LoggedTestCase):
     example_line_1 = "1\n00:00:01,000 --> 00:00:02,000\nThis is line 1"
     example_line_2 = "2\n00:00:02,500 --> 00:00:03,500\nThis is line 2"
     example_line_3 = "3\n00:00:31,000 --> 00:00:35,000\nThird test subtitle.\nBreak after newline, not after the comma even though it is central."
@@ -189,7 +187,6 @@ class SubtitleProcessorTests(unittest.TestCase):
     ]
 
     def test_Preprocess(self):
-        log_test_name("PreprocessSubtitles")
         for source, settings, expected in self.preprocess_cases:
             with self.subTest(source=source, settings=settings):
                 processor = SubtitleProcessor(settings)
@@ -235,7 +232,6 @@ class SubtitleProcessorTests(unittest.TestCase):
     ]
 
     def test_Postprocess(self):
-        log_test_name("PostprocessSubtitles")
         for source, settings, expected in self.postprocess_cases:
             with self.subTest(source=source, settings=settings):
                 processor = SubtitleProcessor(settings)
