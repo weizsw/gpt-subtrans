@@ -63,8 +63,6 @@ class SubtitleBuilder:
         ----------
         summary : str|None
             Optional summary of the scene content.
-        context : dict[str, Any]|None
-            Optional context metadata for the scene.
 
         Returns
         -------
