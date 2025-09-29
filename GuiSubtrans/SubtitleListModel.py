@@ -106,7 +106,7 @@ class SubtitleListModel(QAbstractProxyModel):
             return QModelIndex()
 
         row = index.row()
-        if row > len(self.visible):
+        if row >= len(self.visible):
             logging.debug(f"Tried to map an unknown row to source model: {row}")
             return QModelIndex()
 
