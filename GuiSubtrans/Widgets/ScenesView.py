@@ -159,27 +159,13 @@ class ScenesView(QTreeView):
     def UpdateUiLanguage(self):
         self.Populate(self.viewmodel)
 
-    def _on_item_expanded(self, index):
-        """ Track when an item is expanded """
+    def _set_item_expanded(self, index, expanded: bool):
+        """ Track when an item is expanded or collapsed """
         model = self.model()
-        if not model:
-            return
-
-        scene_item = model.data(index, Qt.ItemDataRole.UserRole)
-        if isinstance(scene_item, SceneItem):
-            if not scene_item.expanded:
-                scene_item.expanded = True
-
-    def _on_item_collapsed(self, index):
-        """ Track when an item is collapsed """
-        model = self.model()
-        if not model:
-            return
-
-        scene_item = model.data(index, Qt.ItemDataRole.UserRole)
-        if isinstance(scene_item, SceneItem):
-            if scene_item.expanded:
-                scene_item.expanded = False
+        if model:
+            scene_item = model.data(index, Qt.ItemDataRole.UserRole)
+            if isinstance(scene_item, SceneItem):
+                scene_item.expanded = expanded
 
     def _restore_expanded_states(self):
         """ Restore the expanded states from SceneItem objects after layout changes """
@@ -190,11 +176,10 @@ class ScenesView(QTreeView):
         try:
             for row in range(model.rowCount()):
                 index = model.index(row, 0)
-                if not index.isValid():
-                    continue
-                scene_item = model.data(index, Qt.ItemDataRole.UserRole)
-                if isinstance(scene_item, SceneItem) and scene_item.expanded:
-                    self.expand(index)
+                if index.isValid():
+                    scene_item = model.data(index, Qt.ItemDataRole.UserRole)
+                    if isinstance(scene_item, SceneItem) and scene_item.expanded:
+                        self.expand(index)
 
         except Exception as e:
             logging.error(f"Error restoring expanded states: {e}")
