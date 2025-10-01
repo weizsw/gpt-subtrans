@@ -496,6 +496,10 @@ The [LLM-Subtrans](https://github.com/machinewrapped/llm-subtrans)repository als
 
 For a more complete breakdown of the module layout and responsibilities of the various components of PySubtrans refer to the LLM-Subtrans [architecture guide](https://github.com/machinewrapped/llm-subtrans/blob/main/docs/architecture.md).
 
+## Release History
+
+See [CHANGELOG.md](CHANGELOG.md) for version history and release notes.
+
 ## License
 
 PySubtrans is released under the MIT License. See [LICENSE](LICENSE) for details.

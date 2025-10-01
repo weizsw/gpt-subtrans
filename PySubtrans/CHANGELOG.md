@@ -1,0 +1,23 @@
+# Changelog
+
+All notable changes to PySubtrans will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.5.2] - 2025-01-15
+- Streaming response support for real-time translation updates
+
+## [1.5.1] - 2025-01-10
+- Updated documentation
+
+## [1.5.0] - 2025-01-05
+- Initial release of PySubtrans, the Subtitle translation engine powering LLM-Subtrans and GUI-Subtrans
+- Integration with major LLM providers (OpenAI, Gemini, Claude, OpenRouter, DeepSeek)
+- Support for multiple subtitle formats (SRT, ASS, SSA, VTT)
+- Subtitle preprocessing and batching capabilities
+- Persistent project support
+
+[1.5.2]: https://github.com/machinewrapped/llm-subtrans/releases/tag/v1.5.2
+[1.5.1]: https://github.com/machinewrapped/llm-subtrans/releases/tag/v1.5.1
+[1.5.0]: https://github.com/machinewrapped/llm-subtrans/releases/tag/v1.5.0
