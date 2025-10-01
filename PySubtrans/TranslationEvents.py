@@ -65,3 +65,24 @@ class TranslationEvents:
         self.error.disconnect(logging.error)
         self.warning.disconnect(logging.warning)
         self.info.disconnect(logging.info)
+
+    def connect_logger(self, logger : logging.Logger):
+        """
+        Connect a custom logger to the logging signals.
+
+        Args:
+            logger: The logger instance to connect to error, warning, and info signals
+        """
+        # Create wrapper functions to adapt signal kwargs to logger positional args
+        def error_wrapper(sender, message):
+            logger.error(message)
+
+        def warning_wrapper(sender, message):
+            logger.warning(message)
+
+        def info_wrapper(sender, message):
+            logger.info(message)
+
+        self.error.connect(error_wrapper)
+        self.warning.connect(warning_wrapper)
+        self.info.connect(info_wrapper)

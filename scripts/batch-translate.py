@@ -177,7 +177,10 @@ class BatchProcessor:
             try:
                 # init_translator builds a ready-to-use SubtitleTranslator
                 # configured with our provider and processing settings.
-                translator = init_translator(self.options, translation_provider=self.translation_provider)
+                translator : SubtitleTranslator = init_translator(self.options, translation_provider=self.translation_provider)
+
+                # Connect the batch script logger to translation events
+                translator.events.connect_logger(self.logger)
 
             except SubtitleError as exc:
                 raise SubtitleError(f"Unable to initialise translator: {exc}") from exc
