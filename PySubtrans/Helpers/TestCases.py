@@ -4,7 +4,6 @@ import unittest
 from typing import Any
 
 import regex
-
 from PySubtrans.Helpers.Tests import log_test_name
 from PySubtrans.Options import Options, SettingsType
 from PySubtrans.SettingsType import SettingsType
@@ -12,14 +11,15 @@ from PySubtrans.SubtitleBatch import SubtitleBatch
 from PySubtrans.SubtitleError import TranslationError
 from PySubtrans.SubtitleFileHandler import SubtitleFileHandler
 from PySubtrans.SubtitleFormatRegistry import SubtitleFormatRegistry
-from PySubtrans.Subtitles import Subtitles
 from PySubtrans.SubtitleLine import SubtitleLine
+from PySubtrans.SubtitleProject import SubtitleProject
 from PySubtrans.SubtitleScene import SubtitleScene
+from PySubtrans.Subtitles import Subtitles
 from PySubtrans.Translation import Translation
 from PySubtrans.TranslationClient import TranslationClient
 from PySubtrans.TranslationPrompt import TranslationPrompt
-from PySubtrans.TranslationRequest import TranslationRequest
 from PySubtrans.TranslationProvider import TranslationProvider
+from PySubtrans.TranslationRequest import TranslationRequest
 
 class LoggedTestCase(unittest.TestCase):
     def setUp(self) -> None:
@@ -58,6 +58,14 @@ class SubtitleTestCase(LoggedTestCase):
 
     def setUp(self) -> None:
         super().setUp()
+
+    def create_subtitle_project(self, subtitles : Subtitles|None = None) -> SubtitleProject:
+        """Create a SubtitleProject populated with the provided subtitles."""
+        project = SubtitleProject(persistent=self.options.use_project_file)
+        project.write_translation = False
+        project.subtitles = subtitles or Subtitles()
+        project.UpdateProjectSettings(self.options)
+        return project
 
     def _assert_same_as_reference(self, subtitles : Subtitles, reference_subtitles: Subtitles):
         """
@@ -208,6 +216,48 @@ def BuildSubtitlesFromLineCounts(line_counts : list[list[int]]) -> Subtitles:
 
     subtitles.scenes = scenes
     return subtitles
+
+def CreateDummyBatch(scene_number : int, batch_number : int, line_count : int, start_line_number : int, start_time : timedelta) -> SubtitleBatch:
+    """
+    Helper to create a SubtitleBatch with the specified number of lines.
+    """
+    lines = [
+        SubtitleLine.Construct(
+            start_line_number + i,
+            start_time + timedelta(seconds=i*2),
+            start_time + timedelta(seconds=i*2 + 1),
+            f"Scene {scene_number} Batch {batch_number} Line {start_line_number + i}",
+            {}
+        )
+        for i in range(line_count)
+    ]
+
+    return SubtitleBatch({
+        'scene': scene_number,
+        'number': batch_number,
+        'summary': f"Scene {scene_number} Batch {batch_number}",
+        'originals': lines
+    })
+
+def CreateDummyScene(scene_number : int, batch_line_counts : list[int], start_line_number : int, start_time : timedelta) -> SubtitleScene:
+    """
+    Helper to create a SubtitleScene with batches containing the specified line counts.
+    """
+    batches = []
+    line_number = start_line_number
+    current_time = start_time
+
+    for batch_index, line_count in enumerate(batch_line_counts, start=1):
+        batch = CreateDummyBatch(scene_number, batch_index, line_count, line_number, current_time)
+        batches.append(batch)
+        line_number += line_count
+        current_time += timedelta(seconds=line_count * 2)
+
+    return SubtitleScene({
+        'number': scene_number,
+        'context': {'summary': f"Scene {scene_number}"},
+        'batches': batches
+    })
 
 class DummyProvider(TranslationProvider):
     name = "Dummy Provider"
