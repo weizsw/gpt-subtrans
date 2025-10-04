@@ -4,7 +4,6 @@ from GuiSubtrans.GuiSubtitleTestCase import GuiSubtitleTestCase
 from GuiSubtrans.ViewModel.TestableViewModel import TestableViewModel
 from GuiSubtrans.ViewModel.ViewModelUpdate import ModelUpdate
 from PySubtrans.Helpers.TestCases import BuildSubtitlesFromLineCounts, CreateDummyBatch, CreateDummyScene
-from PySubtrans.Helpers.Tests import log_input_expected_result
 from PySubtrans.SubtitleLine import SubtitleLine
 
 class ProjectViewModelTests(GuiSubtitleTestCase):
@@ -60,7 +59,7 @@ class ProjectViewModelTests(GuiSubtitleTestCase):
         update.ApplyToViewModel(viewmodel)
 
         viewmodel.assert_line_contents( [
-            (1, 1, 0, 1, 'Scene 1 Batch 1 Line 1 (edited)'),
+            (1, 1, 0, 'Scene 1 Batch 1 Line 1 (edited)'),
         ])
 
         # Verify dataChanged was emitted (line item update + batch.emitDataChanged = 2)
@@ -421,8 +420,7 @@ class ProjectViewModelTests(GuiSubtitleTestCase):
         # Verify total line count
         total_lines = sum(sum(scene) for scene in line_counts)
         actual_lines = len(subtitles.originals or [])
-        log_input_expected_result("total lines", total_lines, actual_lines)
-        self.assertEqual(actual_lines, total_lines)
+        self.assertLoggedEqual("total lines", total_lines, actual_lines)
 
         # Verify complete viewmodel structure matches subtitles
         viewmodel.assert_viewmodel_matches_subtitles(subtitles)
@@ -464,9 +462,9 @@ class ProjectViewModelTests(GuiSubtitleTestCase):
         ])
 
         viewmodel.assert_line_contents( [
-            (1, 1, 0, update_line_1, 'Updated first line'),
-            (3, 2, 5, update_line_2, 'Updated middle line'),
-            (4, 2, -1, update_line_3, 'Updated last line'),
+            (1, 1, 0, 'Updated first line'),
+            (3, 2, 5, 'Updated middle line'),
+            (4, 2, -1, 'Updated last line'),
         ])
 
     def test_merge_scenes_pattern(self):
