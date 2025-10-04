@@ -22,6 +22,11 @@ from PySubtrans.TranslationProvider import TranslationProvider
 from PySubtrans.TranslationRequest import TranslationRequest
 
 class LoggedTestCase(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        log_test_name(f"{cls.__name__}")
+
     def setUp(self) -> None:
         super().setUp()
         log_test_name(self._testMethodName)
