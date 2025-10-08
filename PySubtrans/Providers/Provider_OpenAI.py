@@ -56,7 +56,7 @@ else:
                 self.refresh_when_changed = ['api_key', 'api_base', 'model']
 
                 self.valid_model_types = [ "gpt", "o1", "o3", "o4" ]
-                self.excluded_model_types = [ "vision", "realtime", "audio", "instruct" ]
+                self.excluded_model_types = [ "vision", "image", "realtime", "audio", "instruct", "search", "transcribe", "tts", "deep-research", "codex" ]
                 self.non_reasoning_models = [ "gpt-3", "gpt-4", "gpt-5-chat" ]
 
             @property
