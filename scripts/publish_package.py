@@ -114,7 +114,7 @@ def WritePackageToml(
         f'description = "{PACKAGE_DESCRIPTION}"',
         'readme = "README.md"',
         f'requires-python = "{requires_python}"',
-        'license = {file = "LICENSE"}',
+        'license = "MIT"',
         f"dependencies = {dependencies_block}",
         "",
     ]
