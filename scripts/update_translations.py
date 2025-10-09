@@ -34,7 +34,7 @@ except ImportError:
     print("Warning: python-dotenv not available; environment variables from .env file will not be loaded.")
 
 # Model to use for auto-translation
-free_translation_model = os.getenv('FREE_TRANSLATION_MODEL', 'x-ai/grok-4-fast:free')               # Free but may be rate-limited or disappear
+free_translation_model = os.getenv('FREE_TRANSLATION_MODEL', 'qwen/qwen3-235b-a22b:free')               # Free but may be rate-limited or disappear
 paid_translation_model = os.getenv('PAID_TRANSLATION_MODEL', 'google/gemini-2.5-flash')              # Fast and reliable but not free
 
 base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
