@@ -268,8 +268,8 @@ class OpenAIReasoningClient(OpenAIClient):
             if not isinstance(msg, dict):
                 raise TranslationError(_("Content must be a list of message dicts for Responses API. Found item of type {type}.").format(type=type(msg).__name__))
 
-            role = msg.get('role', 'user')
-            msg_content = msg.get('content', '')
+            role : str = msg.get('role', '')
+            msg_content : str = msg.get('content', '')
 
             # Validate role is one of the accepted values
             if role not in ('user', 'system', 'developer', 'assistant'):
