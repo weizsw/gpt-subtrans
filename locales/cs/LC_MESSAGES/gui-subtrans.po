@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: LLM-Subtrans\n"
-"POT-Creation-Date: 2025-09-28 09:23+0000\n"
+"POT-Creation-Date: 2025-10-09 18:47+0000\n"
 "PO-Revision-Date: 2025-08-09 21:00+0000\n"
 "Last-Translator: AI Assistant\n"
 "Language-Team: Czech\n"
@@ -11,8 +11,8 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=3; plural=((n==1) ? 0 : (n>=2 && n<=4) ? 1 : 2);\n"
 
-#: GuiSubtrans/ViewModel/BatchItem.py:206
-#: GuiSubtrans/ViewModel/SceneItem.py:141
+#: GuiSubtrans/ViewModel/BatchItem.py:203
+#: GuiSubtrans/ViewModel/SceneItem.py:144
 msgid "1 line"
 msgstr "1 řádek"
 
@@ -30,7 +30,7 @@ msgstr "Pro použití tohoto poskytovatele je vyžadován Mistral API klíč (ht
 
 #: GuiSubtrans/NewProjectSettings.py:32
 #: PySubtrans/Providers/Provider_DeepSeek.py:67
-#: PySubtrans/Providers/Provider_OpenAI.py:101
+#: PySubtrans/Providers/Provider_OpenAI.py:107
 #: PySubtrans/Providers/Provider_OpenRouter.py:136
 msgid "AI model to use as the translator"
 msgstr "AI model pro použití jako překladač"
@@ -39,12 +39,12 @@ msgstr "AI model pro použití jako překladač"
 #: PySubtrans/Providers/Provider_DeepSeek.py:124
 #: PySubtrans/Providers/Provider_Gemini.py:111
 #: PySubtrans/Providers/Provider_Mistral.py:118
-#: PySubtrans/Providers/Provider_OpenAI.py:166
+#: PySubtrans/Providers/Provider_OpenAI.py:173
 #: PySubtrans/Providers/Provider_OpenRouter.py:193
 msgid "API Key is required"
 msgstr "Je vyžadován API klíč"
 
-#: PySubtrans/Providers/Clients/OpenAIClient.py:128
+#: PySubtrans/Providers/Clients/OpenAIClient.py:129
 msgid "API Timeout, retrying in {backoff_time} seconds..."
 msgstr "Časový limit API, opakuji za {backoff_time} sekund..."
 
@@ -52,7 +52,7 @@ msgstr "Časový limit API, opakuji za {backoff_time} sekund..."
 msgid "API base must be set in .env or provided as an argument"
 msgstr "Základna API musí být nastavena v .env nebo poskytnuta jako argument"
 
-#: PySubtrans/Providers/Clients/OpenAIClient.py:167
+#: PySubtrans/Providers/Clients/OpenAIClient.py:168
 msgid "API base must be set when using httpx"
 msgstr "Základ API musí být nastaven při použití httpx"
 
@@ -94,7 +94,7 @@ msgstr "O tomto programu"
 msgid "Access key must be set in .env or provided as an argument"
 msgstr "Přístupový klíč musí být nastaven v .env nebo poskytnut jako argument"
 
-#: PySubtrans/Providers/Clients/OpenAIClient.py:124
+#: PySubtrans/Providers/Clients/OpenAIClient.py:125
 msgid "Account quota reached, please upgrade your plan"
 msgstr "Kvóta účtu byla dosažena, prosím, upgradujte si plán"
 
@@ -127,7 +127,7 @@ msgstr "Pokročilé"
 msgid "All Files"
 msgstr "Všechny soubory"
 
-#: GuiSubtrans/ViewModel/SceneItem.py:139
+#: GuiSubtrans/ViewModel/SceneItem.py:142
 msgid "All batches translated"
 msgstr "Všechny dávky přeloženy"
 
@@ -147,7 +147,7 @@ msgstr "Amazon Boto3 SDK není nainstalováno. Poskytovatel Bedrock nebude k dis
 #: PySubtrans/Providers/Provider_DeepSeek.py:71
 #: PySubtrans/Providers/Provider_Gemini.py:82
 #: PySubtrans/Providers/Provider_Mistral.py:73
-#: PySubtrans/Providers/Provider_OpenAI.py:112
+#: PySubtrans/Providers/Provider_OpenAI.py:119
 #: PySubtrans/Providers/Provider_OpenRouter.py:148
 msgid "Amount of random variance to add to translations. Generally speaking, none is best"
 msgstr "Míra náhodné odchylky přidaná do překladů. Obecně platí, že žádná je nejlepší"
@@ -176,7 +176,7 @@ msgstr "Je vyžadován API klíč Azure"
 msgid "An Azure API version is required"
 msgstr "Je vyžadována verze Azure API"
 
-#: PySubtrans/Providers/Provider_OpenAI.py:90
+#: PySubtrans/Providers/Provider_OpenAI.py:96
 msgid "An OpenAI API key is required to use this provider (https://platform.openai.com/account/api-keys)"
 msgstr "K použití tohoto poskytovatele je vyžadován API klíč OpenAI (https://platform.openai.com/account/api-keys)"
 
@@ -220,6 +220,11 @@ msgstr "Automaticky uložit projekt/překlad po přeložení každé scény"
 msgid "Avoid creating a new batch smaller than this"
 msgstr "Vyhnout se vytváření nové dávky menší než tato"
 
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:110
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:243
+msgid "Bad request to OpenAI API: {error}"
+msgstr "Chybný požadavek na OpenAI API: {error}"
+
 #: GuiSubtrans/Commands/EditBatchCommand.py:36
 #: GuiSubtrans/Commands/EditBatchCommand.py:64
 msgid "Batch ({scene},{batch}) not found"
@@ -229,7 +234,7 @@ msgstr "Dávka ({scene},{batch}) nenalezena"
 msgid "Batch {batch} in scene {scene} is not translated"
 msgstr "Batch {batch} ve scéně {scene} není přeložen"
 
-#: GuiSubtrans/ViewModel/BatchItem.py:211
+#: GuiSubtrans/ViewModel/BatchItem.py:208
 msgid "Batch {num}"
 msgstr "Dávka {num}"
 
@@ -237,7 +242,7 @@ msgstr "Dávka {num}"
 msgid "Can only autosplit a single batch"
 msgstr "Lze automaticky rozdělit pouze jednu dávku"
 
-#: GuiSubtrans/ViewModel/ViewModel.py:88
+#: GuiSubtrans/ViewModel/ViewModel.py:109
 msgid "Can only model subtitle files"
 msgstr "Lze modelovat pouze soubory s titulky"
 
@@ -304,7 +309,7 @@ msgstr "Nelze vrátit zpět poslední příkaz"
 
 #: PySubtrans/Providers/Provider_DeepSeek.py:75
 #: PySubtrans/Providers/Provider_Mistral.py:78
-#: PySubtrans/Providers/Provider_OpenAI.py:115
+#: PySubtrans/Providers/Provider_OpenAI.py:122
 msgid "Check API key and base URL and try again"
 msgstr "Zkontrolujte API klíč a základní URL a zkuste to znovu"
 
@@ -327,7 +332,7 @@ msgstr "Chyba klienta: {status_code} {text}"
 
 #: PySubtrans/Providers/Clients/AnthropicClient.py:105
 #: PySubtrans/Providers/Clients/ChatGPTClient.py:33
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:53
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:57
 msgid "Client is not initialized"
 msgstr "Klient není inicializován"
 
@@ -338,6 +343,22 @@ msgstr "Čárkami oddělený seznam výplňkových slov k odstranění"
 #: GuiSubtrans/SettingsDialog.py:72
 msgid "Consider a new scene to have started after this many seconds without subtitles"
 msgstr "Považovat novou scénu za zahájenou po tolika sekundách bez titulků"
+
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:259
+msgid "Content must be a list for Responses API"
+msgstr "Obsah musí být seznam pro Responses API"
+
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:210
+msgid "Content must be a list for streaming Responses API"
+msgstr "Obsah musí být seznam pro streamování Responses API"
+
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:263
+msgid "Content must be a list of message dicts for Responses API"
+msgstr "Obsah musí být seznam slovníků zpráv pro Responses API"
+
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:269
+msgid "Content must be a list of message dicts for Responses API. Found item of type {type}."
+msgstr "Obsah musí být seznam slovníků zpráv pro Responses API. Byla nalezena položka typu {type}"
 
 #: PySubtrans/Providers/Clients/AnthropicClient.py:85
 msgid "Content must be a list of messages"
@@ -560,8 +581,8 @@ msgstr "Ukončování programu"
 msgid "Expected a dictionary, got a {type}"
 msgstr "Očekáván slovník, obdržen {type}"
 
-#: GuiSubtrans/ViewModel/ViewModel.py:366
-#: GuiSubtrans/ViewModel/ViewModel.py:474
+#: GuiSubtrans/ViewModel/ViewModel.py:367
+#: GuiSubtrans/ViewModel/ViewModel.py:471
 msgid "Expected a patch dictionary"
 msgstr "Očekáván slovník s opravami"
 
@@ -569,7 +590,7 @@ msgstr "Očekáván slovník s opravami"
 #: PySubtrans/Providers/Clients/AzureOpenAIClient.py:149
 #: PySubtrans/Providers/Clients/GeminiClient.py:111
 #: PySubtrans/Providers/Clients/MistralClient.py:130
-#: PySubtrans/Providers/Clients/OpenAIClient.py:150
+#: PySubtrans/Providers/Clients/OpenAIClient.py:151
 msgid "Failed to communicate with provider after {max_retries} retries"
 msgstr "Nepodařilo se navázat spojení s poskytovatelem po {max_retries} pokusech"
 
@@ -594,7 +615,7 @@ msgstr "Selhání detekce formátu titulků: {}"
 msgid "Failed to establish streaming connection: {error}"
 msgstr "Selhání navázání streamovacího připojení: {error}"
 
-#: PySubtrans/Providers/Provider_OpenAI.py:185
+#: PySubtrans/Providers/Provider_OpenAI.py:192
 msgid "Failed to initialise OpenAI SDK. OpenAI provider will not be available"
 msgstr "Nepodařilo se inicializovat OpenAI SDK. Poskytovatel OpenAI nebude k dispozici"
 
@@ -669,11 +690,11 @@ msgstr "Možnosti prvního spuštění"
 msgid "Format cannot be deduced from filename or extension '{name}'. Available formats: {formats}"
 msgstr "Formát nelze odvodit z názvu souboru nebo přípony '{name}'. Dostupné formáty: {formats}"
 
-#: PySubtrans/TranslationParser.py:174
+#: PySubtrans/TranslationParser.py:175
 msgid "Found fuzzy match for line {number} in translations"
 msgstr "Nalezena neostrá shoda pro řádek {number} v překladech"
 
-#: PySubtrans/TranslationParser.py:203
+#: PySubtrans/TranslationParser.py:204
 msgid "Found unclosed tag {tag} in translation"
 msgstr "Nalezen neuzavřený tag {tag} v překladu"
 
@@ -800,7 +821,16 @@ msgstr "Neplatný WebVTT soubor: chybí hlavička WEBVTT"
 msgid "Invalid batch"
 msgstr "Neplatná dávka"
 
-#: PySubtrans/Providers/Clients/OpenAIClient.py:136
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:276
+msgid "Invalid message role: {role}. Must be one of 'user', 'system', 'developer', or 'assistant'."
+msgstr "Neplatná role zprávy: {role}. Musí být jedna z hodnot: 'uživatel', 'systém', 'vývojář' nebo 'asistent'"
+
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:109
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:242
+msgid "Invalid reasoning configuration: {error}. Check that the reasoning effort value is valid for your model."
+msgstr "Neplatná konfigurace uvažování: {error}. Zkontrolujte, že hodnota úsilí uvažování je platná pro váš model"
+
+#: PySubtrans/Providers/Clients/OpenAIClient.py:137
 msgid "Invalid response received, retrying in {backoff_time} seconds..."
 msgstr "Byla přijata neplatná odpověď, opakuji za {backoff_time} sekund..."
 
@@ -858,12 +888,12 @@ msgstr "Řádek {line} nebyl nalezen v dávce ({scene},{batch})"
 msgid "Line {line}: {start} --> {end}"
 msgstr "Řádek {line}: {start} --> {end}"
 
-#: GuiSubtrans/ViewModel/BatchItem.py:212
-#: GuiSubtrans/ViewModel/SceneItem.py:147
+#: GuiSubtrans/ViewModel/BatchItem.py:209
+#: GuiSubtrans/ViewModel/SceneItem.py:150
 msgid "Lines {first}-{last} ({start} -> {end})"
 msgstr "Řádky {first}-{last} ({start} -> {end})"
 
-#: GuiSubtrans/ViewModel/ViewModel.py:553
+#: GuiSubtrans/ViewModel/ViewModel.py:542
 msgid "Lines {lines} not found in batch {batch}"
 msgstr "Řádky {lines} nebyly nalezeny v dávce {batch}"
 
@@ -919,7 +949,7 @@ msgstr "Maximální velikost dávky je menší než minimální velikost dávky"
 msgid "Maximum API requests per minute."
 msgstr "Maximální počet požadavků API za minutu."
 
-#: PySubtrans/Providers/Provider_OpenAI.py:102
+#: PySubtrans/Providers/Provider_OpenAI.py:108
 msgid "Maximum OpenAI API requests per minute. Mainly useful if you are on the restricted free plan"
 msgstr "Maximální počet požadavků OpenAI API za minutu. Užitečné hlavně pokud máte omezený bezplatný plán"
 
@@ -944,7 +974,7 @@ msgstr "Maximální počet výstupních tokenů, které se mají vrátit v odpov
 msgid "Maximum number of simultaneous translation threads for fast translation"
 msgstr "Maximální počet souběžných vláken překladu pro rychlý překlad"
 
-#: PySubtrans/Providers/Provider_OpenAI.py:106
+#: PySubtrans/Providers/Provider_OpenAI.py:113
 msgid "Maximum tokens a completion can contain (only applicable for -instruct models)"
 msgstr "Maximální počet tokenů, které může dokončení obsahovat (platí pouze pro modely -instruct)"
 
@@ -1047,7 +1077,7 @@ msgstr "V odpovědi nebyly vráceny žádné volby"
 #: PySubtrans/Providers/Clients/GeminiClient.py:84
 #: PySubtrans/Providers/Clients/MistralClient.py:54
 #: PySubtrans/Providers/Clients/MistralClient.py:82
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:86
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:90
 #: PySubtrans/TranslationPrompt.py:153
 msgid "No content provided for translation"
 msgstr "Nebyl poskytnut žádný obsah k překladu"
@@ -1093,7 +1123,7 @@ msgstr "Nebyly smazány žádné řádky"
 #: PySubtrans/Providers/Clients/GeminiClient.py:100
 #: PySubtrans/Providers/Clients/GeminiClient.py:127
 #: PySubtrans/Providers/Clients/MistralClient.py:79
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:56
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:60
 msgid "No model specified"
 msgstr "Není specifikován žádný model"
 
@@ -1204,7 +1234,7 @@ msgstr "Nebyly přeloženy žádné titulky"
 msgid "No system prompt provided"
 msgstr "Nebyla poskytnuta žádná systémová výzva"
 
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:139
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:152
 msgid "No text content found in response"
 msgstr "V odpovědi nebyl nalezen žádný textový obsah"
 
@@ -1239,7 +1269,7 @@ msgstr "V odpovědi nebyli vráceni žádní platní kandidáti"
 msgid "None"
 msgstr "Žádný"
 
-#: GuiSubtrans/Widgets/ScenesView.py:126
+#: GuiSubtrans/Widgets/ScenesView.py:133
 msgid "Not sure what you just double-clicked on"
 msgstr "Nejsem si jistý, na co jste právě dvakrát klikli"
 
@@ -1319,7 +1349,7 @@ msgstr "Chyba OpenAI {error}, opakuji za {sleep_time}..."
 msgid "Optional proxy server to use for requests (e.g. https://api.not-anthropic.com/"
 msgstr "Volitelný proxy server pro požadavky (např. https://api.not-anthropic.com/)"
 
-#: GuiSubtrans/ViewModel/BatchItem.py:196
+#: GuiSubtrans/ViewModel/BatchItem.py:193
 msgid "Original line {line} not found in batch {batch}"
 msgstr "Původní řádek {line} nebyl nalezen v dávce {batch}"
 
@@ -1441,7 +1471,7 @@ msgstr "Nastavení poskytovatele ověřeno"
 msgid "Provider {provider} needs configuring: {message}"
 msgstr "Poskytovatel {provider} vyžaduje konfiguraci: {message}"
 
-#: PySubtrans/Providers/Clients/OpenAIClient.py:118
+#: PySubtrans/Providers/Clients/OpenAIClient.py:119
 msgid "Rate limit hit, retrying in {backoff_time} seconds..."
 msgstr "Dosažen limit rychlosti, opakuji za {backoff_time} sekund..."
 
@@ -1579,7 +1609,7 @@ msgstr "Ukládání záložní kopie projektu"
 msgid "Saving translation to {}"
 msgstr "Ukládání překladu do {}"
 
-#: GuiSubtrans/ViewModel/SceneItem.py:32 GuiSubtrans/ViewModel/SceneItem.py:146
+#: GuiSubtrans/ViewModel/SceneItem.py:35 GuiSubtrans/ViewModel/SceneItem.py:149
 #: GuiSubtrans/Widgets/Editors.py:86
 msgid "Scene {num}"
 msgstr "Scéna {num}"
@@ -1687,12 +1717,12 @@ msgstr "Zastavit překlad"
 
 #: PySubtrans/Providers/Provider_Claude.py:113
 #: PySubtrans/Providers/Provider_Gemini.py:80
-#: PySubtrans/Providers/Provider_OpenAI.py:110
+#: PySubtrans/Providers/Provider_OpenAI.py:117
 #: PySubtrans/Providers/Provider_OpenRouter.py:146
 msgid "Stream translations in realtime as they are generated"
 msgstr "Streamovat překlady v reálném čase jak jsou generovány"
 
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:228
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:252
 msgid "Streaming did not complete successfully"
 msgstr "Streamování nebylo úspěšně dokončeno"
 
@@ -1815,7 +1845,7 @@ msgstr "Základní URL pro požadavky (výchozí je https://api.deepseek.com)"
 msgid "The base URL to use for requests (default is https://api.mistral.ai)"
 msgstr "Základní URL pro požadavky (výchozí je https://api.mistral.ai)"
 
-#: PySubtrans/Providers/Provider_OpenAI.py:91
+#: PySubtrans/Providers/Provider_OpenAI.py:97
 msgid "The base URL to use for requests - leave as default unless you know you need something else"
 msgstr "Základní URL pro požadavky - ponechte výchozí, pokud nevíte, že potřebujete něco jiného"
 
@@ -1827,7 +1857,7 @@ msgstr "Výchozí jazyk pro překlad titulků"
 msgid "The language of the application interface"
 msgstr "Jazyk uživatelského rozhraní aplikace"
 
-#: PySubtrans/Providers/Provider_OpenAI.py:109
+#: PySubtrans/Providers/Provider_OpenAI.py:116
 msgid "The level of reasoning effort to use for the model"
 msgstr "Úroveň úsilí pro uvažování, kterou má model použít"
 
@@ -1947,7 +1977,7 @@ msgstr "Nastavení poskytovatele překladu je neplatné"
 msgid "Translation provider settings are not valid. Please check the settings."
 msgstr "Nastavení poskytovatele překladu jsou neplatná. Zkontrolujte prosím nastavení."
 
-#: PySubtrans/Providers/Clients/OpenAIClient.py:107
+#: PySubtrans/Providers/Clients/OpenAIClient.py:108
 msgid "Translation response error: {error}, retrying in {backoff_time} seconds..."
 msgstr "Chyba odpovědi překladu: {error}, opakuji za {backoff_time} sekund..."
 
@@ -2041,7 +2071,7 @@ msgstr "Nepodařilo se načíst seznam modelů Gemini: {error}"
 
 #: PySubtrans/Providers/Provider_Bedrock.py:142
 #: PySubtrans/Providers/Provider_Mistral.py:105
-#: PySubtrans/Providers/Provider_OpenAI.py:151
+#: PySubtrans/Providers/Provider_OpenAI.py:158
 msgid "Unable to retrieve available AI models: {error}"
 msgstr "Nepodařilo se načíst dostupné modely AI: {error}"
 
@@ -2050,8 +2080,8 @@ msgstr "Nepodařilo se načíst dostupné modely AI: {error}"
 msgid "Unable to retrieve available models: {error}"
 msgstr "Nelze načíst dostupné modely: {error}"
 
-#: PySubtrans/Providers/Provider_OpenAI.py:101
-#: PySubtrans/Providers/Provider_OpenAI.py:115
+#: PySubtrans/Providers/Provider_OpenAI.py:107
+#: PySubtrans/Providers/Provider_OpenAI.py:122
 msgid "Unable to retrieve models"
 msgstr "Nelze načíst modely"
 
@@ -2100,7 +2130,7 @@ msgid "Unexpected error communicating with server"
 msgstr "Nečekaná chyba při komunikaci se serverem"
 
 #: PySubtrans/Providers/Clients/MistralClient.py:128
-#: PySubtrans/Providers/Clients/OpenAIClient.py:147
+#: PySubtrans/Providers/Clients/OpenAIClient.py:148
 msgid "Unexpected error communicating with the provider"
 msgstr "Nečekaná chyba při komunikaci s poskytovatelem"
 
@@ -2133,11 +2163,11 @@ msgstr "Použít paralelní vlákna pro požadavky na překlad (může být rych
 msgid "Use the default model and hide advanced model options"
 msgstr "Použít výchozí model a skrýt pokročilé možnosti modelu"
 
-#: PySubtrans/Providers/Provider_OpenAI.py:95
+#: PySubtrans/Providers/Provider_OpenAI.py:101
 msgid "Use the httpx library for requests. May help if you receive a 307 redirect error with a custom api_base"
 msgstr "Použít knihovnu httpx pro požadavky. Může pomoci, pokud obdržíte chybu přesměrování 307 s vlastním api_base"
 
-#: GuiSubtrans/ViewModel/BatchItem.py:255
+#: GuiSubtrans/ViewModel/BatchItem.py:252
 msgid "User Prompt:\n {text}"
 msgstr ""
 "Uživatelská výzva:\n"
@@ -2586,7 +2616,7 @@ msgstr "{command} vráceno zpět."
 msgid "{command} was successful."
 msgstr "{command} bylo úspěšné."
 
-#: GuiSubtrans/GuiHelpers.py:56 GuiSubtrans/ViewModel/BatchItem.py:206
+#: GuiSubtrans/GuiHelpers.py:56 GuiSubtrans/ViewModel/BatchItem.py:203
 msgid "{count} lines"
 msgstr "{count} řádků"
 
@@ -2594,11 +2624,11 @@ msgstr "{count} řádků"
 msgid "{count} lines translated"
 msgstr "{count} řádků přeloženo"
 
-#: GuiSubtrans/ViewModel/BatchItem.py:207
+#: GuiSubtrans/ViewModel/BatchItem.py:204
 msgid "{count} translated"
 msgstr "{count} přeloženo"
 
-#: GuiSubtrans/ViewModel/SceneItem.py:139
+#: GuiSubtrans/ViewModel/SceneItem.py:142
 msgid "{done} of {total} batches translated"
 msgstr "{done} z {total} dávek přeloženo"
 
@@ -2606,7 +2636,7 @@ msgstr "{done} z {total} dávek přeloženo"
 msgid "{done} of {total} lines translated"
 msgstr "{done} z {total} řádků přeloženo"
 
-#: GuiSubtrans/ViewModel/SceneItem.py:141
+#: GuiSubtrans/ViewModel/SceneItem.py:144
 msgid "{lines} lines in {batches} batches"
 msgstr "{lines} řádků v {batches} dávkách"
 

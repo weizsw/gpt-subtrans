@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: LLM-Subtrans\n"
-"POT-Creation-Date: 2025-09-28 09:24+0000\n"
+"POT-Creation-Date: 2025-10-09 18:50+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "MIME-Version: 1.0\n"
@@ -9,7 +9,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Language: en\n"
 
-#: GuiSubtrans/ViewModel/BatchItem.py:206 GuiSubtrans/ViewModel/SceneItem.py:141
+#: GuiSubtrans/ViewModel/BatchItem.py:203 GuiSubtrans/ViewModel/SceneItem.py:144
 msgid "1 line"
 msgstr ""
 
@@ -25,15 +25,15 @@ msgstr ""
 msgid "A Mistral API key is required to use this provider (https://console.mistral.ai/api-keys/)"
 msgstr ""
 
-#: GuiSubtrans/NewProjectSettings.py:32 PySubtrans/Providers/Provider_DeepSeek.py:67 PySubtrans/Providers/Provider_OpenAI.py:101 PySubtrans/Providers/Provider_OpenRouter.py:136
+#: GuiSubtrans/NewProjectSettings.py:32 PySubtrans/Providers/Provider_DeepSeek.py:67 PySubtrans/Providers/Provider_OpenAI.py:107 PySubtrans/Providers/Provider_OpenRouter.py:136
 msgid "AI model to use as the translator"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Azure.py:85 PySubtrans/Providers/Provider_DeepSeek.py:124 PySubtrans/Providers/Provider_Gemini.py:111 PySubtrans/Providers/Provider_Mistral.py:118 PySubtrans/Providers/Provider_OpenAI.py:166 PySubtrans/Providers/Provider_OpenRouter.py:193
+#: PySubtrans/Providers/Provider_Azure.py:85 PySubtrans/Providers/Provider_DeepSeek.py:124 PySubtrans/Providers/Provider_Gemini.py:111 PySubtrans/Providers/Provider_Mistral.py:118 PySubtrans/Providers/Provider_OpenAI.py:173 PySubtrans/Providers/Provider_OpenRouter.py:193
 msgid "API Key is required"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIClient.py:128
+#: PySubtrans/Providers/Clients/OpenAIClient.py:129
 msgid "API Timeout, retrying in {backoff_time} seconds..."
 msgstr ""
 
@@ -41,7 +41,7 @@ msgstr ""
 msgid "API base must be set in .env or provided as an argument"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIClient.py:167
+#: PySubtrans/Providers/Clients/OpenAIClient.py:168
 msgid "API base must be set when using httpx"
 msgstr ""
 
@@ -81,7 +81,7 @@ msgstr ""
 msgid "Access key must be set in .env or provided as an argument"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIClient.py:124
+#: PySubtrans/Providers/Clients/OpenAIClient.py:125
 msgid "Account quota reached, please upgrade your plan"
 msgstr ""
 
@@ -113,7 +113,7 @@ msgstr ""
 msgid "All Files"
 msgstr ""
 
-#: GuiSubtrans/ViewModel/SceneItem.py:139
+#: GuiSubtrans/ViewModel/SceneItem.py:142
 msgid "All batches translated"
 msgstr ""
 
@@ -129,7 +129,7 @@ msgstr ""
 msgid "Amazon Boto3 SDK is not installed. Bedrock provider will not be available"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_DeepSeek.py:71 PySubtrans/Providers/Provider_Gemini.py:82 PySubtrans/Providers/Provider_Mistral.py:73 PySubtrans/Providers/Provider_OpenAI.py:112 PySubtrans/Providers/Provider_OpenRouter.py:148
+#: PySubtrans/Providers/Provider_DeepSeek.py:71 PySubtrans/Providers/Provider_Gemini.py:82 PySubtrans/Providers/Provider_Mistral.py:73 PySubtrans/Providers/Provider_OpenAI.py:119 PySubtrans/Providers/Provider_OpenRouter.py:148
 msgid "Amount of random variance to add to translations. Generally speaking, none is best"
 msgstr ""
 
@@ -157,7 +157,7 @@ msgstr ""
 msgid "An Azure API version is required"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenAI.py:90
+#: PySubtrans/Providers/Provider_OpenAI.py:96
 msgid "An OpenAI API key is required to use this provider (https://platform.openai.com/account/api-keys)"
 msgstr ""
 
@@ -201,6 +201,10 @@ msgstr ""
 msgid "Avoid creating a new batch smaller than this"
 msgstr ""
 
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:110 PySubtrans/Providers/Clients/OpenAIReasoningClient.py:243
+msgid "Bad request to OpenAI API: {error}"
+msgstr ""
+
 #: GuiSubtrans/Commands/EditBatchCommand.py:36 GuiSubtrans/Commands/EditBatchCommand.py:64
 msgid "Batch ({scene},{batch}) not found"
 msgstr ""
@@ -209,7 +213,7 @@ msgstr ""
 msgid "Batch {batch} in scene {scene} is not translated"
 msgstr ""
 
-#: GuiSubtrans/ViewModel/BatchItem.py:211
+#: GuiSubtrans/ViewModel/BatchItem.py:208
 msgid "Batch {num}"
 msgstr ""
 
@@ -217,7 +221,7 @@ msgstr ""
 msgid "Can only autosplit a single batch"
 msgstr ""
 
-#: GuiSubtrans/ViewModel/ViewModel.py:88
+#: GuiSubtrans/ViewModel/ViewModel.py:109
 msgid "Can only model subtitle files"
 msgstr ""
 
@@ -281,7 +285,7 @@ msgstr ""
 msgid "Cannot undo the last command"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_DeepSeek.py:75 PySubtrans/Providers/Provider_Mistral.py:78 PySubtrans/Providers/Provider_OpenAI.py:115
+#: PySubtrans/Providers/Provider_DeepSeek.py:75 PySubtrans/Providers/Provider_Mistral.py:78 PySubtrans/Providers/Provider_OpenAI.py:122
 msgid "Check API key and base URL and try again"
 msgstr ""
 
@@ -301,7 +305,7 @@ msgstr ""
 msgid "Client error: {status_code} {text}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AnthropicClient.py:105 PySubtrans/Providers/Clients/ChatGPTClient.py:33 PySubtrans/Providers/Clients/OpenAIReasoningClient.py:53
+#: PySubtrans/Providers/Clients/AnthropicClient.py:105 PySubtrans/Providers/Clients/ChatGPTClient.py:33 PySubtrans/Providers/Clients/OpenAIReasoningClient.py:57
 msgid "Client is not initialized"
 msgstr ""
 
@@ -311,6 +315,22 @@ msgstr ""
 
 #: GuiSubtrans/SettingsDialog.py:72
 msgid "Consider a new scene to have started after this many seconds without subtitles"
+msgstr ""
+
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:259
+msgid "Content must be a list for Responses API"
+msgstr ""
+
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:210
+msgid "Content must be a list for streaming Responses API"
+msgstr ""
+
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:263
+msgid "Content must be a list of message dicts for Responses API"
+msgstr ""
+
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:269
+msgid "Content must be a list of message dicts for Responses API. Found item of type {type}."
 msgstr ""
 
 #: PySubtrans/Providers/Clients/AnthropicClient.py:85
@@ -529,11 +549,11 @@ msgstr ""
 msgid "Expected a dictionary, got a {type}"
 msgstr ""
 
-#: GuiSubtrans/ViewModel/ViewModel.py:366 GuiSubtrans/ViewModel/ViewModel.py:474
+#: GuiSubtrans/ViewModel/ViewModel.py:367 GuiSubtrans/ViewModel/ViewModel.py:471
 msgid "Expected a patch dictionary"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AnthropicClient.py:191 PySubtrans/Providers/Clients/AzureOpenAIClient.py:149 PySubtrans/Providers/Clients/GeminiClient.py:111 PySubtrans/Providers/Clients/MistralClient.py:130 PySubtrans/Providers/Clients/OpenAIClient.py:150
+#: PySubtrans/Providers/Clients/AnthropicClient.py:191 PySubtrans/Providers/Clients/AzureOpenAIClient.py:149 PySubtrans/Providers/Clients/GeminiClient.py:111 PySubtrans/Providers/Clients/MistralClient.py:130 PySubtrans/Providers/Clients/OpenAIClient.py:151
 msgid "Failed to communicate with provider after {max_retries} retries"
 msgstr ""
 
@@ -557,7 +577,7 @@ msgstr ""
 msgid "Failed to establish streaming connection: {error}"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenAI.py:185
+#: PySubtrans/Providers/Provider_OpenAI.py:192
 msgid "Failed to initialise OpenAI SDK. OpenAI provider will not be available"
 msgstr ""
 
@@ -629,11 +649,11 @@ msgstr ""
 msgid "Format cannot be deduced from filename or extension '{name}'. Available formats: {formats}"
 msgstr ""
 
-#: PySubtrans/TranslationParser.py:174
+#: PySubtrans/TranslationParser.py:175
 msgid "Found fuzzy match for line {number} in translations"
 msgstr ""
 
-#: PySubtrans/TranslationParser.py:203
+#: PySubtrans/TranslationParser.py:204
 msgid "Found unclosed tag {tag} in translation"
 msgstr ""
 
@@ -757,7 +777,15 @@ msgstr ""
 msgid "Invalid batch"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIClient.py:136
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:276
+msgid "Invalid message role: {role}. Must be one of 'user', 'system', 'developer', or 'assistant'."
+msgstr ""
+
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:109 PySubtrans/Providers/Clients/OpenAIReasoningClient.py:242
+msgid "Invalid reasoning configuration: {error}. Check that the reasoning effort value is valid for your model."
+msgstr ""
+
+#: PySubtrans/Providers/Clients/OpenAIClient.py:137
 msgid "Invalid response received, retrying in {backoff_time} seconds..."
 msgstr ""
 
@@ -813,11 +841,11 @@ msgstr ""
 msgid "Line {line}: {start} --> {end}"
 msgstr ""
 
-#: GuiSubtrans/ViewModel/BatchItem.py:212 GuiSubtrans/ViewModel/SceneItem.py:147
+#: GuiSubtrans/ViewModel/BatchItem.py:209 GuiSubtrans/ViewModel/SceneItem.py:150
 msgid "Lines {first}-{last} ({start} -> {end})"
 msgstr ""
 
-#: GuiSubtrans/ViewModel/ViewModel.py:553
+#: GuiSubtrans/ViewModel/ViewModel.py:542
 msgid "Lines {lines} not found in batch {batch}"
 msgstr ""
 
@@ -865,7 +893,7 @@ msgstr ""
 msgid "Maximum API requests per minute."
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenAI.py:102
+#: PySubtrans/Providers/Provider_OpenAI.py:108
 msgid "Maximum OpenAI API requests per minute. Mainly useful if you are on the restricted free plan"
 msgstr ""
 
@@ -889,7 +917,7 @@ msgstr ""
 msgid "Maximum number of simultaneous translation threads for fast translation"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenAI.py:106
+#: PySubtrans/Providers/Provider_OpenAI.py:113
 msgid "Maximum tokens a completion can contain (only applicable for -instruct models)"
 msgstr ""
 
@@ -981,7 +1009,7 @@ msgstr ""
 msgid "No choices returned in the response"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AnthropicClient.py:82 PySubtrans/Providers/Clients/BedrockClient.py:77 PySubtrans/Providers/Clients/ChatGPTClient.py:39 PySubtrans/Providers/Clients/GeminiClient.py:84 PySubtrans/Providers/Clients/MistralClient.py:54 PySubtrans/Providers/Clients/MistralClient.py:82 PySubtrans/Providers/Clients/OpenAIReasoningClient.py:86 PySubtrans/TranslationPrompt.py:153
+#: PySubtrans/Providers/Clients/AnthropicClient.py:82 PySubtrans/Providers/Clients/BedrockClient.py:77 PySubtrans/Providers/Clients/ChatGPTClient.py:39 PySubtrans/Providers/Clients/GeminiClient.py:84 PySubtrans/Providers/Clients/MistralClient.py:54 PySubtrans/Providers/Clients/MistralClient.py:82 PySubtrans/Providers/Clients/OpenAIReasoningClient.py:90 PySubtrans/TranslationPrompt.py:153
 msgid "No content provided for translation"
 msgstr ""
 
@@ -1021,7 +1049,7 @@ msgstr ""
 msgid "No lines were deleted"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/AnthropicClient.py:140 PySubtrans/Providers/Clients/ChatGPTClient.py:36 PySubtrans/Providers/Clients/GeminiClient.py:100 PySubtrans/Providers/Clients/GeminiClient.py:127 PySubtrans/Providers/Clients/MistralClient.py:79 PySubtrans/Providers/Clients/OpenAIReasoningClient.py:56
+#: PySubtrans/Providers/Clients/AnthropicClient.py:140 PySubtrans/Providers/Clients/ChatGPTClient.py:36 PySubtrans/Providers/Clients/GeminiClient.py:100 PySubtrans/Providers/Clients/GeminiClient.py:127 PySubtrans/Providers/Clients/MistralClient.py:79 PySubtrans/Providers/Clients/OpenAIReasoningClient.py:60
 msgid "No model specified"
 msgstr ""
 
@@ -1101,7 +1129,7 @@ msgstr ""
 msgid "No system prompt provided"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:139
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:152
 msgid "No text content found in response"
 msgstr ""
 
@@ -1133,7 +1161,7 @@ msgstr ""
 msgid "None"
 msgstr ""
 
-#: GuiSubtrans/Widgets/ScenesView.py:126
+#: GuiSubtrans/Widgets/ScenesView.py:133
 msgid "Not sure what you just double-clicked on"
 msgstr ""
 
@@ -1213,7 +1241,7 @@ msgstr ""
 msgid "Optional proxy server to use for requests (e.g. https://api.not-anthropic.com/"
 msgstr ""
 
-#: GuiSubtrans/ViewModel/BatchItem.py:196
+#: GuiSubtrans/ViewModel/BatchItem.py:193
 msgid "Original line {line} not found in batch {batch}"
 msgstr ""
 
@@ -1333,7 +1361,7 @@ msgstr ""
 msgid "Provider {provider} needs configuring: {message}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIClient.py:118
+#: PySubtrans/Providers/Clients/OpenAIClient.py:119
 msgid "Rate limit hit, retrying in {backoff_time} seconds..."
 msgstr ""
 
@@ -1469,7 +1497,7 @@ msgstr ""
 msgid "Saving translation to {}"
 msgstr ""
 
-#: GuiSubtrans/ViewModel/SceneItem.py:32 GuiSubtrans/ViewModel/SceneItem.py:146 GuiSubtrans/Widgets/Editors.py:86
+#: GuiSubtrans/ViewModel/SceneItem.py:35 GuiSubtrans/ViewModel/SceneItem.py:149 GuiSubtrans/Widgets/Editors.py:86
 msgid "Scene {num}"
 msgstr ""
 
@@ -1573,11 +1601,11 @@ msgstr ""
 msgid "Stop translation"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Claude.py:113 PySubtrans/Providers/Provider_Gemini.py:80 PySubtrans/Providers/Provider_OpenAI.py:110 PySubtrans/Providers/Provider_OpenRouter.py:146
+#: PySubtrans/Providers/Provider_Claude.py:113 PySubtrans/Providers/Provider_Gemini.py:80 PySubtrans/Providers/Provider_OpenAI.py:117 PySubtrans/Providers/Provider_OpenRouter.py:146
 msgid "Stream translations in realtime as they are generated"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:228
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:252
 msgid "Streaming did not complete successfully"
 msgstr ""
 
@@ -1697,7 +1725,7 @@ msgstr ""
 msgid "The base URL to use for requests (default is https://api.mistral.ai)"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenAI.py:91
+#: PySubtrans/Providers/Provider_OpenAI.py:97
 msgid "The base URL to use for requests - leave as default unless you know you need something else"
 msgstr ""
 
@@ -1709,7 +1737,7 @@ msgstr ""
 msgid "The language of the application interface"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenAI.py:109
+#: PySubtrans/Providers/Provider_OpenAI.py:116
 msgid "The level of reasoning effort to use for the model"
 msgstr ""
 
@@ -1825,7 +1853,7 @@ msgstr ""
 msgid "Translation provider settings are not valid. Please check the settings."
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIClient.py:107
+#: PySubtrans/Providers/Clients/OpenAIClient.py:108
 msgid "Translation response error: {error}, retrying in {backoff_time} seconds..."
 msgstr ""
 
@@ -1913,7 +1941,7 @@ msgstr ""
 msgid "Unable to retrieve Gemini model list: {error}"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Bedrock.py:142 PySubtrans/Providers/Provider_Mistral.py:105 PySubtrans/Providers/Provider_OpenAI.py:151
+#: PySubtrans/Providers/Provider_Bedrock.py:142 PySubtrans/Providers/Provider_Mistral.py:105 PySubtrans/Providers/Provider_OpenAI.py:158
 msgid "Unable to retrieve available AI models: {error}"
 msgstr ""
 
@@ -1921,7 +1949,7 @@ msgstr ""
 msgid "Unable to retrieve available models: {error}"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenAI.py:101 PySubtrans/Providers/Provider_OpenAI.py:115
+#: PySubtrans/Providers/Provider_OpenAI.py:107 PySubtrans/Providers/Provider_OpenAI.py:122
 msgid "Unable to retrieve models"
 msgstr ""
 
@@ -1969,7 +1997,7 @@ msgstr ""
 msgid "Unexpected error communicating with server"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/MistralClient.py:128 PySubtrans/Providers/Clients/OpenAIClient.py:147
+#: PySubtrans/Providers/Clients/MistralClient.py:128 PySubtrans/Providers/Clients/OpenAIClient.py:148
 msgid "Unexpected error communicating with the provider"
 msgstr ""
 
@@ -2001,11 +2029,11 @@ msgstr ""
 msgid "Use the default model and hide advanced model options"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_OpenAI.py:95
+#: PySubtrans/Providers/Provider_OpenAI.py:101
 msgid "Use the httpx library for requests. May help if you receive a 307 redirect error with a custom api_base"
 msgstr ""
 
-#: GuiSubtrans/ViewModel/BatchItem.py:255
+#: GuiSubtrans/ViewModel/BatchItem.py:252
 msgid "User Prompt:\n {text}"
 msgstr ""
 
@@ -2409,7 +2437,7 @@ msgstr ""
 msgid "{command} was successful."
 msgstr ""
 
-#: GuiSubtrans/GuiHelpers.py:56 GuiSubtrans/ViewModel/BatchItem.py:206
+#: GuiSubtrans/GuiHelpers.py:56 GuiSubtrans/ViewModel/BatchItem.py:203
 msgid "{count} lines"
 msgstr ""
 
@@ -2417,11 +2445,11 @@ msgstr ""
 msgid "{count} lines translated"
 msgstr ""
 
-#: GuiSubtrans/ViewModel/BatchItem.py:207
+#: GuiSubtrans/ViewModel/BatchItem.py:204
 msgid "{count} translated"
 msgstr ""
 
-#: GuiSubtrans/ViewModel/SceneItem.py:139
+#: GuiSubtrans/ViewModel/SceneItem.py:142
 msgid "{done} of {total} batches translated"
 msgstr ""
 
@@ -2429,7 +2457,7 @@ msgstr ""
 msgid "{done} of {total} lines translated"
 msgstr ""
 
-#: GuiSubtrans/ViewModel/SceneItem.py:141
+#: GuiSubtrans/ViewModel/SceneItem.py:144
 msgid "{lines} lines in {batches} batches"
 msgstr ""
 
