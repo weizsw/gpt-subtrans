@@ -12,7 +12,7 @@ from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.Helpers.Tests import log_input_expected_error, skip_if_debugger_attached
 from PySubtrans.Providers.Clients.OpenAIReasoningClient import OpenAIReasoningClient
 from PySubtrans.SettingsType import SettingsType
-from PySubtrans.SubtitleError import TranslationError, TranslationResponseError
+from PySubtrans.SubtitleError import TranslationResponseError, TranslationImpossibleError
 
 
 class OpenAIReasoningClientTests(LoggedTestCase):
@@ -26,13 +26,13 @@ class OpenAIReasoningClientTests(LoggedTestCase):
             'model': 'gpt-5-mini'
         })
         self.client = OpenAIReasoningClient(settings)
-        self.valid_messages = [
-            {'role': 'user', 'content': 'Translate Hello to French.'}
-        ]
 
     def test_convert_to_input_params_with_valid_messages(self) -> None:
         """Ensure valid messages convert into EasyInputMessageParam entries."""
-        result = self.client._convert_to_input_params(self.valid_messages)
+        valid_messages = [
+            {'role': 'user', 'content': 'Translate Hello to French.'}
+        ]
+        result = self.client._convert_to_input_params(valid_messages)
         self.assertLoggedEqual('converted message count', 1, len(result))
         message = result[0]
         self.assertLoggedEqual('message role', 'user', message.get('role'))
@@ -42,9 +42,9 @@ class OpenAIReasoningClientTests(LoggedTestCase):
     @skip_if_debugger_attached
     def test_convert_to_input_params_rejects_non_list(self) -> None:
         """Reject content that is not expressed as a list."""
-        with self.assertRaises(TranslationError) as context:
+        with self.assertRaises(TranslationImpossibleError) as context:
             self.client._convert_to_input_params('invalid')  # type: ignore[arg-type]
-        log_input_expected_error('invalid', TranslationError, context.exception)
+        log_input_expected_error('invalid', TranslationImpossibleError, context.exception)
 
     @skip_if_debugger_attached
     def test_convert_to_input_params_rejects_invalid_role(self) -> None:
@@ -52,9 +52,9 @@ class OpenAIReasoningClientTests(LoggedTestCase):
         invalid_messages = [
             {'role': 'narrator', 'content': 'Hello'}
         ]
-        with self.assertRaises(TranslationError) as context:
+        with self.assertRaises(TranslationImpossibleError) as context:
             self.client._convert_to_input_params(invalid_messages)
-        log_input_expected_error(invalid_messages, TranslationError, context.exception)
+        log_input_expected_error(invalid_messages, TranslationImpossibleError, context.exception)
 
     def test_convert_to_input_params_with_multiple_messages(self) -> None:
         """Ensure multiple messages with different valid roles are converted correctly."""
@@ -82,17 +82,17 @@ class OpenAIReasoningClientTests(LoggedTestCase):
         invalid_messages = [
             {'content': 'Hello'}
         ]
-        with self.assertRaises(TranslationError) as context:
+        with self.assertRaises(TranslationImpossibleError) as context:
             self.client._convert_to_input_params(invalid_messages)
-        log_input_expected_error(invalid_messages, TranslationError, context.exception)
+        log_input_expected_error(invalid_messages, TranslationImpossibleError, context.exception)
 
     @skip_if_debugger_attached
     def test_convert_to_input_params_rejects_string_list(self) -> None:
         """Reject content provided as a list of strings instead of message dicts."""
         invalid_messages = ['Hello', 'World']
-        with self.assertRaises(TranslationError) as context:
+        with self.assertRaises(TranslationImpossibleError) as context:
             self.client._convert_to_input_params(invalid_messages)  # type: ignore[arg-type]
-        log_input_expected_error(invalid_messages, TranslationError, context.exception)
+        log_input_expected_error(invalid_messages, TranslationImpossibleError, context.exception)
 
     def test_extract_text_content_with_text_only(self) -> None:
         """Validate text extraction from real API response structure (reasoning item + message item)."""
