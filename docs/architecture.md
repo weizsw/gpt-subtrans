@@ -78,8 +78,7 @@ Also provides methods for preprocessing, auto-batching and data sanitization.
 ## Translation Process
 
 **SubtitleTranslator** manages the translation pipeline:
-- Splits `Subtitles` into scenes and batches for processing
-- Builds prompts with context for each batch
+- Builds prompts with context for each batch of subtitles
 - Delegates to `TranslationProvider` clients for API calls
 - Handles retries, error management and post-processing
 - Emits `TranslationEvents` with progress updates
@@ -192,6 +191,13 @@ For example, `TranslateSceneCommand` subscribes to `SubtitleTranslator` events. 
 2. `ProjectDataModel` queues update and emits `updatesPending` signal
 3. `ProjectViewModel.ProcessUpdates()` applies changes on main thread
 4. Views automatically reflect updated data through Qt's model/view system
+
+**For detailed flow diagrams**, see [translation-flow.md](translation-flow.md) which includes:
+- Complete sequence diagram from user action to UI update
+- Class diagram showing component relationships
+- State diagram for command lifecycle
+- Data flow diagram for ModelUpdate processing
+- Component interaction diagram showing threading model
 
 ## Translation Provider Architecture
 The application supports multiple translation services through a provider system.
