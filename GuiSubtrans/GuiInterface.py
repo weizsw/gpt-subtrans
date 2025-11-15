@@ -98,19 +98,20 @@ class GuiInterface(QObject):
         """
         return self.mainwindow
 
-    def QueueCommand(self, command : Command, callback = None, undo_callback = None):
+    def QueueCommand(self, command : Command, callback = None, undo_callback = None) -> None:
         """
         Add a command to the command queue and set the datamodel
         """
         self.command_queue.AddCommand(command, self.datamodel, callback=callback, undo_callback=undo_callback)
 
-    def GetCommandQueue(self):
+    def GetCommandQueue(self) -> CommandQueue:
         """
         Get the command queue
+        return self.command_queue
         """
         return self.command_queue
 
-    def GetDataModel(self):
+    def GetDataModel(self) -> ProjectDataModel:
         """
         Get the data model
         """
@@ -124,13 +125,13 @@ class GuiInterface(QObject):
         self.action_handler.SetDataModel(datamodel)
         self.dataModelChanged.emit(datamodel)
 
-    def GetActionHandler(self):
+    def GetActionHandler(self) -> ProjectActions:
         """
         Get the action handler
         """
         return self.action_handler
 
-    def ShowSettingsDialog(self):
+    def ShowSettingsDialog(self) -> None:
         """
         Open user settings dialog and update options
         """
@@ -143,7 +144,7 @@ class GuiInterface(QObject):
 
             logging.info("Settings updated")
 
-    def ShowProviderSettingsDialog(self):
+    def ShowProviderSettingsDialog(self) -> None:
         """
         Open the settings dialog with the provider settings focused
         """
@@ -153,14 +154,14 @@ class GuiInterface(QObject):
         if result == QDialog.DialogCode.Accepted:
             self.UpdateSettings(dialog.settings)
 
-    def SaveSettings(self):
+    def SaveSettings(self) -> None:
         """
         Save the global settings
         """
         self.prepareForSave.emit()
         self.global_options.SaveSettings()
 
-    def UpdateSettings(self, settings : SettingsType):
+    def UpdateSettings(self, settings : SettingsType) -> None:
         """
         Update the global settings and project settings, and save if required
         """
@@ -191,7 +192,7 @@ class GuiInterface(QObject):
         if 'theme' in updated_settings:
             LoadStylesheet(self.global_options.theme)
 
-    def UpdateUiLanguage(self, language_code: str):
+    def UpdateUiLanguage(self, language_code: str) -> None:
         """Apply a new UI language at runtime and refresh visible UI elements."""
         try:
             set_language(language_code)
@@ -201,7 +202,7 @@ class GuiInterface(QObject):
         except Exception as e:
             logging.warning(_("Failed to switch language - restart the application: {error}").format(error=e))
 
-    def UpdateProjectSettings(self, settings : dict):
+    def UpdateProjectSettings(self, settings : SettingsType) -> None:
         """
         Update the project settings
         """
@@ -209,7 +210,7 @@ class GuiInterface(QObject):
             self.datamodel.UpdateProjectSettings(settings)
             self.settingsChanged.emit(settings)
 
-    def Startup(self, filepath : str|None = None):
+    def Startup(self, filepath : str|None = None) -> None:
         """
         Perform startup tasks
         """
@@ -238,7 +239,7 @@ class GuiInterface(QObject):
         if CheckIfUpdateCheckIsRequired():
             CheckIfUpdateAvailable()
 
-    def _initialise_instructions(self, options : Options):
+    def _initialise_instructions(self, options : Options) -> None:
         instructions_file = options.get_str('instruction_file') or "instructions.txt"
         try:
             instructions = LoadInstructions(instructions_file)
@@ -247,10 +248,10 @@ class GuiInterface(QObject):
         except Exception:
             logging.error(_("Failed to load instructions from {instructions_file}").format(instructions_file=instructions_file))
     
-    def _check_provider_settings(self, options : Options):
+    def _check_provider_settings(self, options : Options) -> None:
         self.action_handler.CheckProviderSettings(options)
 
-    def PrepareToExit(self):
+    def PrepareToExit(self) -> None:
         """
         Clear the command queue and exit the program
         """
@@ -260,14 +261,14 @@ class GuiInterface(QObject):
         if self.datamodel and self.datamodel.project:
             self.datamodel.project.SaveProject()
 
-    def LoadProject(self, filepath : str, reload_subtitles : bool = False):
+    def LoadProject(self, filepath : str, reload_subtitles : bool = False) -> None:
         """
         Load a project file
         """
         command = LoadSubtitleFile(filepath, self.global_options, reload_subtitles=reload_subtitles)
         self.QueueCommand(command, callback=self._on_project_loaded)
 
-    def SaveProject(self, filepath : str|None = None):
+    def SaveProject(self, filepath : str|None = None) -> None:
         """
         Save the project file
         """
@@ -282,7 +283,7 @@ class GuiInterface(QObject):
 
         self.QueueCommand(command, callback=self._on_save)
 
-    def ShowNewProjectSettings(self, datamodel : ProjectDataModel):
+    def ShowNewProjectSettings(self, datamodel : ProjectDataModel) -> None:
         """
         Show the new project settings dialog
         """
@@ -302,7 +303,7 @@ class GuiInterface(QObject):
         except Exception as e:
             logging.error(f"Error initialising project settings: {str(e)}")
 
-    def ShowAboutDialog(self):
+    def ShowAboutDialog(self) -> None:
         """
         Show the about dialog
         """
