@@ -49,6 +49,7 @@ else:
 
                 self.refresh_when_changed = ['api_key', 'model', 'enable_thinking']
                 self.gemini_models = []
+                self.excluded_models = ["vision", "tts", "banana"]
 
             @property
             def api_key(self) -> str|None:
@@ -126,7 +127,7 @@ else:
                     config = ListModelsConfig(query_base=True)
                     all_models = gemini_client.models.list(config=config)
                     generate_models = [ m for m in all_models if m.supported_actions and 'generateContent' in m.supported_actions ]
-                    text_models = [m for m in generate_models if m.display_name and "Vision" not in m.display_name and "TTS" not in m.display_name]
+                    text_models = [m for m in generate_models if m.display_name and not any(exclusion in m.display_name.lower() for exclusion in self.excluded_models)]
 
                     return self._deduplicate_models(text_models)
 
