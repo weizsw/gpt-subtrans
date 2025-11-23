@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: LLM-Subtrans\n"
-"POT-Creation-Date: 2025-10-11 08:03+0000\n"
-"PO-Revision-Date: 2025-10-11 08:03+0000\n"
+"POT-Creation-Date: 2025-11-23 07:39+0000\n"
+"PO-Revision-Date: 2025-11-23 07:39+0000\n"
 "Last-Translator: Auto-generated\n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
@@ -342,7 +342,7 @@ msgstr ""
 
 #: PySubtrans/Providers/Clients/AnthropicClient.py:105
 #: PySubtrans/Providers/Clients/ChatGPTClient.py:33
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:83
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:81
 msgid "Client is not initialized"
 msgstr ""
 
@@ -354,19 +354,19 @@ msgstr ""
 msgid "Consider a new scene to have started after this many seconds without subtitles"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:215
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:213
 msgid "Content must be a list for Responses API"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:145
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:143
 msgid "Content must be a list for streaming Responses API"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:219
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:217
 msgid "Content must be a list of message dicts for Responses API"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:225
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:223
 msgid "Content must be a list of message dicts for Responses API. Found item of type {type}."
 msgstr ""
 
@@ -493,7 +493,7 @@ msgstr ""
 msgid "Ensure full-width punctuation is used in Asian languages"
 msgstr ""
 
-#: GuiSubtrans/GuiInterface.py:417
+#: GuiSubtrans/GuiInterface.py:418
 msgid "Error"
 msgstr ""
 
@@ -509,7 +509,7 @@ msgstr ""
 msgid "Error decoding JSON file: {}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:192
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:190
 msgid "Error during streaming: {error}"
 msgstr ""
 
@@ -550,7 +550,7 @@ msgstr ""
 msgid "Error saving settings to {}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:174
+#: PySubtrans/SubtitleTranslator.py:176
 msgid "Error translating scene {scene} batch {batch}: {error}"
 msgstr ""
 
@@ -567,7 +567,7 @@ msgstr ""
 msgid "Error: {error}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:184
+#: PySubtrans/SubtitleTranslator.py:186
 msgid "Errors encountered translating scene {scene} batch {batch}"
 msgstr ""
 
@@ -637,11 +637,11 @@ msgstr ""
 msgid "Failed to initialize Anthropic client"
 msgstr ""
 
-#: GuiSubtrans/GuiInterface.py:248
+#: GuiSubtrans/GuiInterface.py:249
 msgid "Failed to load instructions from {instructions_file}"
 msgstr ""
 
-#: GuiSubtrans/GuiInterface.py:384
+#: GuiSubtrans/GuiInterface.py:385
 msgid "Failed to load project data model."
 msgstr ""
 
@@ -676,11 +676,11 @@ msgstr ""
 msgid "Failed to parse subtitles: {}"
 msgstr ""
 
-#: GuiSubtrans/GuiInterface.py:202
+#: GuiSubtrans/GuiInterface.py:203
 msgid "Failed to switch language - restart the application: {error}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:132
+#: PySubtrans/SubtitleTranslator.py:134
 msgid "Failed to translate scene {scene}... stopping translation"
 msgstr ""
 
@@ -688,7 +688,7 @@ msgstr ""
 msgid "Failed to translate subtitles: {}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:146
+#: PySubtrans/SubtitleTranslator.py:148
 msgid "Failed to translate {count} lines:"
 msgstr ""
 
@@ -788,7 +788,7 @@ msgstr ""
 msgid "Higher temperature introduces more randomness to the translation (default 0.0)"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:244
+#: PySubtrans/SubtitleTranslator.py:246
 msgid "Hit API token limit, retrying batch without context..."
 msgstr ""
 
@@ -832,7 +832,7 @@ msgstr ""
 msgid "Invalid batch"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:232
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:230
 msgid "Invalid message role: {role}. Must be one of 'user', 'system', 'developer', or 'assistant'."
 msgstr ""
 
@@ -928,11 +928,11 @@ msgstr ""
 msgid "Logo generated with <a href=\"https://qwen.ai/home\">Qwen3</a>"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:284
+#: PySubtrans/SubtitleTranslator.py:286
 msgid "Made substitutions in input:\n{replaced}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:342
+#: PySubtrans/SubtitleTranslator.py:344
 msgid "Made substitutions in output:\n{replaced}"
 msgstr ""
 
@@ -1079,7 +1079,7 @@ msgstr ""
 #: PySubtrans/Providers/Clients/GeminiClient.py:84
 #: PySubtrans/Providers/Clients/MistralClient.py:54
 #: PySubtrans/Providers/Clients/MistralClient.py:82
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:116
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:114
 #: PySubtrans/TranslationPrompt.py:153
 msgid "No content provided for translation"
 msgstr ""
@@ -1104,7 +1104,7 @@ msgstr ""
 msgid "No file path specified"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:230
+#: PySubtrans/SubtitleTranslator.py:232
 msgid "No instructions provided for translation"
 msgstr ""
 
@@ -1125,7 +1125,7 @@ msgstr ""
 #: PySubtrans/Providers/Clients/GeminiClient.py:100
 #: PySubtrans/Providers/Clients/GeminiClient.py:127
 #: PySubtrans/Providers/Clients/MistralClient.py:79
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:86
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:84
 msgid "No model specified"
 msgstr ""
 
@@ -1173,7 +1173,7 @@ msgstr ""
 #: GuiSubtrans/Commands/SplitSceneCommand.py:52
 #: GuiSubtrans/Commands/SwapTextAndTranslations.py:32
 #: GuiSubtrans/Commands/TranslateSceneCommand.py:41
-#: GuiSubtrans/GuiInterface.py:275 GuiSubtrans/GuiInterface.py:290
+#: GuiSubtrans/GuiInterface.py:276 GuiSubtrans/GuiInterface.py:291
 msgid "No project data"
 msgstr ""
 
@@ -1220,7 +1220,7 @@ msgstr ""
 msgid "No subtitles to batch"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:102
+#: PySubtrans/SubtitleTranslator.py:104
 msgid "No subtitles to translate"
 msgstr ""
 
@@ -1236,7 +1236,7 @@ msgstr ""
 msgid "No system prompt provided"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:286
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:284
 msgid "No text content found in response"
 msgstr ""
 
@@ -1252,7 +1252,7 @@ msgstr ""
 msgid "No translation provider configured"
 msgstr ""
 
-#: GuiSubtrans/GuiInterface.py:416 GuiSubtrans/GuiInterface.py:417
+#: GuiSubtrans/GuiInterface.py:417 GuiSubtrans/GuiInterface.py:418
 msgid "No translation providers available. Please install one or more providers."
 msgstr ""
 
@@ -1347,7 +1347,7 @@ msgstr ""
 msgid "OpenAI error {error}, retrying in {sleep_time}..."
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:208
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:206
 msgid "OpenAI streaming ended without a completed response"
 msgstr ""
 
@@ -1371,7 +1371,7 @@ msgstr ""
 msgid "Permission denied: {error}"
 msgstr ""
 
-#: GuiSubtrans/GuiInterface.py:439
+#: GuiSubtrans/GuiInterface.py:440
 msgid "Please configure the translation provider settings"
 msgstr ""
 
@@ -1489,7 +1489,7 @@ msgstr ""
 msgid "Rate limit hit, retrying in {retry_seconds} seconds..."
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:191
+#: PySubtrans/SubtitleTranslator.py:193
 msgid "Reached max_lines limit of ({lines} lines)... finishing"
 msgstr ""
 
@@ -1537,7 +1537,7 @@ msgstr ""
 msgid "Reparse batches {batches}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:211
+#: PySubtrans/SubtitleTranslator.py:213
 msgid "Reparsing scene {scene} batch {batch} with {count} lines..."
 msgstr ""
 
@@ -1565,15 +1565,15 @@ msgstr ""
 msgid "Resuming"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:105
+#: PySubtrans/SubtitleTranslator.py:107
 msgid "Resuming translation"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:402
+#: PySubtrans/SubtitleTranslator.py:404
 msgid "Retry failed validation: {errors}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:404
+#: PySubtrans/SubtitleTranslator.py:406
 msgid "Retry passed validation"
 msgstr ""
 
@@ -1632,19 +1632,19 @@ msgstr ""
 msgid "Scene {scene} Batch {batch}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:123
+#: PySubtrans/SubtitleTranslator.py:125
 msgid "Scene {scene} already translated {linecount} lines..."
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:216
+#: PySubtrans/SubtitleTranslator.py:218
 msgid "Scene {scene} batch {batch} already translated {lines} lines..."
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:258
+#: PySubtrans/SubtitleTranslator.py:260
 msgid "Scene {scene} batch {batch} failed validation, requesting retranslation"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:351
+#: PySubtrans/SubtitleTranslator.py:353
 msgid "Scene {scene} batch {batch}: {translated} lines and {untranslated} untranslated."
 msgstr ""
 
@@ -1736,7 +1736,7 @@ msgstr ""
 msgid "Stream translations in realtime as they are generated"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:179
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:177
 msgid "Streaming ended with an error but OpenAI returned a response: {error}"
 msgstr ""
 
@@ -1744,7 +1744,7 @@ msgstr ""
 msgid "Streaming error: {error}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:203
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:201
 msgid "Streaming failed before any response was received: {error}"
 msgstr ""
 
@@ -1768,7 +1768,7 @@ msgstr ""
 msgid "Subtitles have not been batched"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:108
+#: PySubtrans/SubtitleTranslator.py:110
 msgid "Subtitles must be batched before translation"
 msgstr ""
 
@@ -1780,7 +1780,7 @@ msgstr ""
 msgid "Subtrans projects"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:143
+#: PySubtrans/SubtitleTranslator.py:145
 msgid "Successfully translated {count} lines!"
 msgstr ""
 
@@ -1788,11 +1788,11 @@ msgstr ""
 msgid "Summary"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:421
+#: PySubtrans/SubtitleTranslator.py:423
 msgid "Summary was truncated from {original} to {truncated} characters"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:359
+#: PySubtrans/SubtitleTranslator.py:361
 msgid "Summary: {summary}"
 msgstr ""
 
@@ -1876,7 +1876,7 @@ msgid "The language of the application interface"
 msgstr ""
 
 #: PySubtrans/Providers/Provider_OpenAI.py:116
-msgid "The level of reasoning effort to use for the model"
+msgid "The level of reasoning effort to use for the model (valid options are model-dependent)"
 msgstr ""
 
 #: PySubtrans/Providers/Provider_Bedrock.py:92
@@ -1974,12 +1974,12 @@ msgstr ""
 msgid "Translating with server at {server_address}{endpoint}"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:110
+#: PySubtrans/SubtitleTranslator.py:112
 msgid "Translating {linecount} lines in {scenecount} scenes"
 msgstr ""
 
 #: PySubtrans/SubtitleError.py:40 PySubtrans/SubtitleProject.py:429
-#: PySubtrans/SubtitleTranslator.py:136
+#: PySubtrans/SubtitleTranslator.py:138
 msgid "Translation aborted"
 msgstr ""
 
@@ -1995,7 +1995,7 @@ msgstr ""
 msgid "Translation provider settings are invalid"
 msgstr ""
 
-#: GuiSubtrans/GuiInterface.py:182
+#: GuiSubtrans/GuiInterface.py:183
 msgid "Translation provider settings are not valid. Please check the settings."
 msgstr ""
 
@@ -2003,7 +2003,7 @@ msgstr ""
 msgid "Translation response error: {error}, retrying in {backoff_time} seconds..."
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:295
+#: PySubtrans/SubtitleTranslator.py:297
 msgid "Truncating batch to remain within max_lines"
 msgstr ""
 
@@ -2062,7 +2062,7 @@ msgstr ""
 msgid "Unable to load {file} ({error})"
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:334
+#: PySubtrans/SubtitleTranslator.py:336
 msgid "Unable to match {count} lines with a source line"
 msgstr ""
 
@@ -2173,11 +2173,11 @@ msgstr ""
 msgid "Unrecoverable error in {name}"
 msgstr ""
 
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:335
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:332
 msgid "Unsupported reasoning effort: {error}. Choose a different reasoning effort or model."
 msgstr ""
 
-#: PySubtrans/SubtitleTranslator.py:148
+#: PySubtrans/SubtitleTranslator.py:150
 msgid "Untranslated > {number}. {text}"
 msgstr ""
 
@@ -2596,7 +2596,7 @@ msgstr "Timeout"
 msgid "ui_language"
 msgstr "UI Language"
 
-#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:180
+#: PySubtrans/Providers/Clients/OpenAIReasoningClient.py:178
 msgid "unknown error"
 msgstr ""
 
