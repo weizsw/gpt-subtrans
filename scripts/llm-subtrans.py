@@ -37,7 +37,7 @@ try:
             provider,
             api_key=args.apikey,
             model=args.model,
-            use_default_model=args.auto
+            use_default_model=args.auto,
         )
     else:
         options : Options = CreateOptions(
@@ -48,7 +48,7 @@ try:
             model=args.model,
             server_address=args.server,
             supports_conversation=args.chat,
-            supports_system_messages=args.systemmessages
+            supports_system_messages=args.systemmessages,
         )
 
     # Create a project for the translation

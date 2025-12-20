@@ -14,6 +14,7 @@ from google.genai.types import (
     GenerateContentResponseUsageMetadata,
     HarmBlockThreshold,
     HarmCategory,
+    HttpOptions,
     Part,
     SafetySetting,
     ThinkingConfig
@@ -130,7 +131,18 @@ class GeminiClient(TranslationClient):
         if not isinstance(prompt.content, str):
             raise TranslationImpossibleError(_("Content must be a string for Gemini"))
 
-        gemini_client = genai.Client(api_key=self.api_key, http_options={'api_version': 'v1alpha'})
+        # Configure http options (proxy support for both sync httpx and async aiohttp)
+        proxy = self.settings.get_str('proxy')
+        client_args = None
+        async_client_args = None
+        if proxy:
+            client_args = {'proxy': proxy}
+            async_client_args = {'proxy': proxy}
+            self._emit_info(_("Using proxy: {proxy}").format(proxy=proxy))
+
+        http_options = HttpOptions(api_version='v1beta', client_args=client_args, async_client_args=async_client_args)
+
+        gemini_client = genai.Client(api_key=self.api_key, http_options=http_options)
         config = GenerateContentConfig(
             candidate_count=1,
             temperature=temperature,

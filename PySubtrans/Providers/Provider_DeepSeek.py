@@ -13,6 +13,8 @@ from PySubtrans.TranslationProvider import TranslationProvider
 class DeepSeekProvider(TranslationProvider):
     name = "DeepSeek"
 
+    default_model = "deepseek-chat"
+
     information = """
     <p>Select the <a href="https://api-docs.deepseek.com/quick_start/pricing">model</a> to use as a translator.</p>
     <p>Not that reasoning models are not generally recommended as translators.</p>
@@ -27,12 +29,13 @@ class DeepSeekProvider(TranslationProvider):
         super().__init__(self.name, SettingsType({
             "api_key": settings.get_str('api_key', os.getenv('DEEPSEEK_API_KEY')),
             "api_base": settings.get_str('api_base', os.getenv('DEEPSEEK_API_BASE', "https://api.deepseek.com")),
-            "model": settings.get_str('model', os.getenv('DEEPSEEK_MODEL', "deepseek-chat")),
+            "model": settings.get_str('model', os.getenv('DEEPSEEK_MODEL', self.default_model)),
             'max_tokens': settings.get_int('max_tokens', env_int('DEEPSEEK_MAX_TOKENS', 8192)),
             'temperature': settings.get_float('temperature', env_float('DEEPSEEK_TEMPERATURE', 1.3)),
             'rate_limit': settings.get_float('rate_limit', env_float('DEEPSEEK_RATE_LIMIT')),
             'reuse_client': settings.get_bool('reuse_client', False),
             'endpoint': settings.get_str('endpoint', '/v1/chat/completions'),
+            'proxy': settings.get_str('proxy') or os.getenv('DEEPSEEK_PROXY'),
             'stream_responses': settings.get_bool('stream_responses', True),
         }))
         self.refresh_when_changed = ['api_key', 'api_base', 'model', 'endpoint']
@@ -92,7 +95,8 @@ class DeepSeekProvider(TranslationProvider):
             url = self.server_address.rstrip('/') + '/v1/models'
             headers = {'Authorization': f"Bearer {self.api_key}"} if self.api_key else {}
 
-            with httpx.Client(timeout=15) as client:
+            proxy_url = self.settings.get_str('proxy')
+            with httpx.Client(timeout=15, proxy=proxy_url) as client:
                 result = client.get(url, headers=headers)
                 if result.is_error:
                     logging.error(_("Error fetching models: {status} {text}").format(

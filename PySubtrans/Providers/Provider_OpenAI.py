@@ -22,6 +22,8 @@ else:
         class OpenAiProvider(TranslationProvider):
             name = "OpenAI"
 
+            default_model = "gpt-5-mini"
+
             information = """
             <p>Select the AI <a href="https://platform.openai.com/docs/models">model</a> to use as a translator.</p>
             <p>Note that different models have different <a href="https://openai.com/pricing">costs</a> and limitations.</p>
@@ -43,7 +45,7 @@ else:
                 super().__init__(self.name, SettingsType({
                     "api_key": settings.get_str('api_key', os.getenv('OPENAI_API_KEY')),
                     "api_base": settings.get_str('api_base', os.getenv('OPENAI_API_BASE')),
-                    "model": settings.get_str('model', os.getenv('OPENAI_MODEL', "gpt-5-mini")),
+                    "model": settings.get_str('model', os.getenv('OPENAI_MODEL', self.default_model)),
                     'temperature': settings.get_float('temperature', env_float('OPENAI_TEMPERATURE', 0.0)),
                     'rate_limit': settings.get_float('rate_limit', env_float('OPENAI_RATE_LIMIT')),
                     "free_plan": settings.get_bool('free_plan', os.getenv('OPENAI_FREE_PLAN') == "True"),
@@ -51,6 +53,7 @@ else:
                     'use_httpx': settings.get_bool('use_httpx', os.getenv('OPENAI_USE_HTTPX', "False") == "True"),
                     'reasoning_effort': settings.get_str('reasoning_effort', os.getenv('OPENAI_REASONING_EFFORT', "low")),
                     'stream_responses': settings.get_bool('stream_responses', os.getenv('OPENAI_STREAM_RESPONSES', "False") == "True"),
+                    'proxy': settings.get_str('proxy') or os.getenv('OPENAI_PROXY'),
                 }))
 
                 self.refresh_when_changed = ['api_key', 'api_base', 'model']
@@ -135,9 +138,12 @@ else:
                         logging.debug("No OpenAI API key provided")
                         return []
 
+                    proxy_url = self.settings.get_str('proxy')
+                    http_client = httpx.Client(proxy=proxy_url) if proxy_url else None
                     client = openai.OpenAI(
                         api_key=self.api_key,
-                        base_url=self.api_base or None
+                        base_url=self.api_base or None,
+                        http_client=http_client
                     )
                     response = client.models.list()
 

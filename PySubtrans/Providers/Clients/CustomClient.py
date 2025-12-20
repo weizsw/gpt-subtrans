@@ -30,6 +30,10 @@ class CustomClient(TranslationClient):
         self._emit_info(_("Translating with server at {server_address}{endpoint}").format(
             server_address=self.server_address, endpoint=self.endpoint
         ))
+
+        if self.proxy_url:
+            self._emit_info(_("Using proxy: {proxy}").format(proxy=self.proxy_url))
+
         if self.model:
             self._emit_info(_("Using model: {model}").format(model=self.model))
 
@@ -40,6 +44,10 @@ class CustomClient(TranslationClient):
     @property
     def endpoint(self) -> str|None:
         return self.settings.get_str( 'endpoint')
+
+    @property
+    def proxy_url(self) -> str|None:
+        return self.settings.get_str('proxy')
 
     @property
     def supports_conversation(self) -> bool:
@@ -100,7 +108,13 @@ class CustomClient(TranslationClient):
                 if self.server_address is None or self.endpoint is None:
                     raise TranslationImpossibleError(_("Server address or endpoint is not set"))
 
-                self.client = httpx.Client(base_url=self.server_address, follow_redirects=True, timeout=self.timeout, headers=self.headers)
+                self.client = httpx.Client(
+                    base_url=self.server_address,
+                    follow_redirects=True,
+                    timeout=self.timeout,
+                    headers=self.headers,
+                    proxy=self.proxy_url
+                )
 
                 # Handle streaming vs non-streaming requests
                 if request.is_streaming and self.enable_streaming:

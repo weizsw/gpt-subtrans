@@ -13,7 +13,7 @@ else:
         from collections import defaultdict
 
         from google import genai
-        from google.genai.types import ListModelsConfig
+        from google.genai.types import ListModelsConfig, HttpOptions
         from google.api_core.exceptions import FailedPrecondition
 
         from PySubtrans.Helpers.Localization import _
@@ -23,6 +23,8 @@ else:
 
         class GeminiProvider(TranslationProvider):
             name = "Gemini"
+
+            default_model = "gemini-3-flash-preview"
 
             information = """
             <p>Select the <a href="https://ai.google.dev/models/gemini">AI model</a> to use as a translator.</p>
@@ -39,12 +41,13 @@ else:
             def __init__(self, settings : SettingsType):
                 super().__init__(self.name, SettingsType({
                     "api_key": settings.get_str('api_key') or os.getenv('GEMINI_API_KEY'),
-                    "model": settings.get_str('model') or os.getenv('GEMINI_MODEL'),
+                    "model": settings.get_str('model') or os.getenv('GEMINI_MODEL', self.default_model),
                     'stream_responses': settings.get_bool('stream_responses', os.getenv('GEMINI_STREAM_RESPONSES', "True") == "True"),
                     'enable_thinking': settings.get_bool('enable_thinking', os.getenv('GEMINI_ENABLE_THINKING', "False") == "True"),
                     'thinking_budget': settings.get_int('thinking_budget', env_int('GEMINI_THINKING_BUDGET', 100)) or 100,
                     'temperature': settings.get_float('temperature', env_float('GEMINI_TEMPERATURE', 0.0)),
-                    'rate_limit': settings.get_float('rate_limit', env_float('GEMINI_RATE_LIMIT', 60.0))
+                    'rate_limit': settings.get_float('rate_limit', env_float('GEMINI_RATE_LIMIT', 60.0)),
+                    'proxy': settings.get_str('proxy') or os.getenv('GEMINI_PROXY'),
                 }))
 
                 self.refresh_when_changed = ['api_key', 'model', 'enable_thinking']
@@ -123,7 +126,14 @@ else:
                     return []
 
                 try:
-                    gemini_client = genai.Client(api_key=self.api_key, http_options={'api_version': 'v1alpha'})
+                    # Respect proxy when listing models too (strongly typed HttpOptions)
+                    proxy = self.settings.get_str('proxy')
+                    http_options = HttpOptions(api_version='v1beta')
+                    if proxy:
+                        http_options.client_args = {'proxy': proxy}
+                        http_options.async_client_args = {'proxy': proxy}
+                        logging.debug(f"Using proxy for Gemini model listing: {proxy}")
+                    gemini_client = genai.Client(api_key=self.api_key, http_options=http_options)
                     config = ListModelsConfig(query_base=True)
                     all_models = gemini_client.models.list(config=config)
                     generate_models = [ m for m in all_models if m.supported_actions and 'generateContent' in m.supported_actions ]

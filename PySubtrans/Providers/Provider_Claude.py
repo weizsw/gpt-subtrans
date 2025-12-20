@@ -23,6 +23,8 @@ else:
         class Provider_Claude(TranslationProvider):
             name = "Claude"
 
+            default_model = "claude-haiku-4-5"
+
             information = """
             <p>Select the <a href="https://docs.anthropic.com/claude/docs/models-overview">AI model</a> to use as a translator.</p>
             <p>Note that each model has a <a href="https://docs.anthropic.com/claude/docs/models-overview">maximum tokens limit</a>.</p>
@@ -32,8 +34,6 @@ else:
             information_noapikey = """
             <p>To use Claude you need to provide an <a href="https://console.anthropic.com/settings/keys">Anthropic API Key </a>.</p>
             """
-
-            default_model = "claude-3-5-haiku-latest"
 
             def __init__(self, settings : SettingsType):
                 super().__init__(self.name, SettingsType({
@@ -137,7 +137,9 @@ else:
                     return []
 
                 try:
-                    client = anthropic.Anthropic(api_key=self.api_key)
+                    proxy_url = self.settings.get_str('proxy')
+                    http_client = anthropic.DefaultHttpxClient(proxy=proxy_url) if proxy_url else None
+                    client = anthropic.Anthropic(api_key=self.api_key, http_client=http_client)
                     model_list = client.models.list()
 
                     return [ m for m in model_list if m.type == 'model' ]

@@ -12,6 +12,8 @@ from PySubtrans.TranslationProvider import TranslationProvider
 
 class OpenRouterProvider(TranslationProvider):
     name = "OpenRouter"
+
+    default_model = "google/gemini-3-flash-preview"
     
     information = """
     <p>Select the <a href="https://openrouter.ai/models">model</a> to use as a translator.</p>
@@ -33,10 +35,11 @@ class OpenRouterProvider(TranslationProvider):
             'stream_responses': settings.get_bool('stream_responses', os.getenv('OPENROUTER_STREAM_RESPONSES', "True") == "True"),
             'model_family': settings.get_str('model_family', os.getenv('OPENROUTER_MODEL_FAMILY', "Google")),
             'only_translation_models': settings.get_bool('only_translation_models', True),
-            "model": settings.get_str('model', os.getenv('OPENROUTER_MODEL', "Gemini 2.5 Flash Lite")),
+            "model": settings.get_str('model', os.getenv('OPENROUTER_MODEL', self.default_model)),
             'max_tokens': settings.get_int('max_tokens', env_int('OPENROUTER_MAX_TOKENS', 0)),
             'temperature': settings.get_float('temperature', env_float('OPENROUTER_TEMPERATURE', 0.0)),
             'rate_limit': settings.get_float('rate_limit', env_float('OPENROUTER_RATE_LIMIT')),
+            'proxy': settings.get_str('proxy') or os.getenv('OPENROUTER_PROXY'),
             'reuse_client': settings.get_bool('reuse_client', True),
         }))
 
@@ -100,6 +103,8 @@ class OpenRouterProvider(TranslationProvider):
                 selected_model = self.selected_model or "openrouter/auto"
             else:
                 client_settings['model'] = self._get_model_id(selected_model)
+            
+            logging.debug(f"OpenRouter using model ID: {client_settings.get('model')}")
         
         return OpenRouterClient(client_settings)
 
@@ -227,7 +232,8 @@ class OpenRouterProvider(TranslationProvider):
 
             headers = {'Authorization': f"Bearer {self.api_key}"} if self.api_key else {}
 
-            with httpx.Client(timeout=20) as client:
+            proxy_url = self.settings.get_str('proxy')
+            with httpx.Client(timeout=20, proxy=proxy_url) as client:
                 result = client.get(url, headers=headers)
                 if result.is_error:
                     logging.error(_("Error fetching models: {status} {text}").format(
