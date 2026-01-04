@@ -2,7 +2,7 @@ import importlib.util
 import logging
 
 from PySubtrans.Helpers.Localization import _
-from PySubtrans.Options import env_float, env_int, env_bool
+from PySubtrans.Options import env_float, env_int
 from PySubtrans.SettingsType import GuiSettingsType, SettingsType
 
 if not importlib.util.find_spec("anthropic"):
@@ -20,10 +20,10 @@ else:
         from PySubtrans.TranslationProvider import TranslationProvider
         from PySubtrans.Options import SettingsType
 
-        class Provider_Claude(TranslationProvider):
+        class ClaudeProvider(TranslationProvider):
             name = "Claude"
 
-            default_model = "claude-haiku-4-5"
+            default_model = "Claude Haiku 4.5"
 
             information = """
             <p>Select the <a href="https://docs.anthropic.com/claude/docs/models-overview">AI model</a> to use as a translator.</p>
