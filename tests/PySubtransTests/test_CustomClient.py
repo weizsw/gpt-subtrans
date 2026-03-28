@@ -96,8 +96,9 @@ class TestCustomClientErrorHandling(LoggedTestCase):
         mock_httpx_client.post.return_value = mock_resp
 
         with patch('httpx.Client', return_value=mock_httpx_client):
-            with self.assertRaises(TranslationImpossibleError):
-                client._make_request(_create_test_request(), temperature=0.0)
+            with self.assertLogs(level='WARNING'):
+                with self.assertRaises(TranslationImpossibleError):
+                    client._make_request(_create_test_request(), temperature=0.0)
 
         # max_retries=2 means 3 total attempts (initial + 2 retries)
         self.assertLoggedEqual("post call count (retries)", 3, mock_httpx_client.post.call_count)
@@ -131,8 +132,9 @@ class TestCustomClientErrorHandling(LoggedTestCase):
         mock_httpx_client.stream.return_value.__exit__ = MagicMock(return_value=False)
 
         with patch('httpx.Client', return_value=mock_httpx_client):
-            with self.assertRaises(TranslationImpossibleError):
-                client._make_request(_create_test_request(streaming=True), temperature=0.0)
+            with self.assertLogs(level='WARNING'):
+                with self.assertRaises(TranslationImpossibleError):
+                    client._make_request(_create_test_request(streaming=True), temperature=0.0)
 
         # max_retries=2 means 3 total attempts
         self.assertLoggedEqual("stream call count (retries)", 3, mock_httpx_client.stream.call_count)
@@ -149,10 +151,11 @@ class TestCustomClientErrorHandling(LoggedTestCase):
         mock_httpx_client.stream.return_value.__exit__ = MagicMock(return_value=False)
 
         with patch('httpx.Client', return_value=mock_httpx_client):
-            try:
-                client._make_request(_create_test_request(streaming=True), temperature=0.0)
-            except TranslationImpossibleError:
-                pass
+            with self.assertLogs(level='WARNING'):
+                try:
+                    client._make_request(_create_test_request(streaming=True), temperature=0.0)
+                except TranslationImpossibleError:
+                    pass
 
         self.assertLoggedTrue("response.read() was called", mock_resp.read.called)
 

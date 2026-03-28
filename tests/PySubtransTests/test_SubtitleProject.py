@@ -636,8 +636,9 @@ Modified subtitle line 2
 
         translator = FailingTranslator()
 
-        with self.assertRaises(RuntimeError) as context:
-            project.TranslateSubtitles(cast(SubtitleTranslator, translator))
+        with self.assertLogs(level='ERROR'):
+            with self.assertRaises(RuntimeError) as context:
+                project.TranslateSubtitles(cast(SubtitleTranslator, translator))
 
         self.assertLoggedIsInstance(
             "raised translation error type",
