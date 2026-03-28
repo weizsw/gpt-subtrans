@@ -4,7 +4,7 @@ import threading
 from typing import Any
 
 from PySubtrans.Helpers.ContextHelpers import GetBatchContext
-from PySubtrans.Helpers.SubtitleHelpers import MergeTranslations
+from PySubtrans.Helpers.SubtitleHelpers import FindBestSplitIndex, MergeTranslations
 from PySubtrans.Helpers.Localization import _
 from PySubtrans.Helpers.Text import Linearise, SanitiseSummary
 from PySubtrans.Instructions import DEFAULT_TASK_TYPE, Instructions
@@ -46,7 +46,7 @@ class SubtitleTranslator:
         self.max_history = settings.get_int('max_context_summaries')
         self.stop_on_error = settings.get_bool('stop_on_error')
         self.retry_on_error = settings.get_bool('retry_on_error')
-        # self.split_on_error = options.get('autosplit_incomplete')
+        self.split_on_error = settings.get_bool('autosplit_on_error')
         self.max_summary_length = settings.get_int('max_summary_length')
         self.retranslate = settings.get_bool('retranslate')
         self.reparse = settings.get_bool('reparse')
@@ -240,28 +240,33 @@ class SubtitleTranslator:
         streaming_callback = self._create_streaming_callback(batch, line_numbers) if self.client.enable_streaming else None
         translation : Translation|None = self.client.RequestTranslation(batch.prompt, streaming_callback=streaming_callback)
 
-        if (translation and translation.reached_token_limit) and not self.aborted:
-            # Try again without the context to keep the tokens down
-            # TODO: better to split the batch into smaller chunks
-            logging.warning(_("Hit API token limit, retrying batch without context..."))
-            batch.prompt.GenerateMessages(instructions, batch.originals, {})
-
-            translation = self.client.RequestTranslation(batch.prompt, streaming_callback=streaming_callback)
-
         if not self.aborted:
             if not translation:
                 raise TranslationError(f"Unable to translate scene {batch.scene} batch {batch.number}")
 
-            # Process the response
+            # Process the response first — translation may be complete even if the token limit was hit
             self.ProcessBatchTranslation(batch, translation, line_numbers)
 
-            # Consider retrying if there were errors
-            if batch.errors and self.retry_on_error:
+            # Consider splitting the batch in half if there were errors (preferred strategy)
+            split_performed = False
+            if batch.errors and self.split_on_error and len(batch.originals) >= 2:
+                split_performed = self._translate_split_batch(batch, line_numbers, context or {}, original_translation=translation)
+
+            # If no split was performed, retry without context when the token limit was reached with errors
+            if not split_performed and batch.errors and translation.reached_token_limit:
+                logging.warning(_("Hit API token limit with errors, retrying batch without context..."))
+                batch.prompt.GenerateMessages(instructions, batch.originals, {})
+                translation = self.client.RequestTranslation(batch.prompt, streaming_callback=streaming_callback)
+                if translation and not self.aborted:
+                    self.ProcessBatchTranslation(batch, translation, line_numbers)
+
+            # Consider retrying if there were errors and no other recovery strategy was applied
+            if not split_performed and batch.errors and self.retry_on_error:
                 logging.warning(_("Scene {scene} batch {batch} failed validation, requesting retranslation").format(scene=batch.scene, batch=batch.number))
                 self.RequestRetranslation(batch, line_numbers=line_numbers, context=context)
 
             # Update the context, unless it's a retranslation pass
-            if not self.retranslate and not self.aborted:
+            if translation and not self.retranslate and not self.aborted:
                 context['summary'] = self._get_best_summary([translation.summary, batch.summary])
                 context['scene'] = self._get_best_summary([translation.scene, context.get('scene')])
                 context['synopsis'] = translation.synopsis or context.get('synopsis', "")
@@ -404,6 +409,75 @@ class SubtitleTranslator:
             self._emit_warning(_("Retry failed validation: {errors}").format(errors=FormatErrorMessages(batch.errors)))
         else:
             self._emit_info(_("Retry passed validation"))
+
+    def _translate_split_batch(self, batch : SubtitleBatch, line_numbers : list[int]|None, context : dict[str,Any], original_translation : Translation|None = None) -> bool:
+        """
+        Split the batch originals in half and translate each half separately, merging results.
+        Used as a fallback when a full-batch translation has errors.
+        If original_translation is provided, its context fields are enriched with any values
+        gleaned from the half responses (priority: original → first half → second half).
+        Returns True if a split was attempted, False if no split could be performed.
+        """
+        originals = batch.originals
+
+        split_index = FindBestSplitIndex(originals)
+        if split_index is None:
+            return False
+
+        instructions = self.instructions.instructions
+        if not instructions:
+            return False
+
+        self._emit_info(_("Splitting scene {scene} batch {batch} into two halves for retranslation...").format(
+            scene=batch.scene, batch=batch.number))
+
+        # Phase 1: collect raw translations from each half without processing
+        half_translations : list[Translation] = []
+        api_errors : list[str|SubtitleError] = []
+
+        for half_originals in [originals[:split_index], originals[split_index:]]:
+            if self.aborted:
+                return False
+
+            prompt = self.client.BuildTranslationPrompt(self.user_prompt, instructions, half_originals, context)
+            half_translation : Translation|None = self.client.RequestTranslation(prompt)
+
+            if not half_translation:
+                api_errors.append(TranslationError(_("No translation returned for batch half")))
+            else:
+                half_translations.append(half_translation)
+
+        # Phase 2: merge translation texts and delegate all output handling to ProcessBatchTranslation
+        if not half_translations:
+            batch.errors = api_errors
+            return False
+
+        merged_text = "\n".join(t.text for t in half_translations if t.text)
+        merged_translation = Translation({'text': merged_text})
+
+        try:
+            self.ProcessBatchTranslation(batch, merged_translation, line_numbers)
+        except TranslationError as e:
+            batch.errors = (batch.errors or []) + [e] + api_errors
+            return False
+
+        if api_errors:
+            batch.errors = (batch.errors or []) + api_errors
+
+        # Phase 3: enrich the original translation's context with values from the halves,
+        # preserving any context the original already had (original → half1 → half2)
+        if original_translation:
+            all_sources = [original_translation] + half_translations
+            original_translation.content['summary'] = next((t.summary for t in all_sources if t.summary), None)
+            original_translation.content['scene']   = next((t.scene   for t in all_sources if t.scene),   None)
+            original_translation.content['synopsis']= next((t.synopsis for t in all_sources if t.synopsis), None)
+
+        if batch.errors:
+            self._emit_warning(_("Split retranslation has errors: {errors}").format(errors=FormatErrorMessages(batch.errors)))
+        else:
+            self._emit_info(_("Split retranslation passed validation"))
+
+        return True
 
     def _get_best_summary(self, candidates : list[str|None]) -> str|None:
         """
