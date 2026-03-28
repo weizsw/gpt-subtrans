@@ -53,6 +53,7 @@ Avoid Unicode characters (✓ ✗) in print/log messages as these trigger Window
   - **Exception Tests**: Guard with `skip_if_debugger_attached` decorator for debugging compatibility
     - Use `log_input_expected_error(input, ExpectedException, actual_exception)` for exception logging
   - **None Safety**: Use `.get(key, default)` with appropriate default values to avoid Pylance warnings, or assert then test for None values.
+  - **Optional Dependencies**: Test modules must not have top-level imports of optional packages. Guard them with `importlib.util.find_spec` and skip the class with `@unittest.skipUnless`, mirroring the pattern used in the corresponding provider.
 
 ## Information
 Consult `docs/architecture.md` for detailed information on the project architecture and components.
