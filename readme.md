@@ -5,9 +5,6 @@ The application supports multiple subtitle formats through a pluggable system. C
 
 Note: LLM-Subtrans requires an active internet connection. Subtitles are sent to the provider's servers for translation, so their privacy policy applies.
 
-## LLM-Subtrans Web
-For a limited time, the Gemini-powered [LLM-Subtrans Web](https://tinyurl.com/llm-subtrans-web) is free to use. Once my Google AI Studio credits run out it will either have to be taken down or monetized, but for now I'm just curious to see what people think of it.
-
 ## Installation
 For most users the packaged release is the easiest way to use the program. Download a package from [the releases page](https://github.com/machinewrapped/llm-subtrans/releases), unzip to a folder and run `gui-subtrans`. You will be prompted for some basic settings on first run.
 
@@ -21,6 +18,9 @@ Packaged builds are (usually) provided for MacOS with Apple Silicon (**gui-subtr
 
 ### Linux
 Prebuilt Linux packages are not provided so you will need to [install from source](#installing-from-source).
+
+### LLM-Subtrans Web
+For a limited time, the Gemini-powered [LLM-Subtrans Web](https://tinyurl.com/llm-subtrans-web) is free to use. Apparently this doesn't come out of my free API credits so it's been costing me actual money, but I'll leave it up for now.
 
 ## Translation Providers
 
