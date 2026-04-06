@@ -20,7 +20,7 @@ Packaged builds are (usually) provided for MacOS with Apple Silicon (**gui-subtr
 Prebuilt Linux packages are not provided so you will need to [install from source](#installing-from-source).
 
 ### LLM-Subtrans Web
-For a limited time, the Gemini-powered [LLM-Subtrans Web](https://tinyurl.com/llm-subtrans-web) is free to use. Apparently this doesn't come out of my free API credits so it's been costing me actual money, but I'll leave it up for now.
+The Gemini-powered [LLM-Subtrans Web](https://tinyurl.com/llm-subtrans-web) is free to use, but since it costs _me_ money it now requires a registered email address, and each user is limited to 2 translations per day.
 
 ## Translation Providers
 
