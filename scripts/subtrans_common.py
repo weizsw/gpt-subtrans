@@ -384,7 +384,7 @@ def _save_terminology_file(path : str, terminology_map : dict[str, str]) -> None
             f.write(FormatKeyValuePairs(sorted_terms))
         logging.info(f"Saved {len(terminology_map)} term(s) to {path}")
     except Exception as e:
-        logging.warning(f"Unable to save terminology file '{path}': {e}")
+        logging.warning(_("Unable to save terminology file '{path}': {error}").format(path=path, error=e))
 
 def TranslateProject(project : SubtitleProject, options : Options, verbose : bool = False, preview : bool = False) -> None:
     """

@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: LLM-Subtrans\n"
-"POT-Creation-Date: 2026-04-26 10:21+0000\n"
+"POT-Creation-Date: 2026-04-26 10:32+0000\n"
 "PO-Revision-Date: 2025-01-01 00:00+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Spanish <EMAIL@ADDRESS>\n"
@@ -546,6 +546,10 @@ msgstr "Error al migrar la configuración de {} a {}. Puede copiar los archivos 
 #: PySubtrans/Subtitles.py:204
 msgid "Error parsing file... attempting format detection"
 msgstr "Error al analizar el archivo... intentando detectar el formato"
+
+#: PySubtrans/SubtitleTranslator.py:543
+msgid "Error processing streaming update for scene {scene} batch {batch}: {error}"
+msgstr "Error al procesar la actualización en streaming para la escena {scene}, lote {batch}: {error}"
 
 #: GuiSubtrans/ProjectActions.py:121
 msgid "Error redoing the last command: {error}"
@@ -1214,9 +1218,17 @@ msgstr "No se proporcionó la ruta del archivo del proyecto"
 msgid "No project or subtitles to load"
 msgstr "No hay proyecto o subtítulos para cargar"
 
+#: PySubtrans/SubtitleTranslator.py:397
+msgid "No prompt to retranslate"
+msgstr "No hay ningún prompt para volver a traducir"
+
 #: PySubtrans/Providers/Clients/GeminiClient.py:233
 msgid "No response from Gemini"
 msgstr "Sin respuesta de Gemini"
+
+#: PySubtrans/SubtitleTranslator.py:400
+msgid "No retry instructions provided"
+msgstr "No se proporcionaron instrucciones de reintento"
 
 #: PySubtrans/Subtitles.py:267
 msgid "No scenes in subtitles"
@@ -1273,6 +1285,10 @@ msgstr "No se encontró contenido de texto en la respuesta"
 msgid "No text returned in the response"
 msgstr "No se devolvió texto en la respuesta"
 
+#: PySubtrans/SubtitleTranslator.py:331
+msgid "No translation provided"
+msgstr "No se proporcionó ninguna traducción"
+
 #: GuiSubtrans/Commands/ReparseTranslationsCommand.py:41
 msgid "No translation provider available"
 msgstr "No hay proveedor de traducción disponible"
@@ -1288,6 +1304,14 @@ msgstr "No hay proveedores de traducción disponibles. Por favor, instala uno o 
 #: PySubtrans/SubtitleTranslator.py:465
 msgid "No translation returned for batch half"
 msgstr "No se devolvió ninguna traducción para la mitad del lote"
+
+#: PySubtrans/SubtitleTranslator.py:403
+msgid "No translation text to retranslate"
+msgstr "No hay texto de traducción para volver a traducir"
+
+#: PySubtrans/SubtitleTranslator.py:393
+msgid "No translation to retranslate"
+msgstr "No hay ninguna traducción para volver a traducir"
 
 #: GuiSubtrans/Commands/EditBatchCommand.py:57
 #: GuiSubtrans/Commands/EditLineCommand.py:77
@@ -1605,6 +1629,10 @@ msgstr "Reanudando"
 #: PySubtrans/SubtitleTranslator.py:114
 msgid "Resuming translation"
 msgstr "Reanudando traducción"
+
+#: PySubtrans/SubtitleTranslator.py:421
+msgid "Retranslation is not the expected type"
+msgstr "La re-traducción no es del tipo esperado"
 
 #: PySubtrans/SubtitleTranslator.py:428
 msgid "Retry failed validation: {errors}"
@@ -2036,6 +2064,10 @@ msgstr "Traduciendo {linecount} líneas en {scenecount} escenas"
 msgid "Translation aborted"
 msgstr "Traducción cancelada"
 
+#: PySubtrans/SubtitleTranslator.py:334
+msgid "Translation contains no translated text"
+msgstr "La traducción no contiene texto traducido"
+
 #: PySubtrans/Providers/Clients/OpenAIClient.py:164
 msgid "Translation error: {error}, retrying in {backoff_time} seconds..."
 msgstr "Error de traducción: {error}, reintentando en {backoff_time} segundos..."
@@ -2164,9 +2196,17 @@ msgstr "No se pueden obtener los modelos"
 msgid "Unable to save original subtitles: {}"
 msgstr "No se pudieron guardar los subtítulos originales: {}"
 
+#: scripts/subtrans_common.py:387
+msgid "Unable to save terminology file '{path}': {error}"
+msgstr "No se pudo guardar el archivo de terminología '{path}': {error}"
+
 #: PySubtrans/SubtitleProject.py:259
 msgid "Unable to save translation: {}"
 msgstr "No se pudo guardar la traducción: {}"
+
+#: PySubtrans/SubtitleTranslator.py:264
+msgid "Unable to translate scene {scene} batch {batch}"
+msgstr "No se pudo traducir la escena {scene}, lote {batch}"
 
 #: GuiSubtrans/Commands/SplitBatchCommand.py:97
 msgid "Unable to undo SplitBatchCommand command: {error}"

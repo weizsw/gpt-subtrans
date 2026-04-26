@@ -261,7 +261,7 @@ class SubtitleTranslator:
 
         if not self.aborted:
             if not translation:
-                raise TranslationError(f"Unable to translate scene {batch.scene} batch {batch.number}")
+                raise TranslationError(_("Unable to translate scene {scene} batch {batch}").format(scene=batch.scene, batch=batch.number))
 
             # Process the response first — translation may be complete even if the token limit was hit
             self.ProcessBatchTranslation(batch, translation, line_numbers)
@@ -328,10 +328,10 @@ class SubtitleTranslator:
         Attempt to extract translation from the API response
         """
         if not translation:
-            raise NoTranslationError("No translation provided")
+            raise NoTranslationError(_("No translation provided"))
 
         if not translation.has_translation:
-            raise TranslationError("Translation contains no translated text", translation=translation)
+            raise TranslationError(_("Translation contains no translated text"), translation=translation)
 
         logging.debug(f"Scene {batch.scene} batch {batch.number} translation:\n{translation.text}\n")
 
@@ -390,17 +390,17 @@ class SubtitleTranslator:
         """
         translation : Translation|None = batch.translation
         if not translation:
-            raise TranslationError("No translation to retranslate")
+            raise TranslationError(_("No translation to retranslate"))
 
         prompt : TranslationPrompt|None = batch.prompt
         if not prompt or not prompt.messages:
-            raise TranslationError("No prompt to retranslate")
+            raise TranslationError(_("No prompt to retranslate"))
 
         if not self.instructions.retry_instructions:
-            raise TranslationError("No retry instructions provided")
+            raise TranslationError(_("No retry instructions provided"))
 
         if not translation.text:
-            raise TranslationError("No translation text to retranslate", translation=translation)
+            raise TranslationError(_("No translation text to retranslate"), translation=translation)
 
         retry_instructions = self.instructions.retry_instructions
         if retry_instructions is None:
@@ -418,7 +418,7 @@ class SubtitleTranslator:
             return None
 
         if not isinstance(retranslation, Translation):
-            raise TranslationError("Retranslation is not the expected type", translation=retranslation)
+            raise TranslationError(_("Retranslation is not the expected type"), translation=retranslation)
 
         logging.debug(f"Scene {batch.scene} batch {batch.number} retranslation:\n{retranslation.text}\n")
 
@@ -540,7 +540,7 @@ class SubtitleTranslator:
                 self.events.batch_updated.send(self, batch=batch)
 
             except Exception as e:
-                logging.warning(f"Error processing streaming update for scene {batch.scene} batch {batch.number}: {e}")
+                logging.warning(_("Error processing streaming update for scene {scene} batch {batch}: {error}").format(scene=batch.scene, batch=batch.number, error=e))
 
         return streaming_callback
 

@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: LLM-Subtrans\n"
-"POT-Creation-Date: 2026-04-26 10:21+0000\n"
-"PO-Revision-Date: 2026-04-26 10:21+0000\n"
+"POT-Creation-Date: 2026-04-26 10:32+0000\n"
+"PO-Revision-Date: 2026-04-26 10:32+0000\n"
 "Last-Translator: Auto-generated\n"
 "Language: en\n"
 "MIME-Version: 1.0\n"
@@ -544,6 +544,10 @@ msgstr ""
 
 #: PySubtrans/Subtitles.py:204
 msgid "Error parsing file... attempting format detection"
+msgstr ""
+
+#: PySubtrans/SubtitleTranslator.py:543
+msgid "Error processing streaming update for scene {scene} batch {batch}: {error}"
 msgstr ""
 
 #: GuiSubtrans/ProjectActions.py:121
@@ -1209,8 +1213,16 @@ msgstr ""
 msgid "No project or subtitles to load"
 msgstr ""
 
+#: PySubtrans/SubtitleTranslator.py:397
+msgid "No prompt to retranslate"
+msgstr ""
+
 #: PySubtrans/Providers/Clients/GeminiClient.py:233
 msgid "No response from Gemini"
+msgstr ""
+
+#: PySubtrans/SubtitleTranslator.py:400
+msgid "No retry instructions provided"
 msgstr ""
 
 #: PySubtrans/Subtitles.py:267
@@ -1268,6 +1280,10 @@ msgstr ""
 msgid "No text returned in the response"
 msgstr ""
 
+#: PySubtrans/SubtitleTranslator.py:331
+msgid "No translation provided"
+msgstr ""
+
 #: GuiSubtrans/Commands/ReparseTranslationsCommand.py:41
 msgid "No translation provider available"
 msgstr ""
@@ -1282,6 +1298,14 @@ msgstr ""
 
 #: PySubtrans/SubtitleTranslator.py:465
 msgid "No translation returned for batch half"
+msgstr ""
+
+#: PySubtrans/SubtitleTranslator.py:403
+msgid "No translation text to retranslate"
+msgstr ""
+
+#: PySubtrans/SubtitleTranslator.py:393
+msgid "No translation to retranslate"
 msgstr ""
 
 #: GuiSubtrans/Commands/EditBatchCommand.py:57
@@ -1599,6 +1623,10 @@ msgstr ""
 
 #: PySubtrans/SubtitleTranslator.py:114
 msgid "Resuming translation"
+msgstr ""
+
+#: PySubtrans/SubtitleTranslator.py:421
+msgid "Retranslation is not the expected type"
 msgstr ""
 
 #: PySubtrans/SubtitleTranslator.py:428
@@ -2031,6 +2059,10 @@ msgstr ""
 msgid "Translation aborted"
 msgstr ""
 
+#: PySubtrans/SubtitleTranslator.py:334
+msgid "Translation contains no translated text"
+msgstr ""
+
 #: PySubtrans/Providers/Clients/OpenAIClient.py:164
 msgid "Translation error: {error}, retrying in {backoff_time} seconds..."
 msgstr ""
@@ -2159,8 +2191,16 @@ msgstr ""
 msgid "Unable to save original subtitles: {}"
 msgstr ""
 
+#: scripts/subtrans_common.py:387
+msgid "Unable to save terminology file '{path}': {error}"
+msgstr ""
+
 #: PySubtrans/SubtitleProject.py:259
 msgid "Unable to save translation: {}"
+msgstr ""
+
+#: PySubtrans/SubtitleTranslator.py:264
+msgid "Unable to translate scene {scene} batch {batch}"
 msgstr ""
 
 #: GuiSubtrans/Commands/SplitBatchCommand.py:97

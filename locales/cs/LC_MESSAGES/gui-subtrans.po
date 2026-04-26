@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: LLM-Subtrans\n"
-"POT-Creation-Date: 2026-04-26 10:21+0000\n"
+"POT-Creation-Date: 2026-04-26 10:32+0000\n"
 "PO-Revision-Date: 2025-08-09 21:00+0000\n"
 "Last-Translator: AI Assistant\n"
 "Language-Team: Czech\n"
@@ -546,6 +546,10 @@ msgstr "Chyba při migraci nastavení z {} do {}. Můžete soubory zkopírovat r
 #: PySubtrans/Subtitles.py:204
 msgid "Error parsing file... attempting format detection"
 msgstr "Chyba při parsování souboru... pokus o detekci formátu"
+
+#: PySubtrans/SubtitleTranslator.py:543
+msgid "Error processing streaming update for scene {scene} batch {batch}: {error}"
+msgstr "Chyba při zpracování streamované aktualizace pro scénu {scene} dávku {batch}: {error}"
 
 #: GuiSubtrans/ProjectActions.py:121
 msgid "Error redoing the last command: {error}"
@@ -1217,9 +1221,17 @@ msgstr "Nebyla poskytnuta cesta k souboru projektu"
 msgid "No project or subtitles to load"
 msgstr "Žádný projekt nebo titulky k načtení"
 
+#: PySubtrans/SubtitleTranslator.py:397
+msgid "No prompt to retranslate"
+msgstr "Žádný prompt k opětovnému překladu"
+
 #: PySubtrans/Providers/Clients/GeminiClient.py:233
 msgid "No response from Gemini"
 msgstr "Žádná odpověď od Gemini"
+
+#: PySubtrans/SubtitleTranslator.py:400
+msgid "No retry instructions provided"
+msgstr "Nebyly poskytnuty žádné pokyny pro opakování"
 
 #: PySubtrans/Subtitles.py:267
 msgid "No scenes in subtitles"
@@ -1276,6 +1288,10 @@ msgstr "V odpovědi nebyl nalezen žádný textový obsah"
 msgid "No text returned in the response"
 msgstr "V odpovědi nebyl vrácen žádný text"
 
+#: PySubtrans/SubtitleTranslator.py:331
+msgid "No translation provided"
+msgstr "Nebyl poskytnut žádný překlad"
+
 #: GuiSubtrans/Commands/ReparseTranslationsCommand.py:41
 msgid "No translation provider available"
 msgstr "Není k dispozici žádný poskytovatel překladu"
@@ -1291,6 +1307,14 @@ msgstr "Nejsou k dispozici žádní poskytovatelé překladu. Nainstalujte pros�
 #: PySubtrans/SubtitleTranslator.py:465
 msgid "No translation returned for batch half"
 msgstr "Pro polovinu dávky nebyl vrácen žádný překlad"
+
+#: PySubtrans/SubtitleTranslator.py:403
+msgid "No translation text to retranslate"
+msgstr "Žádný text překladu k opětovnému překladu"
+
+#: PySubtrans/SubtitleTranslator.py:393
+msgid "No translation to retranslate"
+msgstr "Žádný překlad k opětovnému překladu"
 
 #: GuiSubtrans/Commands/EditBatchCommand.py:57
 #: GuiSubtrans/Commands/EditLineCommand.py:77
@@ -1608,6 +1632,10 @@ msgstr "Pokračování"
 #: PySubtrans/SubtitleTranslator.py:114
 msgid "Resuming translation"
 msgstr "Pokračuje se v překladu"
+
+#: PySubtrans/SubtitleTranslator.py:421
+msgid "Retranslation is not the expected type"
+msgstr "Opětovný překlad není očekávaného typu"
 
 #: PySubtrans/SubtitleTranslator.py:428
 msgid "Retry failed validation: {errors}"
@@ -2039,6 +2067,10 @@ msgstr "Překládá se {linecount} řádků v {scenecount} scénách"
 msgid "Translation aborted"
 msgstr "Překlad byl přerušen"
 
+#: PySubtrans/SubtitleTranslator.py:334
+msgid "Translation contains no translated text"
+msgstr "Překlad neobsahuje žádný přeložený text"
+
 #: PySubtrans/Providers/Clients/OpenAIClient.py:164
 msgid "Translation error: {error}, retrying in {backoff_time} seconds..."
 msgstr "Chyba překladu: {error}, opakuji pokus za {backoff_time} sekund..."
@@ -2167,9 +2199,17 @@ msgstr "Nelze načíst modely"
 msgid "Unable to save original subtitles: {}"
 msgstr "Nelze uložit původní titulky: {}"
 
+#: scripts/subtrans_common.py:387
+msgid "Unable to save terminology file '{path}': {error}"
+msgstr "Nelze uložit soubor terminologie '{path}': {error}"
+
 #: PySubtrans/SubtitleProject.py:259
 msgid "Unable to save translation: {}"
 msgstr "Nelze uložit překlad: {}"
+
+#: PySubtrans/SubtitleTranslator.py:264
+msgid "Unable to translate scene {scene} batch {batch}"
+msgstr "Nelze přeložit scénu {scene} dávku {batch}"
 
 #: GuiSubtrans/Commands/SplitBatchCommand.py:97
 msgid "Unable to undo SplitBatchCommand command: {error}"
