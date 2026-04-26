@@ -4,9 +4,12 @@ from unittest.mock import patch
 
 from PySubtrans.Helpers.ContextHelpers import GetBatchContext
 from PySubtrans.Helpers.Parse import ParseNames
+from PySubtrans.Helpers.TestCases import LoggedTestCase
+from PySubtrans.Translation import Translation
 from PySubtrans.Helpers.SubtitleHelpers import FindBestSplitIndex
 from PySubtrans.Helpers.TestCases import DummyProvider, PrepareSubtitles, SubtitleTestCase
 from PySubtrans.Helpers.Tests import log_info, log_test_name
+from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleBatch import SubtitleBatch
 from PySubtrans.SubtitleBatcher import SubtitleBatcher
 from PySubtrans.SubtitleEditor import SubtitleEditor
@@ -16,6 +19,7 @@ from PySubtrans.Subtitles import Subtitles
 from PySubtrans.SubtitleScene import SubtitleScene
 from PySubtrans.SubtitleTranslator import SubtitleTranslator
 from PySubtrans.TranslationEvents import TranslationEvents
+from PySubtrans.TranslationParser import TranslationParser
 
 from ..TestData.chinese_dinner import chinese_dinner_data
 
@@ -142,6 +146,22 @@ class SubtitleTranslatorTests(SubtitleTestCase):
             self.assertLoggedEqual("Differences", expected_differences, differences)
 
             self.assertLoggedEqual("Unchanged", expected_unchanged, unchanged)
+
+    def test_ProcessTranslation_strips_unclosed_terminology_tag(self):
+        """TranslationParser should strip a trailing unclosed terminology tag from the last line."""
+        options = deepcopy(self.options)
+        options.add('max_characters', 3)
+        parser = TranslationParser(self.options.get_str('task_type') or "Translation", options)
+        translation = Translation({
+            'text': "#1\nOriginal>\nfoo\nTranslation>\nbar\n<terminology>foo::bar"
+        })
+
+        translated = parser.ProcessTranslation(translation)
+
+        self.assertIsNotNone(translated)
+        self.assertIsNotNone(parser.translated)
+        self.assertEqual(parser.translated[-1].text, "bar")
+        self.assertEqual(parser.errors, [])
 
 
 class TranslationEventsTests(SubtitleTestCase):
@@ -351,5 +371,293 @@ class SplitBatchTranslationTests(SubtitleTestCase):
                     translator.TranslateBatch(self.batch_1, None, self.context)
 
         self.assertLoggedEqual("Retry not triggered when split succeeded", 0, mock_retry.call_count)
+
+
+class TerminologyMapParsingTests(LoggedTestCase):
+    """Tests for Translation.terminology property and <terminology> tag extraction"""
+
+    parse_cases = [
+        (
+            "Line 1\nLine 2\n<terminology>Dragon::Drache\nHero::Held</terminology>",
+            {"Dragon": "Drache", "Hero": "Held"},
+        ),
+        (
+            "<terminology>Knight::Ritter</terminology>\nTranslation text here",
+            {"Knight": "Ritter"},
+        ),
+        (
+            "Just plain translation text with no tag",
+            None,
+        ),
+        (
+            "<terminology>MissingSeparator</terminology>\nSome text",
+            None,
+        ),
+        (
+            "<terminology>Key::Value::Extra</terminology>",
+            {"Key": "Value::Extra"},
+        ),
+        (
+            "<terminology></terminology>",
+            None,
+        ),
+    ]
+
+    def test_terminology_property(self):
+        for text, expected in self.parse_cases:
+            with self.subTest(text=text[:50]):
+                translation = Translation({'text': text})
+                self.assertLoggedEqual("terminology dict", expected, translation.terminology, input_value=text)
+
+    def test_terminology_tag_stripped_from_text(self):
+        text = "Line 1\nLine 2\n<terminology>Dragon::Drache</terminology>"
+        translation = Translation({'text': text})
+        self.assertLoggedIsNotNone("translation text present", translation.text)
+        if translation.text:
+            self.assertLoggedNotIn("terminology tag absent from text", "<terminology>", translation.text)
+
+    def test_terminology_is_none_without_tag(self):
+        translation = Translation({'text': "Just some translation text"})
+        self.assertLoggedIsNone("no terminology when tag absent", translation.terminology)
+
+
+class TerminologyMapContextTests(SubtitleTestCase):
+    """Tests that SubtitleTranslator injects terminology into batch context"""
+
+    def __init__(self, methodName):
+        super().__init__(methodName, custom_options={
+            'max_batch_size': 100,
+            'build_terminology_map': True,
+        })
+
+    def _setup(self, terminology_map : dict|None = None) -> tuple[Subtitles, SubtitleTranslator]:
+        provider = DummyProvider(data=chinese_dinner_data)
+        originals = PrepareSubtitles(chinese_dinner_data, 'original')
+        batcher = SubtitleBatcher(self.options)
+        with SubtitleEditor(originals) as editor:
+            editor.AutoBatch(batcher)
+        translator = SubtitleTranslator(self.options, translation_provider=provider, terminology_map=terminology_map)
+        return originals, translator
+
+    def _translate_and_capture_context(self, translator : SubtitleTranslator, originals : Subtitles) -> dict:
+        captured : dict = {}
+        def on_batch_translated(_sender, batch):
+            captured.update(batch.context)
+        translator.events.batch_translated.connect(on_batch_translated)
+        scene = originals.GetScene(1)
+        translator.TranslateScene(originals, scene, batch_numbers=[1])
+        return captured
+
+    def test_terminology_injected_into_batch_context(self):
+        """Translator injects terminology into batch context when map is populated"""
+        terminology_map = {"Dragon": "Drache", "Hero": "Held"}
+        originals, translator = self._setup(terminology_map)
+
+        context = self._translate_and_capture_context(translator, originals)
+
+        self.assertLoggedIn("terminology key present", 'terminology', context)
+        terminology = context.get('terminology', '')
+        self.assertLoggedIn("Dragon entry in terminology", "Dragon::Drache", terminology)
+        self.assertLoggedIn("Hero entry in terminology", "Hero::Held", terminology)
+
+    def test_terminology_absent_when_map_not_set(self):
+        """Translator does not inject terminology when no map was provided"""
+        originals, translator = self._setup()
+
+        context = self._translate_and_capture_context(translator, originals)
+
+        self.assertLoggedNotIn("terminology key absent", 'terminology', context)
+
+    def test_terminology_absent_when_map_empty(self):
+        """Translator does not inject terminology when map is an empty dict"""
+        originals, translator = self._setup(terminology_map={})
+
+        context = self._translate_and_capture_context(translator, originals)
+
+        self.assertLoggedNotIn("terminology key absent for empty map", 'terminology', context)
+
+
+class TerminologyMapAccumulationTests(SubtitleTestCase):
+    """Tests for SubtitleTranslator accumulating terminology into translator.terminology_map"""
+
+    def __init__(self, methodName):
+        super().__init__(methodName, custom_options={
+            'max_batch_size': 100,
+            'build_terminology_map': True,
+        })
+
+    def _make_data_with_terminology(self, batch_key : str, terminology : dict) -> dict:
+        """Return a copy of chinese_dinner_data with a <terminology> block appended to one batch response"""
+        term_block = '\n<terminology>' + '\n'.join(f"{k}::{v}" for k, v in terminology.items()) + '</terminology>'
+        data = SettingsType(chinese_dinner_data)
+        response_map = data.get_dict('response_map')
+        response_map.add(batch_key, (response_map.get_str(batch_key) or '') + term_block)
+        return data
+
+    def _setup(self, data : dict, seed : dict[str,str]|None = None) -> tuple[Subtitles, SubtitleTranslator]:
+        provider = DummyProvider(data=data)
+        originals = PrepareSubtitles(data, 'original')
+        batcher = SubtitleBatcher(self.options)
+        with SubtitleEditor(originals) as editor:
+            editor.AutoBatch(batcher)
+        translator = SubtitleTranslator(self.options, translation_provider=provider, terminology_map=seed)
+        return originals, translator
+
+    def test_terminology_accumulated_after_batch(self):
+        """TranslateScene merges returned terminology into translator.terminology_map"""
+        # Terms must appear in the actual batch content to pass content validation.
+        # 星野 appears in the Japanese originals; Hoshino and meal appear in the translations.
+        expected = {"星野": "Hoshino", "食事": "meal"}
+        data = self._make_data_with_terminology('Translate scene 1 batch 1', expected)
+        originals, translator = self._setup(data)
+
+        scene = originals.GetScene(1)
+        self.assertLoggedIsNotNone("Scene 1 exists", scene)
+        if not scene:
+            return
+
+        translator.TranslateScene(originals, scene, batch_numbers=[1])
+
+        terminology_map = translator.terminology_map
+        self.assertLoggedIsInstance("terminology_map is a dict", terminology_map, dict)
+        for term, translation in expected.items():
+            self.assertLoggedIn(f"term '{term}' present", term, terminology_map)
+            self.assertLoggedEqual(f"translation for '{term}'", translation, terminology_map.get(term))
+
+    def test_terminology_first_seen_wins(self):
+        """Pre-existing terminology entries are not overwritten (first-seen-wins)"""
+        expected = {"星野": "Hoshino", "食事": "meal"}
+        data = self._make_data_with_terminology('Translate scene 1 batch 1', expected)
+        originals, translator = self._setup(data, seed={"星野": "Hoseki"})
+
+        scene = originals.GetScene(1)
+        self.assertLoggedIsNotNone("Scene 1 exists", scene)
+        if not scene:
+            return
+
+        translator.TranslateScene(originals, scene, batch_numbers=[1])
+
+        terminology_map = translator.terminology_map
+        self.assertLoggedEqual("星野 keeps first translation", "Hoseki", terminology_map.get("星野"))
+        self.assertLoggedIn("食事 was added", "食事", terminology_map)
+
+    def test_no_accumulation_when_disabled(self):
+        """Terminology is not accumulated when build_terminology_map is False"""
+        expected = {"星野": "Hoshino"}
+        data = self._make_data_with_terminology('Translate scene 1 batch 1', expected)
+
+        options = deepcopy(self.options)
+        options.add('build_terminology_map', False)
+        provider = DummyProvider(data=data)
+        originals = PrepareSubtitles(data, 'original')
+        batcher = SubtitleBatcher(options)
+        with SubtitleEditor(originals) as editor:
+            editor.AutoBatch(batcher)
+        translator = SubtitleTranslator(options, translation_provider=provider)
+
+        scene = originals.GetScene(1)
+        self.assertLoggedIsNotNone("Scene 1 exists", scene)
+        if not scene:
+            return
+
+        translator.TranslateScene(originals, scene, batch_numbers=[1])
+
+        self.assertLoggedTrue("terminology_map not populated", not translator.terminology_map)
+
+    def test_identity_mappings_are_ignored(self):
+        """Identity terminology pairs (left == right) are ignored and never stored."""
+        terms = {
+            "食事": "食事",      # identity in source language
+            "Hoshino": "Hoshino", # identity in target language
+            "星野": "Hoshino",   # valid non-identity pair
+        }
+        data = self._make_data_with_terminology('Translate scene 1 batch 1', terms)
+        originals, translator = self._setup(data)
+
+        scene = originals.GetScene(1)
+        self.assertLoggedIsNotNone("Scene 1 exists", scene)
+        if not scene:
+            return
+
+        translator.TranslateScene(originals, scene, batch_numbers=[1])
+
+        terminology_map = translator.terminology_map
+        self.assertLoggedNotIn("source-language identity not stored", "食事", terminology_map)
+        self.assertLoggedNotIn("target-language identity not stored", "Hoshino", terminology_map)
+        self.assertLoggedIn("non-identity term stored", "星野", terminology_map)
+        self.assertLoggedEqual("non-identity translation stored", "Hoshino", terminology_map.get("星野"))
+
+    def test_reverse_mappings_are_corrected(self):
+        """Reversed pairs are auto-corrected using batch content; if the corrected pair already exists it is deduplicated."""
+        terms = {
+            "Hoshino": "星野",  # reversed — model put translation as key
+            "食事": "meal",     # correctly oriented
+        }
+        data = self._make_data_with_terminology('Translate scene 1 batch 1', terms)
+        originals, translator = self._setup(data, seed={"星野": "Hoshino"})
+
+        scene = originals.GetScene(1)
+        self.assertLoggedIsNotNone("Scene 1 exists", scene)
+        if not scene:
+            return
+
+        translator.TranslateScene(originals, scene, batch_numbers=[1])
+
+        terminology_map = translator.terminology_map
+        self.assertLoggedEqual("existing mapping preserved", "Hoshino", terminology_map.get("星野"))
+        self.assertLoggedNotIn("reversed key not added as new entry", "Hoshino", terminology_map)
+        self.assertLoggedIn("correctly oriented term added", "食事", terminology_map)
+        self.assertLoggedEqual("correctly oriented term value", "meal", terminology_map.get("食事"))
+
+    def test_terminology_accumulated_after_split_retranslation(self):
+        """Terminology returned by split half-translations is merged into the shared terminology map."""
+        options = deepcopy(self.options)
+        options.add('autosplit_on_error', True)
+        provider = DummyProvider(data=chinese_dinner_data)
+        originals = PrepareSubtitles(chinese_dinner_data, 'original')
+        batcher = SubtitleBatcher(options)
+        with SubtitleEditor(originals) as editor:
+            editor.AutoBatch(batcher)
+        translator = SubtitleTranslator(options, translation_provider=provider)
+
+        scene = originals.GetScene(1)
+        self.assertLoggedIsNotNone("Scene 1 exists", scene)
+        if not scene:
+            return
+
+        original_process = translator.ProcessBatchTranslation
+        process_call_count = 0
+
+        def inject_initial_error(batch, translation, line_numbers=None):
+            nonlocal process_call_count
+            process_call_count += 1
+            original_process(batch, translation, line_numbers)
+            if process_call_count == 1:
+                batch.errors = [SubtitleError("Injected test error to force split")]
+
+        original_request = translator.client.RequestTranslation
+        request_call_count = 0
+
+        def request_with_split_terminology(prompt, temperature=None, streaming_callback=None):
+            nonlocal request_call_count
+            request_call_count += 1
+            translation = original_request(prompt, temperature, streaming_callback)
+            if not translation:
+                return None
+
+            full_text = translation.full_text or translation.text or ""
+            if request_call_count == 2:
+                full_text += "\n<terminology>星野::Hoshino</terminology>"
+            elif request_call_count == 3:
+                full_text += "\n<terminology>食事::meal</terminology>"
+            return Translation({'text': full_text})
+
+        with patch.object(translator, 'ProcessBatchTranslation', side_effect=inject_initial_error):
+            with patch.object(translator.client, 'RequestTranslation', side_effect=request_with_split_terminology):
+                translator.TranslateScene(originals, scene, batch_numbers=[1])
+
+        terminology_map = translator.terminology_map
+        self.assertLoggedEqual("split learned 星野 mapping", "Hoshino", terminology_map.get("星野"))
+        self.assertLoggedEqual("split learned 食事 mapping", "meal", terminology_map.get("食事"))
 
 
