@@ -170,8 +170,11 @@ class SubtitleTranslator:
             for batch in batches:
                 context = GetBatchContext(subtitles, scene.number, batch.number, self.max_history)
 
-                if self.terminology_map:
-                    formatted = FormatKeyValuePairs(self.terminology_map)
+                with self.lock:
+                    terminology_snapshot = dict(self.terminology_map) if self.terminology_map else None
+
+                if terminology_snapshot:
+                    formatted = FormatKeyValuePairs(terminology_snapshot)
                     context['terminology'] = formatted
                     batch.AddContext('terminology', formatted)
 
