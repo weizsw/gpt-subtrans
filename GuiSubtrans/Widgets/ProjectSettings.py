@@ -48,6 +48,7 @@ class ProjectSettings(QGroupBox):
         self.datamodel : ProjectDataModel|None = None
         self.updating_model_list : bool = False
         self._pending_terminology_append : str = ""
+        self._terminology_filter_installed : bool = False
 
         self._layout = QVBoxLayout(self)
         self.grid_layout = OptionsGrid()
@@ -101,6 +102,7 @@ class ProjectSettings(QGroupBox):
 
         self.datamodel = datamodel
         self._pending_terminology_append = ""
+        self._terminology_filter_installed = False
         if datamodel is None:
             self.ClearForm()
             self.settings = SettingsType()
@@ -366,7 +368,9 @@ class ProjectSettings(QGroupBox):
             if widget.hasFocus():
                 separator = "\n" if self._pending_terminology_append else ""
                 self._pending_terminology_append += separator + appended
-                widget.installEventFilter(self)
+                if not self._terminology_filter_installed:
+                    widget.installEventFilter(self)
+                    self._terminology_filter_installed = True
             else:
                 with QSignalBlocker(widget):
                     widget.append(appended)
@@ -378,6 +382,7 @@ class ProjectSettings(QGroupBox):
             if watched is widget and isinstance(widget, TextBoxEditor):
                 pending = self._pending_terminology_append
                 self._pending_terminology_append = ""
+                self._terminology_filter_installed = False
                 widget.removeEventFilter(self)
                 with QSignalBlocker(widget):
                     widget.append(pending)
