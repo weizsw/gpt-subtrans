@@ -34,6 +34,7 @@ class NewProjectSettings(QDialog):
         'min_batch_size': (int, _("Fewest lines to send in separate batch")),
         'max_batch_size': (int, _("Most lines to send in each batch")),
         'preprocess_subtitles': (bool, _("Preprocess subtitles before batching")),
+        'build_terminology_map': (bool, _("Build a terminology map during translation to keep terminology consistent")),
         'instruction_file': (str, _("Detailed instructions for the translator")),
         'prompt': (str, _("High-level instructions for the translator")),
         'format': (str, _("Output subtitle format"))
@@ -117,6 +118,7 @@ class NewProjectSettings(QDialog):
                     self.settings['prompt'] = instructions.prompt
                     self.settings['instructions'] = instructions.instructions
                     self.settings['retry_instructions'] = instructions.retry_instructions
+                    self.settings['terminology_instructions'] = instructions.terminology_instructions
                     self.settings['task_type'] = instructions.task_type
                     if instructions.target_language:
                         self.settings['target_language'] = instructions.target_language

@@ -81,6 +81,7 @@ default_settings = {
     'whitespaces_to_newline' : env_bool('WHITESPACES_TO_NEWLINE', False),
     'full_width_punctuation': env_bool('FULL_WIDTH_PUNCTUATION', False),
     'convert_wide_dashes': env_bool('CONVERT_WIDE_DASHES', True),
+    'build_terminology_map': env_bool('BUILD_TERMINOLOGY_MAP', False),
     'retry_on_error': env_bool('RETRY_ON_ERROR', True),
     'autosplit_on_error': env_bool('AUTOSPLIT_ON_ERROR', False),
     'max_lines': env_int('MAX_LINES', None),
@@ -323,6 +324,8 @@ class Options(SettingsType):
             self['instructions'] = instructions.instructions
         if instructions.retry_instructions:
             self['retry_instructions'] = instructions.retry_instructions
+        if instructions.terminology_instructions:
+            self['terminology_instructions'] = instructions.terminology_instructions
         if instructions.target_language:
             self['target_language'] = instructions.target_language
         if instructions.task_type:
