@@ -20,3 +20,8 @@ if [ $? -ne 0 ]; then
     echo "WARNING: Vulnerability scan detected known vulnerabilities. DO NOT publish or run this build!"
     exit 1
 fi
+
+python scripts/check_package_ages.py
+if [ $? -ne 0 ]; then
+    exit 1
+fi

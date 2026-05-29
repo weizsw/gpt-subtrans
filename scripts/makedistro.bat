@@ -30,3 +30,8 @@ if %errorlevel% neq 0 (
     echo WARNING: Vulnerability scan detected known vulnerabilities. DO NOT publish or run this build!
     exit /b %errorlevel%
 )
+
+.\envsubtrans\Scripts\python.exe scripts/check_package_ages.py
+if %errorlevel% neq 0 (
+    exit /b %errorlevel%
+)
