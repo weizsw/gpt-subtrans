@@ -23,3 +23,10 @@ if %errorlevel% neq 0 (
     --add-data "LICENSE;." ^
     --add-data "locales/*;locales/" ^
     "scripts/gui-subtrans.py"
+
+.\envsubtrans\Scripts\python.exe -m pip install pip-audit
+.\envsubtrans\Scripts\python.exe -m pip_audit
+if %errorlevel% neq 0 (
+    echo WARNING: Vulnerability scan detected known vulnerabilities. DO NOT publish or run this build!
+    exit /b %errorlevel%
+)
