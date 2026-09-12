@@ -16,22 +16,14 @@ from PySubtrans.Translation import Translation
 default_pattern = (
     r"#(?P<number>\d+)"
     r"(?:[\s\r\n]+[Ss]peaker>[^\n]*)?"
-    r"(?:[\s\r\n]+Original>[\s\r\n]+(?P<original>[\s\S]*?))?"
-    r"[\s\r\n]+Translation>"
-    r"(?:[\s\r\n]?(?P<body>[\s\S]*?))?"
-    r"(?=\n#\d|\Z)"
-)
-
-previous_default_pattern = (
-    r"#(?P<number>\d+)"
-    r"(?:[\s\r\n]+Original>[\s\r\n]+(?P<original>[\s\S]*?))?"
-    r"[\s\r\n]+Translation>"
+    r"(?:[\s\r\n]+(?:Original>[\s\r\n]+)?(?P<original>(?:(?!Translation>)[^\n]+[\r\n]*)*))"
+    r"[\s\r\n]*Translation>"
     r"(?:[\s\r\n]?(?P<body>[\s\S]*?))?"
     r"(?=\n#\d|\Z)"
 )
 
 fallback_patterns = [
-    previous_default_pattern,
+    r"#(?P<number>\d+)(?:[\s\r\n]+Original>[\s\r\n]+(?P<original>[\s\S]*?))?[\s\r\n]+Translation>(?:[\s\r\n]?(?P<body>[\s\S]*?))?(?=\n#\d|\Z)",
     r"#(?P<number>\d+)(?:[\s\r\n]+Original>[\s\r\n]+(?P<original>[\s\S]*?))?[\s\r\n]*(?:Translation>(?:[\s\r\n]+(?P<body>[\s\S]*?))?(?:(?=\n{2,})|\Z))",
     r"#(?P<number>\d+)(?:[\s\r\n]+Original[>:][\s\r\n]+(?P<original>[\s\S]*?))?[\s\r\n]*(?:Translation[>:](?:[\s\r\n]+(?P<body>[\s\S]*?))?(?:(?=\n{2,})|\Z))",
     r"#(?P<number>\d+)(?:[\s\r\n]+Original[>:][\s\r\n]+(?P<original>[\s\S]*?))?[\s\r\n]*Translation[>:][\s\r\n]+(?P<body>[\s\S]*?)(?=(?:\n{2,}#)|\Z)",

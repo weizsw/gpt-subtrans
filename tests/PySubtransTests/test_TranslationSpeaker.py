@@ -160,6 +160,52 @@ class TestSpeakerParsing(LoggedTestCase):
         self.assertLoggedEqual("one match", 1, len(matches))
         self.assertLoggedEqual("body", "hola", (matches[0]['body'] or "").strip())
 
+    def test_bare_original_without_marker(self):
+        """Original text without the Original> marker still parses."""
+        parser = self._parser()
+        response = "#200\nDu\nTranslation>\nhola\n\n"
+
+        matches = parser.FindMatches(response + "\n", parser.regex_patterns[0])
+
+        self.assertLoggedEqual("one match", 1, len(matches))
+        self.assertLoggedEqual("body", "hola", (matches[0]['body'] or "").strip())
+        self.assertLoggedEqual("original captured", "Du", (matches[0]['original'] or "").strip())
+
+    def test_bare_original_multiline(self):
+        """Multi-line original without the Original> marker is captured."""
+        parser = self._parser()
+        response = ("#200\nDu\ngraeder jo\nTranslation>\ncrying, Mom.\n\n"
+                    "#201\nJeg ved godt,\nTranslation>\nI know\n\n")
+
+        matches = parser.FindMatches(response + "\n", parser.regex_patterns[0])
+
+        self.assertLoggedEqual("two matches", 2, len(matches))
+        self.assertLoggedEqual("first body", "crying, Mom.", (matches[0]['body'] or "").strip())
+        self.assertLoggedEqual("first original", "Du\ngraeder jo", (matches[0]['original'] or "").strip())
+        self.assertLoggedEqual("second body", "I know", (matches[1]['body'] or "").strip())
+        self.assertLoggedEqual("second original", "Jeg ved godt,", (matches[1]['original'] or "").strip())
+
+    def test_bare_original_with_speaker(self):
+        """Speaker line plus bare original (no Original> marker) both parse."""
+        parser = self._parser()
+        response = "#200\nSpeaker> Alice\nDu\nTranslation>\nhola\n\n"
+
+        matches = parser.FindMatches(response + "\n", parser.regex_patterns[0])
+
+        self.assertLoggedEqual("one match", 1, len(matches))
+        self.assertLoggedEqual("body", "hola", (matches[0]['body'] or "").strip())
+        self.assertLoggedEqual("original captured", "Du", (matches[0]['original'] or "").strip())
+
+    def test_no_original_no_marker(self):
+        """Entry with only a number and Translation> still parses."""
+        parser = self._parser()
+        response = "#200\nTranslation>\nhola\n\n"
+
+        matches = parser.FindMatches(response + "\n", parser.regex_patterns[0])
+
+        self.assertLoggedEqual("one match", 1, len(matches))
+        self.assertLoggedEqual("body", "hola", (matches[0]['body'] or "").strip())
+
 
 if __name__ == '__main__':
     unittest.main()
