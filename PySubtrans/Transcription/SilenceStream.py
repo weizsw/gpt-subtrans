@@ -40,6 +40,7 @@ class SilenceStream:
         self.noise_db : int = noise_db
         self.timeout : float = timeout
         self.ffmpeg_path : str = ffmpeg_path
+
         self._events : queue.Queue[tuple[timedelta, timedelta]|None] = queue.Queue()
         self._thread : threading.Thread|None = None
         self._process : subprocess.Popen[str]|None = None
@@ -56,8 +57,10 @@ class SilenceStream:
              '-f', 'null', '-'],
             stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
             encoding=FFMPEG_TEXT_ENCODING, errors='replace')
+
         self._thread = threading.Thread(target=self._read_output, daemon=True)
         self._thread.start()
+
         return self
 
     def __exit__(self, exc_type, exc, traceback) -> None:
@@ -72,40 +75,51 @@ class SilenceStream:
             # transcribing a chunk) do not count against the deadline.
             try:
                 event = self._events.get(timeout=self.timeout)
+
             except queue.Empty:
                 self._shutdown()
                 raise SubtitleError(_("Silence detection timed out after {} seconds").format(int(self.timeout)))
 
+            # None is the reader's end-of-stream marker
             if event is None:
                 if self._error is not None:
                     raise self._error
                 return
+
             yield event
 
     def _read_output(self) -> None:
         """Reader thread: parse silencedetect lines until ffmpeg exits."""
         process = self._process
         assert process is not None and process.stderr is not None
+
         pending_start : float|None = None
+
         try:
             for line in process.stderr:
                 match = SILENCE_PATTERN.search(line)
                 if not match:
                     continue
+
                 if match.group('kind') == 'start':
                     pending_start = float(match.group('time'))
+
                 elif pending_start is not None:
                     end_time = float(match.group('time'))
                     self._events.put((
                         GetTimeDeltaSafe(pending_start) or timedelta(seconds=max(0.0, pending_start)),
                         GetTimeDeltaSafe(end_time) or timedelta(seconds=max(0.0, end_time))))
                     pending_start = None
+
         except Exception as e:
             self._error = SubtitleError(_("Silence detection failed"), error=e)
+
         finally:
             returncode = process.wait()
             if returncode != 0 and self._error is None:
                 logging.debug("ffmpeg silencedetect exited with code {}".format(returncode))
+
+            # Signal end of stream to the consumer
             self._events.put(None)
 
     def _shutdown(self) -> None:
@@ -113,12 +127,15 @@ class SilenceStream:
         process = self._process
         if process is not None and process.poll() is None:
             process.terminate()
+
         thread = self._thread
         if thread is not None and thread is not threading.current_thread():
             thread.join(timeout=5.0)
+
         if process is not None:
             try:
                 process.wait(timeout=5.0)
+
             except subprocess.TimeoutExpired:
                 process.kill()
                 process.wait()

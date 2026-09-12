@@ -38,6 +38,7 @@ class AudioTrack:
             parts.append(str(self.codec))
         if self.language:
             parts.append(str(self.language))
+
         return " - ".join(parts)
 
     def __repr__(self) -> str:
@@ -65,9 +66,11 @@ class AudioExtractor:
     """
     def __init__(self, settings : SettingsType|None = None):
         self.settings : SettingsType = settings or SettingsType()
+
         explicit_ffmpeg = _configured_ffmpeg_path(self.settings)
         self.ffmpeg_path : str = explicit_ffmpeg or 'ffmpeg'
         self.ffprobe_path : str = _ffprobe_command(self.ffmpeg_path, explicit_ffmpeg is not None)
+
         CheckFfmpegAvailable(self.settings)
 
     @property
@@ -80,17 +83,20 @@ class AudioExtractor:
         Return the total duration of the media file.
         """
         self._check_media_path(media_path)
+
         result = subprocess.run(
             [self.ffprobe_path, '-v', 'error', '-show_entries', 'format=duration',
              '-of', 'default=noprint_wrappers=1:nokey=1', media_path],
             capture_output=True, text=True, encoding=FFMPEG_TEXT_ENCODING,
             errors='replace', timeout=60
         )
+
         if result.returncode != 0:
             raise SubtitleError(_("Unable to probe media duration: {}").format(result.stderr.strip()))
 
         try:
             return timedelta(seconds=float(result.stdout.strip()))
+
         except ValueError as e:
             raise SubtitleError(_("Unable to parse media duration"), error=e)
 
@@ -99,6 +105,7 @@ class AudioExtractor:
         List the audio streams in a media file.
         """
         self._check_media_path(media_path)
+
         result = subprocess.run(
             [self.ffprobe_path, '-v', 'error', '-select_streams', 'a',
              '-show_entries', 'stream=index,codec_name,channels:stream_tags=language',
@@ -106,6 +113,7 @@ class AudioExtractor:
             capture_output=True, text=True, encoding=FFMPEG_TEXT_ENCODING,
             errors='replace', timeout=60
         )
+
         if result.returncode != 0:
             raise SubtitleError(_("Unable to list audio tracks: {}").format(result.stderr.strip()))
 
@@ -114,6 +122,7 @@ class AudioExtractor:
             parts = [part.strip() for part in line.split(',')]
             if len(parts) < 2:
                 continue
+
             codec = parts[1] or None
             channels = int(parts[2]) if len(parts) > 2 and parts[2].isdigit() else None
             language = parts[3] if len(parts) > 3 and parts[3] else None
@@ -130,6 +139,7 @@ class AudioExtractor:
         Extract a time span to a mono 16kHz WAV file. Returns the file path.
         """
         self._check_media_path(media_path)
+
         duration = end - start
         if duration.total_seconds() <= 0:
             raise SubtitleError(_("Invalid chunk time span"))
@@ -147,6 +157,7 @@ class AudioExtractor:
             capture_output=True, text=True, encoding=FFMPEG_TEXT_ENCODING,
             errors='replace', timeout=600
         )
+
         if result.returncode != 0:
             raise SubtitleError(_("Audio extraction failed: {}").format(result.stderr.strip()[-500:]))
 
@@ -157,9 +168,11 @@ class AudioExtractor:
         Extract a time span and return the WAV bytes directly.
         """
         chunk_path = self.ExtractChunk(media_path, start, end, track_index)
+
         try:
             with open(chunk_path, 'rb') as f:
                 return f.read()
+
         finally:
             try:
                 os.remove(chunk_path)
@@ -175,10 +188,12 @@ class AudioExtractor:
         Music and noise still pass: only the engine can judge those.
         """
         threshold_db = threshold_db if threshold_db is not None else -40.0
+
         try:
             with wave.open(io.BytesIO(audio_bytes), 'rb') as wav:
                 frames = wav.readframes(wav.getnframes())
                 width = wav.getsampwidth()
+
         except (wave.Error, EOFError, ValueError):
             return False
 
@@ -212,6 +227,7 @@ class AudioExtractor:
         overlap the scan instead of blocking on it.
         """
         self._check_media_path(media_path)
+
         min_duration = min_duration or self.settings.get_float('silence_min_duration') or 0.8
         noise_db = noise_db if noise_db is not None else self.settings.get_int('silence_noise_db') or -30
 
@@ -334,28 +350,33 @@ class AudioChunker:
             target = cursor + timedelta(seconds=self.max_chunk_seconds)
             window = min(target, duration)
 
+            # Preferred: cut on a silence inside the normal window
             fill(window)
             cut = self._next_silence_cut(buffered, silence_index, cursor, window)
             if cut is not None:
                 silence_index = cut[1]
                 end = duration if cut[0] >= duration else cut[0]
                 next_cursor = end if end >= duration else self._silence_end_after(buffered, silence_index - 1, cut[0])
+
                 if (duration - next_cursor).total_seconds() < self.min_chunk_seconds:
                     # The remainder would be too small to stand alone: absorb
                     # it into this chunk rather than dropping it later
                     end = duration
                     next_cursor = duration
+
                 chunks_planned += 1
                 yield AudioChunk(start=cursor, end=end)
                 cursor = next_cursor
                 continue
 
+            # The rest of the media fits in one chunk
             if target >= duration:
                 chunks_planned += 1
                 yield AudioChunk(start=cursor, end=duration)
                 cursor = duration
                 break
 
+            # No silence in the window: look a little past the cap for one
             fill(target + timedelta(seconds=self.lookahead_seconds))
             extended = self._next_silence_cut(
                 buffered, silence_index, cursor,
@@ -364,14 +385,17 @@ class AudioChunker:
                 silence_index = extended[1]
                 next_cursor = self._silence_end_after(buffered, silence_index - 1, extended[0])
                 end = extended[0]
+
                 if (duration - next_cursor).total_seconds() < self.min_chunk_seconds:
                     end = duration
                     next_cursor = duration
+
                 chunks_planned += 1
                 yield AudioChunk(start=cursor, end=end)
                 cursor = next_cursor
                 continue
 
+            # Last resort: hard cut at the cap
             hard_end = target if (duration - target).total_seconds() >= self.min_chunk_seconds else duration
             chunks_planned += 1
             yield AudioChunk(start=cursor, end=hard_end)
@@ -401,13 +425,16 @@ class AudioChunker:
         lower = after or cursor
         best : tuple[timedelta, int]|None = None
         best_score = -1.0
+
         while index < len(silences):
             silence_start, silence_end = silences[index]
             if silence_start <= cursor:
                 index += 1
                 continue
+
             if silence_start > limit:
                 break
+
             span = (silence_start - cursor).total_seconds()
             if silence_start > lower and span >= self.min_chunk_seconds:
                 gap = (silence_end - silence_start).total_seconds()
@@ -415,6 +442,7 @@ class AudioChunker:
                 if score >= best_score:
                     best_score = score
                     best = (silence_start, index + 1)
+
             index += 1
 
         return best
@@ -477,7 +505,6 @@ def _ffprobe_command(ffmpeg_path : str, explicit_ffmpeg : bool) -> str:
     extension = os.path.splitext(ffmpeg_path)[1]
     if extension.casefold() not in ('.exe', '.bat', '.cmd'):
         extension = ''
+
     candidate = os.path.join(os.path.dirname(os.path.abspath(ffmpeg_path)), f'ffprobe{extension}')
     return candidate if os.path.isfile(candidate) else 'ffprobe'
-
-
