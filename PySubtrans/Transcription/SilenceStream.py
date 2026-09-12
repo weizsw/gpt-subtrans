@@ -11,7 +11,6 @@ from collections.abc import Iterator
 from datetime import timedelta
 
 from PySubtrans.Helpers.Localization import _
-from PySubtrans.Helpers.Time import GetTimeDeltaSafe
 from PySubtrans.SubtitleError import SubtitleError
 
 
@@ -41,10 +40,11 @@ class SilenceStream:
         self.timeout : float = timeout
         self.ffmpeg_path : str = ffmpeg_path
 
-        self._events : queue.Queue[tuple[timedelta, timedelta]|None] = queue.Queue()
+        # The reader ends the queue with a terminal item: the failure that
+        # stopped it, or None if ffmpeg finished cleanly
+        self._events : queue.Queue[tuple[timedelta, timedelta]|SubtitleError|None] = queue.Queue()
         self._thread : threading.Thread|None = None
         self._process : subprocess.Popen[str]|None = None
-        self._error : SubtitleError|None = None
 
     def __enter__(self) -> SilenceStream:
         if not self.media_path or not os.path.isfile(self.media_path):
@@ -80,11 +80,11 @@ class SilenceStream:
                 self._shutdown()
                 raise SubtitleError(_("Silence detection timed out after {} seconds").format(int(self.timeout)))
 
-            # None is the reader's end-of-stream marker
             if event is None:
-                if self._error is not None:
-                    raise self._error
                 return
+
+            if isinstance(event, SubtitleError):
+                raise event
 
             yield event
 
@@ -94,6 +94,7 @@ class SilenceStream:
         assert process is not None and process.stderr is not None
 
         pending_start : float|None = None
+        error : SubtitleError|None = None
 
         try:
             for line in process.stderr:
@@ -107,20 +108,19 @@ class SilenceStream:
                 elif pending_start is not None:
                     end_time = float(match.group('time'))
                     self._events.put((
-                        GetTimeDeltaSafe(pending_start) or timedelta(seconds=max(0.0, pending_start)),
-                        GetTimeDeltaSafe(end_time) or timedelta(seconds=max(0.0, end_time))))
+                        timedelta(seconds=max(0.0, pending_start)),
+                        timedelta(seconds=max(0.0, end_time))))
                     pending_start = None
 
         except Exception as e:
-            self._error = SubtitleError(_("Silence detection failed"), error=e)
+            error = SubtitleError(_("Silence detection failed"), error=e)
 
         finally:
             returncode = process.wait()
-            if returncode != 0 and self._error is None:
+            if returncode != 0 and error is None:
                 logging.debug("ffmpeg silencedetect exited with code {}".format(returncode))
 
-            # Signal end of stream to the consumer
-            self._events.put(None)
+            self._events.put(error)
 
     def _shutdown(self) -> None:
         """Stop ffmpeg and the reader thread (safe to call repeatedly)."""

@@ -54,7 +54,6 @@ class AudioChunk:
     """
     start : timedelta = field(default_factory=lambda: timedelta(seconds=0))
     end : timedelta = field(default_factory=lambda: timedelta(seconds=0))
-    path : str|None = None
 
 
 class AudioExtractor:
@@ -84,18 +83,13 @@ class AudioExtractor:
         """
         self._check_media_path(media_path)
 
-        result = subprocess.run(
+        output = self._run(
             [self.ffprobe_path, '-v', 'error', '-show_entries', 'format=duration',
              '-of', 'default=noprint_wrappers=1:nokey=1', media_path],
-            capture_output=True, text=True, encoding=FFMPEG_TEXT_ENCODING,
-            errors='replace', timeout=60
-        )
-
-        if result.returncode != 0:
-            raise SubtitleError(_("Unable to probe media duration: {}").format(result.stderr.strip()))
+            timeout=60, error_message=_("Unable to probe media duration: {}"))
 
         try:
-            return timedelta(seconds=float(result.stdout.strip()))
+            return timedelta(seconds=float(output.strip()))
 
         except ValueError as e:
             raise SubtitleError(_("Unable to parse media duration"), error=e)
@@ -106,19 +100,14 @@ class AudioExtractor:
         """
         self._check_media_path(media_path)
 
-        result = subprocess.run(
+        output = self._run(
             [self.ffprobe_path, '-v', 'error', '-select_streams', 'a',
              '-show_entries', 'stream=index,codec_name,channels:stream_tags=language',
              '-of', 'csv=p=0', media_path],
-            capture_output=True, text=True, encoding=FFMPEG_TEXT_ENCODING,
-            errors='replace', timeout=60
-        )
-
-        if result.returncode != 0:
-            raise SubtitleError(_("Unable to list audio tracks: {}").format(result.stderr.strip()))
+            timeout=60, error_message=_("Unable to list audio tracks: {}"))
 
         tracks : list[AudioTrack] = []
-        for stream_index, line in enumerate(result.stdout.splitlines()):
+        for stream_index, line in enumerate(output.splitlines()):
             parts = [part.strip() for part in line.split(',')]
             if len(parts) < 2:
                 continue
@@ -145,21 +134,15 @@ class AudioExtractor:
             raise SubtitleError(_("Invalid chunk time span"))
 
         output_path = output_path or self._temp_wav_path()
-        start_seconds = start.total_seconds()
 
-        result = subprocess.run(
+        self._run(
             [self.ffmpeg_path, '-y', '-v', 'error',
-             '-ss', str(start_seconds), '-i', media_path,
+             '-ss', str(start.total_seconds()), '-i', media_path,
              '-t', str(duration.total_seconds()),
              '-map', f'0:a:{track_index}',
              '-ac', '1', '-ar', str(self.sample_rate),
              '-c:a', 'pcm_s16le', output_path],
-            capture_output=True, text=True, encoding=FFMPEG_TEXT_ENCODING,
-            errors='replace', timeout=600
-        )
-
-        if result.returncode != 0:
-            raise SubtitleError(_("Audio extraction failed: {}").format(result.stderr.strip()[-500:]))
+            timeout=600, error_message=_("Audio extraction failed: {}"))
 
         return output_path
 
@@ -240,6 +223,21 @@ class AudioExtractor:
         with stream:
             yield from stream
 
+    def _run(self, args : list[str], timeout : int, error_message : str) -> str:
+        """
+        Run an ffmpeg or ffprobe command and return its stdout.
+
+        A non-zero exit raises the given message with the tail of stderr filled in.
+        """
+        result = subprocess.run(
+            args, capture_output=True, text=True, encoding=FFMPEG_TEXT_ENCODING,
+            errors='replace', timeout=timeout)
+
+        if result.returncode != 0:
+            raise SubtitleError(error_message.format(result.stderr.strip()[-500:]))
+
+        return result.stdout
+
     def _check_media_path(self, media_path : str) -> None:
         if not media_path or not os.path.isfile(media_path):
             raise SubtitleError(_("Media file not found: {}").format(media_path))
@@ -299,15 +297,13 @@ class AudioChunker:
         return self.settings.get_float('lookahead_seconds') or 30.0
 
     def PlanChunks(self, media_path : str, track_index : int = 0,
-                   progress_cb : Callable[[str], None]|None = None,
                    duration_cb : Callable[[timedelta], None]|None = None) -> list[AudioChunk]:
         """
         Return the ordered chunk plan for a media file (no audio extracted yet).
         """
-        return list(self.PlanChunksStream(media_path, track_index, progress_cb, duration_cb))
+        return list(self.PlanChunksStream(media_path, track_index, duration_cb))
 
     def PlanChunksStream(self, media_path : str, track_index : int = 0,
-                         progress_cb : Callable[[str], None]|None = None,
                          duration_cb : Callable[[timedelta], None]|None = None) -> Generator[AudioChunk, None, None]:
         """
         Yield chunks as silence detection streams in, so the caller can
@@ -325,8 +321,10 @@ class AudioChunker:
         if duration_cb:
             duration_cb(duration)
 
-        if progress_cb:
-            progress_cb(_("Detecting silence in {}").format(os.path.basename(media_path)))
+        # Media shorter than the minimum chunk is transcribed whole
+        if total < self.min_chunk_seconds:
+            yield AudioChunk(start=timedelta(seconds=0), end=duration)
+            return
 
         silences = self.extractor.DetectSilencesStream(media_path, track_index)
         pending : tuple[timedelta, timedelta]|None = next(silences, None)
@@ -342,75 +340,45 @@ class AudioChunker:
                 if pending is None:
                     stream_done = True
 
-        chunks_planned = 0
         cursor = timedelta(seconds=0)
         silence_index = 0
 
-        while (duration - cursor).total_seconds() >= self.min_chunk_seconds:
+        while cursor < duration and (duration - cursor).total_seconds() >= self.min_chunk_seconds:
             target = cursor + timedelta(seconds=self.max_chunk_seconds)
             window = min(target, duration)
 
-            # Preferred: cut on a silence inside the normal window
+            # Prefer a silence inside the window, then one a little past the cap
             fill(window)
             cut = self._next_silence_cut(buffered, silence_index, cursor, window)
+
+            if cut is None and target < duration:
+                lookahead = target + timedelta(seconds=self.lookahead_seconds)
+                fill(lookahead)
+                cut = self._next_silence_cut(buffered, silence_index, cursor, lookahead, after=target)
+
             if cut is not None:
-                silence_index = cut[1]
-                end = duration if cut[0] >= duration else cut[0]
-                next_cursor = end if end >= duration else self._silence_end_after(buffered, silence_index - 1, cut[0])
+                # Cut at the start of the silence and resume after it, so
+                # pauses are not transcribed as leading dead air
+                end, next_cursor, silence_index = cut
+            elif target >= duration:
+                end = next_cursor = duration
+            else:
+                end = next_cursor = target
 
-                if (duration - next_cursor).total_seconds() < self.min_chunk_seconds:
-                    # The remainder would be too small to stand alone: absorb
-                    # it into this chunk rather than dropping it later
-                    end = duration
-                    next_cursor = duration
+            # A remainder too small to stand alone is absorbed into this chunk
+            if (duration - next_cursor).total_seconds() < self.min_chunk_seconds:
+                end = next_cursor = duration
 
-                chunks_planned += 1
-                yield AudioChunk(start=cursor, end=end)
-                cursor = next_cursor
-                continue
-
-            # The rest of the media fits in one chunk
-            if target >= duration:
-                chunks_planned += 1
-                yield AudioChunk(start=cursor, end=duration)
-                cursor = duration
-                break
-
-            # No silence in the window: look a little past the cap for one
-            fill(target + timedelta(seconds=self.lookahead_seconds))
-            extended = self._next_silence_cut(
-                buffered, silence_index, cursor,
-                target + timedelta(seconds=self.lookahead_seconds), after=target)
-            if extended is not None:
-                silence_index = extended[1]
-                next_cursor = self._silence_end_after(buffered, silence_index - 1, extended[0])
-                end = extended[0]
-
-                if (duration - next_cursor).total_seconds() < self.min_chunk_seconds:
-                    end = duration
-                    next_cursor = duration
-
-                chunks_planned += 1
-                yield AudioChunk(start=cursor, end=end)
-                cursor = next_cursor
-                continue
-
-            # Last resort: hard cut at the cap
-            hard_end = target if (duration - target).total_seconds() >= self.min_chunk_seconds else duration
-            chunks_planned += 1
-            yield AudioChunk(start=cursor, end=hard_end)
-            cursor = hard_end
-
-        if chunks_planned == 0:
-            chunks_planned += 1
-            yield AudioChunk(start=timedelta(seconds=0), end=duration)
+            yield AudioChunk(start=cursor, end=end)
+            cursor = next_cursor
 
     def _next_silence_cut(self, silences : list[tuple[timedelta, timedelta]], index : int,
                            cursor : timedelta, limit : timedelta,
-                           after : timedelta|None = None) -> tuple[timedelta, int]|None:
+                           after : timedelta|None = None) -> tuple[timedelta, timedelta, int]|None:
         """
         Score candidate silences within (after, limit] by position times
-        gap length, returning the cut point and the index to resume from.
+        gap length, returning the chosen silence's start and end and the
+        index to resume scanning from.
         A long pause earlier beats a short one nearer the cap, so chunks
         break on coherent boundaries instead of arbitrary times; position
         still counts, so dialogue fills toward the cap (fewer requests,
@@ -423,7 +391,7 @@ class AudioChunker:
         scores 55*1=55 — so the long pause wins despite being earlier.
         """
         lower = after or cursor
-        best : tuple[timedelta, int]|None = None
+        best : tuple[timedelta, timedelta, int]|None = None
         best_score = -1.0
 
         while index < len(silences):
@@ -441,23 +409,11 @@ class AudioChunker:
                 score = span * gap
                 if score >= best_score:
                     best_score = score
-                    best = (silence_start, index + 1)
+                    best = (silence_start, silence_end, index + 1)
 
             index += 1
 
         return best
-
-    def _silence_end_after(self, silences : list[tuple[timedelta, timedelta]], index : int, cut : timedelta) -> timedelta:
-        """
-        Resume the next chunk after the silence that was cut on, so pauses
-        are not transcribed as leading dead air.
-        """
-        if 0 <= index < len(silences):
-            silence_start, silence_end = silences[index]
-            if silence_start <= cut <= silence_end and silence_end > cut:
-                return silence_end
-
-        return cut
 
 ######################################################################
 
