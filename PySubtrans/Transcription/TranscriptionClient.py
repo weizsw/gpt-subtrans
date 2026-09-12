@@ -15,12 +15,21 @@ from PySubtrans.Transcription.TranscriptionSegment import TranscriptionResult
 
 class TranscriptionClient:
     """
-    Handles communication with a transcription backend.
+    Base client for provider-specific speech-to-text backends.
 
-    v1 contract is deliberately narrow: local engines return flat text per
-    chunk (no word timestamps, no diarization), so chunk boundaries provide
-    the subtitle timings. Engines that return richer data can populate the
-    optional fields of TranscriptionResult in future.
+    A client transcribes one in-memory audio chunk at a time. Subclasses
+    implement ``_transcribe_chunk`` and convert their backend's response into
+    a ``TranscriptionResult`` containing text plus any available metadata,
+    such as word timings, sub-segments, speaker labels, detected language,
+    duration, or usage cost. The ``supports_timestamps`` and
+    ``supports_diarization`` properties advertise the capabilities needed by
+    the transcription coordinator.
+
+    The base class centralizes behavior shared by remote and local clients:
+    language hints, request timeouts, optional request-rate throttling,
+    abort signaling, and common HTTP POST/JSON validation with bounded
+    rate-limit retries. Provider-specific clients remain responsible for
+    authentication, request formats, model loading, and response parsing.
     """
     _MAX_RETRIES : int = 3
     _BACKOFF_BASE : float = 5.0
