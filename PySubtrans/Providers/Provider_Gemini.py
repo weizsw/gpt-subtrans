@@ -52,7 +52,7 @@ else:
 
                 self.refresh_when_changed = ['api_key', 'model', 'enable_thinking']
                 self.gemini_models = []
-                self.excluded_models = ["vision", "tts", "banana"]
+                self.excluded_models = ["vision", "tts", "banana", "antigravity", "transcribe", "lyria", "research", "robotics"]
 
             @property
             def api_key(self) -> str|None:
