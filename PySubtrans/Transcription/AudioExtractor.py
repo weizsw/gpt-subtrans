@@ -5,80 +5,21 @@ import io
 import logging
 import math
 import os
-import queue
 import shutil
 import subprocess
 import tempfile
-import threading
 import wave
-from collections.abc import Callable, Generator, Iterator
+from collections.abc import Callable, Generator
 from dataclasses import dataclass, field
 from datetime import timedelta
 
-import regex
-
 from PySubtrans.Helpers.Localization import _
-from PySubtrans.Helpers.Time import GetTimeDeltaSafe
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleError import SubtitleError
-
-# Silence intervals reported by ffmpeg silencedetect, e.g.
-# [silencedetect @ 0x...] silence_start: 12.34 | silence_end: 13.02 | silence_duration: 0.68
-SILENCE_PATTERN = regex.compile(
-    r'silence_(?P<kind>start|end):\s*(?P<time>-?\d+(?:\.\d+)?)'
-)
+from PySubtrans.Transcription.SilenceStream import SilenceStream
 
 SUPPORTED_MEDIA_EXTENSIONS = ('.mp4', '.mkv', '.m4a', '.mp3', '.wav', '.flac', '.ogg', '.webm', '.aac', '.mov', '.avi')
 FFMPEG_TEXT_ENCODING = 'utf-8'
-
-
-def _configured_ffmpeg_path(settings : SettingsType|None) -> str|None:
-    """Return a normalized explicitly configured ffmpeg path, if any."""
-    if settings is None:
-        return None
-
-    configured = settings.get_str('ffmpeg_path')
-    if not configured or not configured.strip():
-        return None
-
-    return os.path.expanduser(os.path.expandvars(configured.strip()))
-
-
-def _ffprobe_command(ffmpeg_path : str, explicit_ffmpeg : bool) -> str:
-    """Choose the ffprobe paired with an explicit ffmpeg, when present."""
-    if not explicit_ffmpeg:
-        return 'ffprobe'
-
-    extension = os.path.splitext(ffmpeg_path)[1]
-    if extension.casefold() not in ('.exe', '.bat', '.cmd'):
-        extension = ''
-    candidate = os.path.join(os.path.dirname(os.path.abspath(ffmpeg_path)), f'ffprobe{extension}')
-    return candidate if os.path.isfile(candidate) else 'ffprobe'
-
-
-def CheckFfmpegAvailable(settings : SettingsType|None = None) -> None:
-    """
-    Raise if the configured ffmpeg/ffprobe pair, or the system PATH pair,
-    cannot be found.
-    """
-    ffmpeg_path = _configured_ffmpeg_path(settings)
-    if ffmpeg_path is None:
-        if not shutil.which('ffmpeg') or not shutil.which('ffprobe'):
-            raise SubtitleError(_("ffmpeg and ffprobe are required for transcription but were not found on PATH"))
-        return
-
-    if not os.path.isfile(ffmpeg_path) or (os.name != 'nt' and not os.access(ffmpeg_path, os.X_OK)):
-        raise SubtitleError(_("The configured ffmpeg executable was not found: {}").format(ffmpeg_path))
-
-    ffprobe_path = _ffprobe_command(ffmpeg_path, explicit_ffmpeg=True)
-    if ffprobe_path == 'ffprobe':
-        if not shutil.which('ffprobe'):
-            raise SubtitleError(_(
-                "ffprobe was not found alongside the configured ffmpeg executable or on PATH"
-            ))
-    elif not os.path.isfile(ffprobe_path) or (os.name != 'nt' and not os.access(ffprobe_path, os.X_OK)):
-        raise SubtitleError(_("The ffprobe executable paired with ffmpeg was not found: {}").format(ffprobe_path))
-
 
 @dataclass
 class AudioTrack:
@@ -293,108 +234,6 @@ class AudioExtractor:
         return path
 
 
-class SilenceStream:
-    """
-    Streams silence intervals from ffmpeg silencedetect while ffmpeg decodes.
-
-    A background reader thread parses stderr into a queue, so the scan keeps
-    running while the consumer transcribes finalized chunks and ffmpeg never
-    blocks on a full pipe. Events arrive in chronological order; use as a
-    context manager so ffmpeg is terminated if the consumer stops early.
-    """
-    def __init__(self, media_path : str, track_index : int = 0,
-                 min_duration : float = 0.8, noise_db : int = -30,
-                 timeout : float = 900.0, ffmpeg_path : str = 'ffmpeg'):
-        self.media_path : str = media_path
-        self.track_index : int = track_index
-        self.min_duration : float = min_duration
-        self.noise_db : int = noise_db
-        self.timeout : float = timeout
-        self.ffmpeg_path : str = ffmpeg_path
-        self._events : queue.Queue[tuple[timedelta, timedelta]|None] = queue.Queue()
-        self._thread : threading.Thread|None = None
-        self._process : subprocess.Popen[str]|None = None
-        self._error : SubtitleError|None = None
-
-    def __enter__(self) -> SilenceStream:
-        if not self.media_path or not os.path.isfile(self.media_path):
-            raise SubtitleError(_("Media file not found: {}").format(self.media_path))
-
-        self._process = subprocess.Popen(
-            [self.ffmpeg_path, '-v', 'info', '-i', self.media_path,
-             '-map', f'0:a:{self.track_index}',
-             '-af', f'silencedetect=noise={self.noise_db}dB:d={self.min_duration}',
-             '-f', 'null', '-'],
-            stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True,
-            encoding=FFMPEG_TEXT_ENCODING, errors='replace')
-        self._thread = threading.Thread(target=self._read_output, daemon=True)
-        self._thread.start()
-        return self
-
-    def __exit__(self, exc_type, exc, traceback) -> None:
-        self._shutdown()
-
-    def __iter__(self) -> Iterator[tuple[timedelta, timedelta]]:
-        if self._process is None or self._thread is None:
-            raise SubtitleError(_("Silence stream was used outside a with block"))
-
-        while True:
-            # Per-wait timeout so pauses between iterations (e.g. the consumer
-            # transcribing a chunk) do not count against the deadline.
-            try:
-                event = self._events.get(timeout=self.timeout)
-            except queue.Empty:
-                self._shutdown()
-                raise SubtitleError(_("Silence detection timed out after {} seconds").format(int(self.timeout)))
-
-            if event is None:
-                if self._error is not None:
-                    raise self._error
-                return
-            yield event
-
-    def _read_output(self) -> None:
-        """Reader thread: parse silencedetect lines until ffmpeg exits."""
-        process = self._process
-        assert process is not None and process.stderr is not None
-        pending_start : float|None = None
-        try:
-            for line in process.stderr:
-                match = SILENCE_PATTERN.search(line)
-                if not match:
-                    continue
-                if match.group('kind') == 'start':
-                    pending_start = float(match.group('time'))
-                elif pending_start is not None:
-                    end_time = float(match.group('time'))
-                    self._events.put((
-                        GetTimeDeltaSafe(pending_start) or timedelta(seconds=max(0.0, pending_start)),
-                        GetTimeDeltaSafe(end_time) or timedelta(seconds=max(0.0, end_time))))
-                    pending_start = None
-        except Exception as e:
-            self._error = SubtitleError(_("Silence detection failed"), error=e)
-        finally:
-            returncode = process.wait()
-            if returncode != 0 and self._error is None:
-                logging.debug("ffmpeg silencedetect exited with code {}".format(returncode))
-            self._events.put(None)
-
-    def _shutdown(self) -> None:
-        """Stop ffmpeg and the reader thread (safe to call repeatedly)."""
-        process = self._process
-        if process is not None and process.poll() is None:
-            process.terminate()
-        thread = self._thread
-        if thread is not None and thread is not threading.current_thread():
-            thread.join(timeout=5.0)
-        if process is not None:
-            try:
-                process.wait(timeout=5.0)
-            except subprocess.TimeoutExpired:
-                process.kill()
-                process.wait()
-
-
 class AudioChunker:
     """
     Splits media into coherent audio-only chunks for transcription.
@@ -591,3 +430,54 @@ class AudioChunker:
                 return silence_end
 
         return cut
+
+######################################################################
+
+def CheckFfmpegAvailable(settings : SettingsType|None = None) -> None:
+    """
+    Raise if the configured ffmpeg/ffprobe pair, or the system PATH pair,
+    cannot be found.
+    """
+    ffmpeg_path = _configured_ffmpeg_path(settings)
+    if ffmpeg_path is None:
+        if not shutil.which('ffmpeg') or not shutil.which('ffprobe'):
+            raise SubtitleError(_("ffmpeg and ffprobe are required for transcription but were not found on PATH"))
+        return
+
+    if not os.path.isfile(ffmpeg_path) or (os.name != 'nt' and not os.access(ffmpeg_path, os.X_OK)):
+        raise SubtitleError(_("The configured ffmpeg executable was not found: {}").format(ffmpeg_path))
+
+    ffprobe_path = _ffprobe_command(ffmpeg_path, explicit_ffmpeg=True)
+    if ffprobe_path == 'ffprobe':
+        if not shutil.which('ffprobe'):
+            raise SubtitleError(_(
+                "ffprobe was not found alongside the configured ffmpeg executable or on PATH"
+            ))
+    elif not os.path.isfile(ffprobe_path) or (os.name != 'nt' and not os.access(ffprobe_path, os.X_OK)):
+        raise SubtitleError(_("The ffprobe executable paired with ffmpeg was not found: {}").format(ffprobe_path))
+
+
+def _configured_ffmpeg_path(settings : SettingsType|None) -> str|None:
+    """Return a normalized explicitly configured ffmpeg path, if any."""
+    if settings is None:
+        return None
+
+    configured = settings.get_str('ffmpeg_path')
+    if not configured or not configured.strip():
+        return None
+
+    return os.path.expanduser(os.path.expandvars(configured.strip()))
+
+
+def _ffprobe_command(ffmpeg_path : str, explicit_ffmpeg : bool) -> str:
+    """Choose the ffprobe paired with an explicit ffmpeg, when present."""
+    if not explicit_ffmpeg:
+        return 'ffprobe'
+
+    extension = os.path.splitext(ffmpeg_path)[1]
+    if extension.casefold() not in ('.exe', '.bat', '.cmd'):
+        extension = ''
+    candidate = os.path.join(os.path.dirname(os.path.abspath(ffmpeg_path)), f'ffprobe{extension}')
+    return candidate if os.path.isfile(candidate) else 'ffprobe'
+
+
