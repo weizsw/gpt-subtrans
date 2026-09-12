@@ -2490,7 +2490,7 @@ msgid "Transcribing chunk {current}/{total}"
 msgstr ""
 
 #: PySubtrans/Transcription/TranscriptionCoordinator.py:117
-msgid "Transcribing {} with {} (chunks stream in while silence detection runs)"
+msgid "Transcribing {} with {}"
 msgstr ""
 
 #: GuiSubtrans/Widgets/TranscriptionDialog.py:601

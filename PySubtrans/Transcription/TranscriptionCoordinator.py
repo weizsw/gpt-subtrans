@@ -114,7 +114,7 @@ class TranscriptionCoordinator:
                 self.events.audio_progress.send(self, processed=0.0, total=run.audio_total_seconds)
 
         chunks = self.chunker.PlanChunksStream(media_path, self.track_index, duration_cb=on_duration)
-        logging.info(_("Transcribing {} with {} (chunks stream in while silence detection runs)").format(
+        logging.info(_("Transcribing {} with {}").format(
             os.path.basename(media_path), self.provider.name))
 
         try:

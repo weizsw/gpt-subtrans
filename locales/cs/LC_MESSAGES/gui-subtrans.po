@@ -2684,7 +2684,7 @@ msgid "Transcribing chunk {current}/{total}"
 msgstr "Přepisuji blok {current}/{total}"
 
 #: PySubtrans/Transcription/TranscriptionCoordinator.py:117
-msgid "Transcribing {} with {} (chunks stream in while silence detection runs)"
+msgid "Transcribing {} with {}"
 msgstr "Přepisuji {} pomocí {} (bloky se streamují, zatímco běží detekce ticha)"
 
 #: GuiSubtrans/Widgets/TranscriptionDialog.py:601

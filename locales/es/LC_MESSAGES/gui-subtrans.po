@@ -2652,7 +2652,7 @@ msgid "Transcribing chunk {current}/{total}"
 msgstr "Transcribiendo fragmento {current}/{total}"
 
 #: PySubtrans/Transcription/TranscriptionCoordinator.py:117
-msgid "Transcribing {} with {} (chunks stream in while silence detection runs)"
+msgid "Transcribing {} with {}"
 msgstr "Transcribiendo {} con {} (los fragmentos se transmiten mientras se ejecuta la detección de silencio)"
 
 #: GuiSubtrans/Widgets/TranscriptionDialog.py:601
