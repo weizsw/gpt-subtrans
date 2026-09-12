@@ -12,7 +12,8 @@ from unittest.mock import Mock, patch
 
 from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.SettingsType import SettingsType
-from PySubtrans.Transcription.AudioExtractor import AudioChunker, AudioExtractor
+from PySubtrans.Transcription.AudioChunker import AudioChunker
+from PySubtrans.Transcription.AudioExtractor import AudioExtractor
 
 def _ffmpeg_available() -> bool:
     return bool(shutil.which('ffmpeg') and shutil.which('ffprobe'))

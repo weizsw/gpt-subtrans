@@ -5,7 +5,7 @@ from PySubtrans.Helpers.Localization import _
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.SubtitleLine import SubtitleLine
 from PySubtrans.Subtitles import Subtitles
-from PySubtrans.Transcription.AudioExtractor import AudioChunk
+from PySubtrans.Transcription.AudioChunker import AudioChunk
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionSegment
 
 class TranscriptionRun:

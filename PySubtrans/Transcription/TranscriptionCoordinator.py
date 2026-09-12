@@ -11,7 +11,8 @@ from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.SubtitleProcessor import SubtitleProcessor
 from PySubtrans.Subtitles import Subtitles
-from PySubtrans.Transcription.AudioExtractor import AudioExtractor, AudioChunk, AudioChunker, AudioTrack, CheckFfmpegAvailable
+from PySubtrans.Transcription.AudioChunker import AudioChunker, AudioChunk
+from PySubtrans.Transcription.AudioExtractor import AudioExtractor, AudioTrack, CheckFfmpegAvailable
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionEvents import TranscriptionEvents
 from PySubtrans.Transcription.TranscriptionLines import SpanLabel, TranscriptionLineBuilder
