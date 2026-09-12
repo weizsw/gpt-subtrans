@@ -9,6 +9,7 @@ os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QApplication, QDialog, QMainWindow
 
+from GuiSubtrans.Commands.SaveSubtitleFile import SaveSubtitleFile
 from GuiSubtrans.Commands.TranscribeMediaCommand import TranscribeMediaCommand
 from GuiSubtrans.GuiInterface import GuiInterface
 from PySubtrans.Helpers.TestCases import LoggedTestCase
@@ -160,3 +161,33 @@ class TestTranscriptionIntegration(LoggedTestCase):
         with patch.object(self.gui._autosave_timer, 'start') as autosave:
             self.gui._on_command_complete(command)
         self.assertLoggedEqual('autosave scheduled', 1, autosave.call_count)
+
+    def test_transcription_save_follow_up_is_detached_from_parent_model(self) -> None:
+        """A transcription's file-only save cannot re-open its pre-transcription model."""
+        command, coordinator = self._command(TranscriptionStatus.COMPLETED, self._subtitles())
+        command.save_transcription = True
+        with patch('GuiSubtrans.Commands.TranscribeMediaCommand.TranscriptionCoordinator', return_value=coordinator):
+            self.assertLoggedTrue('transcription completed', command.execute())
+
+        save_command = command.commands_to_queue[0] if command.commands_to_queue else None
+        self.assertLoggedIsInstance('file-only follow-up queued', save_command, SaveSubtitleFile)
+        if not isinstance(save_command, SaveSubtitleFile):
+            return
+
+        queue = self.gui.command_queue
+        queue._queue_command(command, self.old_model)
+
+        with patch.object(queue, '_start_command_queue'):
+            queue._on_command_executed(command)
+
+        self.assertLoggedIsNone('file-only save has no inherited data model', save_command.datamodel)
+
+        current_model = Mock(autosave_enabled=False, project=None)
+        self.gui.datamodel = current_model
+        model_changes = []
+        self.gui.dataModelChanged.connect(model_changes.append)
+        save_command.succeeded = True
+        self.gui._on_command_complete(save_command)
+
+        self.assertLoggedIs('accepted transcription model retained', current_model, self.gui.datamodel)
+        self.assertLoggedEqual('file-only save does not signal a model change', [], model_changes)

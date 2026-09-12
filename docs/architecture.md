@@ -129,6 +129,7 @@ GUI operations use the Command pattern for background execution and undo/redo su
 
 - **CommandQueue** – executes commands on background `QThreadPool`, manages concurrency and synchronisation
 - **Commands** – in `GuiSubtrans/Commands/`, encapsulate operations (translation, file I/O, etc.)
+- Follow-up commands inherit their parent data model by default. Standalone file-only commands can opt out of data-model updates so their completion cannot replace the active GUI model.
 - **Undo/Redo** – maintained via `undo_stack` and `redo_stack`
 
 ## Settings Management

@@ -12,6 +12,8 @@ class SaveSubtitleFile(Command):
         self.subtitles = subtitles
         self.mark_project_dirty = False
         self.skip_undo = True
+        # This writes a subtitle snapshot and must not affect the active project model.
+        self.updates_datamodel = False
 
     def execute(self) -> bool:
         self.subtitles.SaveOriginal(self.filepath)

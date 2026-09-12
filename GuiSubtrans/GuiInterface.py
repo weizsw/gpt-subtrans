@@ -389,7 +389,7 @@ class GuiInterface(QObject):
 
         logging.debug(f"A {type(command).__name__} command {'succeeded' if command.succeeded else 'failed'}")
 
-        if command.succeeded:
+        if command.succeeded and command.updates_datamodel:
             if command.model_updates:
                 for model_update in command.model_updates:
                     self.datamodel.UpdateViewModel(model_update)
