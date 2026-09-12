@@ -59,7 +59,7 @@ class OpenAITranscriptionClient(TranscriptionClient):
             'file': ('chunk.wav', audio_bytes, 'audio/wav'),
         })
 
-        text, detected, words = parse_verbose_payload(payload)
+        text, detected, words = _parse_verbose_payload(payload)
 
         result = TranscriptionResult(text=text, language=detected or self.language, words=words)
         return self._attach_usage(result, payload)
@@ -73,7 +73,7 @@ class OpenAITranscriptionClient(TranscriptionClient):
             'file': ('chunk.wav', audio_bytes, 'audio/wav'),
         })
 
-        text, parts = parse_diarized_payload(payload)
+        text, parts = _parse_diarized_payload(payload)
 
         result = TranscriptionResult(text=text, language=self.language, parts=parts)
         return self._attach_usage(result, payload)
@@ -100,7 +100,7 @@ class OpenAITranscriptionClient(TranscriptionClient):
         return self._PostJson(url, headers=headers, files=fields)
 
 
-def parse_diarized_payload(payload : dict) -> tuple[str, list[TranscriptionSegment]]:
+def _parse_diarized_payload(payload : dict) -> tuple[str, list[TranscriptionSegment]]:
     """
     Extract (text, parts) from a diarized_json response.
 
@@ -128,7 +128,7 @@ def parse_diarized_payload(payload : dict) -> tuple[str, list[TranscriptionSegme
     return text, parts
 
 
-def parse_verbose_payload(payload : dict) -> tuple[str, str|None, list[WordTiming]]:
+def _parse_verbose_payload(payload : dict) -> tuple[str, str|None, list[WordTiming]]:
     """
     Extract (text, language, words) from a whisper verbose_json response.
     """

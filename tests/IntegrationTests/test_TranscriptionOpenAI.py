@@ -8,7 +8,7 @@ from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Transcription.Providers.Clients.OpenAITranscriptionClient import (
-    parse_diarized_payload,
+    _parse_diarized_payload,
 )
 from PySubtrans.Transcription.Providers.Provider_OpenAI import (
     OpenAITranscriptionProvider,
@@ -90,7 +90,7 @@ class TestOpenAITranscription(LoggedTestCase):
                 {'speaker': 'B', 'text': 'hi', 'start': 2.0, 'end': 2.7},
             ],
         }
-        text, parts = parse_diarized_payload(payload)
+        text, parts = _parse_diarized_payload(payload)
 
         self.assertLoggedEqual("text", "hello hi", text)
         self.assertLoggedEqual("part count", 2, len(parts))

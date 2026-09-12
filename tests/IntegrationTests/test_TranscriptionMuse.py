@@ -12,7 +12,7 @@ from PySubtrans.Transcription.Providers.Provider_Muse import (
     MuseTranscriptionProvider,
 )
 from PySubtrans.Transcription.Providers.Clients.MuseTranscriptionClient import (
-    parse_muse_payload,
+    _parse_muse_payload,
 )
 
 
@@ -96,7 +96,7 @@ class TestMuseTranscription(LoggedTestCase):
                 {'speaker': 'B', 'transcript': 'It is raining.', 'startMs': 5900, 'endMs': 8000},
             ],
         }
-        text, parts = parse_muse_payload(payload)
+        text, parts = _parse_muse_payload(payload)
 
         self.assertLoggedEqual("text", "How is the weather? It is raining.", text)
         self.assertLoggedEqual("part count", 2, len(parts))
@@ -115,7 +115,7 @@ class TestMuseTranscription(LoggedTestCase):
                 {'speaker': 'B', 'transcript': 'yo', 'startMs': 2000, 'endMs': 3000},
             ],
         }
-        _text, parts = parse_muse_payload(payload)
+        _text, parts = _parse_muse_payload(payload)
 
         self.assertLoggedEqual("part count", 2, len(parts))
         self.assertLoggedEqual("chained end", timedelta(seconds=2.0), parts[0].end)
@@ -129,7 +129,7 @@ class TestMuseTranscription(LoggedTestCase):
                 {'speaker': 'A', 'transcript': 'y', 'startMs': 49100, 'endMs': 52700},
             ],
         }
-        _text, parts = parse_muse_payload(payload)
+        _text, parts = _parse_muse_payload(payload)
 
         self.assertLoggedEqual("part count", 2, len(parts))
         self.assertLoggedEqual("true end", timedelta(seconds=29.1), parts[0].end)
@@ -143,7 +143,7 @@ class TestMuseTranscription(LoggedTestCase):
                 {'speaker': 'A', 'transcript': 'hello world', 'startMs': 0, 'endMs': 1000},
             ],
         }
-        text, parts = parse_muse_payload(payload, include_speakers=False)
+        text, parts = _parse_muse_payload(payload, include_speakers=False)
 
         self.assertLoggedEqual("text", "hello world", text)
         self.assertLoggedEqual("part count", 1, len(parts))
@@ -156,7 +156,7 @@ class TestMuseTranscription(LoggedTestCase):
             'transcript': 'ok',
             'turns': ['junk', {'transcript': '', 'startMs': 0.0}, {'transcript': 'ok'}],
         }
-        text, parts = parse_muse_payload(payload, chunk_seconds=5.0)
+        text, parts = _parse_muse_payload(payload, chunk_seconds=5.0)
 
         self.assertLoggedEqual("text", "ok", text)
         self.assertLoggedEqual("part count", 0, len(parts))

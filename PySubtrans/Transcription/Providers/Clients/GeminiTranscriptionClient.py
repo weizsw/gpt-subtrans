@@ -28,121 +28,6 @@ _RETRY_MAX_SECONDS = 120.0
 # Hints beyond this are "come back later", not "wait it out"
 _RETRY_GIVE_UP_SECONDS = 600.0
 
-
-def _is_rate_limit_error(error : Exception) -> bool:
-    """
-    Whether a backend failure is a 429 quota response worth retrying.
-
-    Matches the SDK error type when importable, otherwise duck-types on
-    status attributes and message markers (SDK internals move around).
-    """
-    if getattr(error, 'code', None) == 429 or getattr(error, 'status_code', None) == 429:
-        return True
-
-    try:
-        from google.genai import errors as genai_errors
-        api_error = getattr(genai_errors, 'APIError', None)
-        if api_error is not None and isinstance(error, api_error):
-            return getattr(error, 'code', None) == 429
-    except ImportError:
-        pass
-
-    message = str(error).casefold()
-    return ('error code: 429' in message or 'too_many_requests' in message
-            or ('429' in message and ('rate' in message or 'quota' in message or 'retry' in message)))
-
-
-def _retry_hint_seconds(error : Exception) -> float|None:
-    """
-    Raw "retry in ..." hint from a quota response, handling compound
-    durations ("11h55m6s") as well as plain seconds. None when absent.
-    """
-    match = _RETRY_HINT_PATTERN.search(str(error))
-    if not match:
-        return None
-    hours = TryParseFloat(match.group(1) or 0.0)
-    minutes = TryParseFloat(match.group(2) or 0.0)
-    seconds = TryParseFloat(match.group(3))
-    if seconds is None:
-        return None
-    return max(0.0, (hours or 0.0) * 3600.0 + (minutes or 0.0) * 60.0 + seconds)
-
-
-def _rate_limit_delay_seconds(error : Exception, attempt : int) -> float:
-    """
-    Backoff before retrying a quota response: honour the server's retry
-    hint when present, otherwise exponential fallback (5s doubling to 120s).
-    """
-    hint = _retry_hint_seconds(error)
-    if hint is not None:
-        return min(hint, _RETRY_MAX_SECONDS)
-
-    return min(_RETRY_BASE_SECONDS * (2 ** attempt), _RETRY_MAX_SECONDS)
-
-
-def _format_retry_delay(seconds : float) -> str:
-    """Human-readable backoff for quota messages ("about 12 hours")."""
-    total = int(round(max(0.0, seconds)))
-    hours, remainder = divmod(total, 3600)
-    minutes, secs = divmod(remainder, 60)
-    if hours:
-        return f"about {hours} hour{'s' if hours != 1 else ''}"
-    if minutes:
-        return f"about {minutes} minute{'s' if minutes != 1 else ''}"
-    return f"about {secs} second{'s' if secs != 1 else ''}"
-
-
-def parse_offset(value : object) -> float|None:
-    """
-    Parse Gemini time offsets ("1.200s", "3s") into seconds.
-    """
-    if value is None:
-        return None
-    text = str(value).strip().removesuffix('s')
-    parsed = TryParseFloat(text)
-    return max(0.0, parsed) if parsed is not None else None
-
-
-def parse_word_annotations(annotations : list) -> list[WordTiming]:
-    """
-    Extract word timings from word_info annotations.
-
-    Pure function over annotation shapes so it is unit-testable without
-    the Google SDK installed.
-    """
-    words : list[WordTiming] = []
-    for annotation in annotations or []:
-        if getattr(annotation, 'type', None) != 'word_info':
-            continue
-        text = str(getattr(annotation, 'text', '') or '').strip()
-        start = parse_offset(getattr(annotation, 'start_offset', None))
-        end = parse_offset(getattr(annotation, 'end_offset', None))
-        if not text or start is None or end is None or end <= start:
-            continue
-        speaker = getattr(annotation, 'speaker', None)
-        words.append(WordTiming(text=text,
-                                start=timedelta(seconds=start),
-                                end=timedelta(seconds=end),
-                                speaker=str(speaker) if speaker else None))
-
-    words.sort(key=lambda w: w.start)
-    return words
-
-
-def collect_word_annotations(interaction : object) -> list:
-    """
-    Gather word_info annotations from interaction steps.
-    """
-    words : list = []
-    for step in getattr(interaction, 'steps', []) or []:
-        for content in getattr(step, 'content', []) or []:
-            for annotation in getattr(content, 'annotations', []) or []:
-                if getattr(annotation, 'type', None) == 'word_info':
-                    words.append(annotation)
-
-    return words
-
-
 if not importlib.util.find_spec("google"):
     logging.debug(_("Google SDK (google-genai) is not installed. Gemini transcription will not be available"))
 else:
@@ -205,7 +90,7 @@ else:
                     result_interaction = self._create_interaction(client, audio_file)
 
                     text = str(getattr(result_interaction, 'output_text', '') or '').strip()
-                    words = parse_word_annotations(collect_word_annotations(result_interaction))
+                    words = _parse_word_annotations(_collect_word_annotations(result_interaction))
                     return TranscriptionResult(text=text, language=self.language, words=words)
                 except SubtitleError:
                     raise
@@ -309,3 +194,117 @@ else:
 
     except ImportError as e:
         logging.debug(_("google-genai dependencies missing, Gemini transcription unavailable ({})").format(e))
+
+    def _is_rate_limit_error(error : Exception) -> bool:
+        """
+        Whether a backend failure is a 429 quota response worth retrying.
+
+        Matches the SDK error type when importable, otherwise duck-types on
+        status attributes and message markers (SDK internals move around).
+        """
+        if getattr(error, 'code', None) == 429 or getattr(error, 'status_code', None) == 429:
+            return True
+
+        try:
+            from google.genai import errors as genai_errors
+            api_error = getattr(genai_errors, 'APIError', None)
+            if api_error is not None and isinstance(error, api_error):
+                return getattr(error, 'code', None) == 429
+        except ImportError:
+            pass
+
+        message = str(error).casefold()
+        return ('error code: 429' in message or 'too_many_requests' in message
+                or ('429' in message and ('rate' in message or 'quota' in message or 'retry' in message)))
+
+
+    def _retry_hint_seconds(error : Exception) -> float|None:
+        """
+        Raw "retry in ..." hint from a quota response, handling compound
+        durations ("11h55m6s") as well as plain seconds. None when absent.
+        """
+        match = _RETRY_HINT_PATTERN.search(str(error))
+        if not match:
+            return None
+        hours = TryParseFloat(match.group(1) or 0.0)
+        minutes = TryParseFloat(match.group(2) or 0.0)
+        seconds = TryParseFloat(match.group(3))
+        if seconds is None:
+            return None
+        return max(0.0, (hours or 0.0) * 3600.0 + (minutes or 0.0) * 60.0 + seconds)
+
+
+    def _rate_limit_delay_seconds(error : Exception, attempt : int) -> float:
+        """
+        Backoff before retrying a quota response: honour the server's retry
+        hint when present, otherwise exponential fallback (5s doubling to 120s).
+        """
+        hint = _retry_hint_seconds(error)
+        if hint is not None:
+            return min(hint, _RETRY_MAX_SECONDS)
+
+        return min(_RETRY_BASE_SECONDS * (2 ** attempt), _RETRY_MAX_SECONDS)
+
+
+    def _format_retry_delay(seconds : float) -> str:
+        """Human-readable backoff for quota messages ("about 12 hours")."""
+        total = int(round(max(0.0, seconds)))
+        hours, remainder = divmod(total, 3600)
+        minutes, secs = divmod(remainder, 60)
+        if hours:
+            return f"about {hours} hour{'s' if hours != 1 else ''}"
+        if minutes:
+            return f"about {minutes} minute{'s' if minutes != 1 else ''}"
+        return f"about {secs} second{'s' if secs != 1 else ''}"
+
+
+    def _parse_offset(value : object) -> float|None:
+        """
+        Parse Gemini time offsets ("1.200s", "3s") into seconds.
+        """
+        if value is None:
+            return None
+        text = str(value).strip().removesuffix('s')
+        parsed = TryParseFloat(text)
+        return max(0.0, parsed) if parsed is not None else None
+
+
+    def _parse_word_annotations(annotations : list) -> list[WordTiming]:
+        """
+        Extract word timings from word_info annotations.
+
+        Pure function over annotation shapes so it is unit-testable without
+        the Google SDK installed.
+        """
+        words : list[WordTiming] = []
+        for annotation in annotations or []:
+            if getattr(annotation, 'type', None) != 'word_info':
+                continue
+            text = str(getattr(annotation, 'text', '') or '').strip()
+            start = _parse_offset(getattr(annotation, 'start_offset', None))
+            end = _parse_offset(getattr(annotation, 'end_offset', None))
+            if not text or start is None or end is None or end <= start:
+                continue
+            speaker = getattr(annotation, 'speaker', None)
+            words.append(WordTiming(text=text,
+                                    start=timedelta(seconds=start),
+                                    end=timedelta(seconds=end),
+                                    speaker=str(speaker) if speaker else None))
+
+        words.sort(key=lambda w: w.start)
+        return words
+
+
+    def _collect_word_annotations(interaction : object) -> list:
+        """
+        Gather word_info annotations from interaction steps.
+        """
+        words : list = []
+        for step in getattr(interaction, 'steps', []) or []:
+            for content in getattr(step, 'content', []) or []:
+                for annotation in getattr(content, 'annotations', []) or []:
+                    if getattr(annotation, 'type', None) == 'word_info':
+                        words.append(annotation)
+
+        return words
+

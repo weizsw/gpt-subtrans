@@ -47,14 +47,13 @@ else:
         class GeminiTranscriptionProvider(TranscriptionProvider):
             """
             Speech-to-text via Gemini 3.5 Transcribe with word timestamps
-            and speaker diarization. Only registered when google-genai is
-            installed; shares the translation API key.
+            and speaker diarization.
             """
             name = "Gemini"
 
             information = _("""
             <p>Transcribe with Gemini 3.5 Transcribe (word timestamps, speaker diarization).</p>
-            <p>Requires a <a href="https://aistudio.google.com/app/apikey">Google AI Studio API key</a>.</p>
+            <p>Gemini Transcribe has strict rate limits and daily caps, so large chunks are recommended.</p>
             """)
 
             information_noapikey = _("""

@@ -54,7 +54,7 @@ class MuseTranscriptionClient(TranscriptionClient):
     def _transcribe_chunk(self, audio_bytes : bytes, audio_format : str) -> TranscriptionResult:
         payload = self._post(audio_bytes)
 
-        text, parts = parse_muse_payload(payload, include_speakers=self.diarize)
+        text, parts = _parse_muse_payload(payload, include_speakers=self.diarize)
 
         result = TranscriptionResult(text=text, language=self.language, parts=parts)
         return self._attach_usage(result, payload)
@@ -121,7 +121,7 @@ class MuseTranscriptionClient(TranscriptionClient):
         return f"{hint}: {detail}"
 
 
-def parse_muse_payload(payload : dict, chunk_seconds : float|None = None, include_speakers : bool = True) -> tuple[str, list[TranscriptionSegment]]:
+def _parse_muse_payload(payload : dict, chunk_seconds : float|None = None, include_speakers : bool = True) -> tuple[str, list[TranscriptionSegment]]:
     """
     Extract (text, parts) from a Muse Voice Transcribe response.
 

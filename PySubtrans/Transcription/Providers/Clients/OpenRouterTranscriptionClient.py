@@ -72,7 +72,7 @@ class OpenRouterTranscriptionClient(TranscriptionClient):
         # error: return it and let the coordinator skip the chunk quietly.
         payload = self._post(audio_bytes)
 
-        text, detected, parts, words = parse_transcription_payload(payload)
+        text, detected, parts, words = _parse_transcription_payload(payload)
 
         result = TranscriptionResult(text=text, language=detected or self.language, parts=parts, words=words)
         return self._attach_usage(result, payload)
@@ -149,7 +149,7 @@ class OpenRouterTranscriptionClient(TranscriptionClient):
         return 'verbose_json' in lowered or 'timestamp' in lowered or 'response_format' in lowered
 
 
-def parse_transcription_payload(payload : dict) -> tuple[str, str|None, list[TranscriptionSegment], list[WordTiming]]:
+def _parse_transcription_payload(payload : dict) -> tuple[str, str|None, list[TranscriptionSegment], list[WordTiming]]:
     """
     Extract (text, language, parts, words) from an OpenRouter STT response.
 

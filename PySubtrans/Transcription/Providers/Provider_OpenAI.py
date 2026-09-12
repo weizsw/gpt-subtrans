@@ -11,15 +11,14 @@ class OpenAITranscriptionProvider(TranscriptionProvider):
     """
     Speech-to-text via OpenAI with the shared account API key.
 
-    Only timed models are served: whisper-1 (word timestamps) and
-    gpt-4o-transcribe-diarize (speaker segments). The plain gpt-transcribe
-    family returns no timings and is refused at validation.
+    Only timed models are served: whisper-1 (word timestamps) and gpt-4o-transcribe-diarize.
+    The plain gpt-transcribe family returns no timings and is refused at validation.
     """
     name = "OpenAI"
 
     information = _("""
     <p>Transcribe with OpenAI speech-to-text models.</p>
-    <p>Currently experimental and untested due to expired API credits. Please report your experiences!</p>
+    <p>Currently experimental and untested due to expired API credits. Please report your experience!</p>
     """)
 
     information_noapikey = _("""

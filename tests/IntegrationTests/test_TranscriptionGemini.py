@@ -14,8 +14,8 @@ from PySubtrans.Transcription.Providers.Clients.GeminiTranscriptionClient import
     _is_rate_limit_error,
     _rate_limit_delay_seconds,
     _retry_hint_seconds,
-    parse_offset,
-    parse_word_annotations,
+    _parse_offset,
+    _parse_word_annotations,
 )
 from PySubtrans.Transcription.Providers.Provider_Gemini import (
     map_language_code,
@@ -280,7 +280,7 @@ class TestGeminiParsing(LoggedTestCase):
             annotation("y", None, "4s", "5s"),
             type("Other", (), {'type': 'text', 'text': 'ignored'})(),
         ]
-        words = parse_word_annotations(annotations)
+        words = _parse_word_annotations(annotations)
 
         self.assertLoggedEqual("word count", 3, len(words))
         self.assertLoggedEqual("first speaker", "spk:0", words[0].speaker)
@@ -292,10 +292,10 @@ class TestGeminiParsing(LoggedTestCase):
     def test_offset_parsing(self):
         """Offset strings convert robustly, garbage drops out."""
 
-        self.assertLoggedEqual("decimal", 1.2, parse_offset("1.200s"))
-        self.assertLoggedEqual("bare", 3.0, parse_offset("3s"))
-        self.assertLoggedEqual("none", None, parse_offset(None))
-        self.assertLoggedEqual("garbage", None, parse_offset("soon"))
+        self.assertLoggedEqual("decimal", 1.2, _parse_offset("1.200s"))
+        self.assertLoggedEqual("bare", 3.0, _parse_offset("3s"))
+        self.assertLoggedEqual("none", None, _parse_offset(None))
+        self.assertLoggedEqual("garbage", None, _parse_offset("soon"))
 
     @skip_if_debugger_attached
     def test_provider_resolves_language_code(self):

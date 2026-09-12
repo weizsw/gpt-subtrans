@@ -16,10 +16,9 @@ from PySubtrans.Transcription.Providers.Provider_QwenLocal import (
     parse_qwen_result,
 )
 
-# A single loaded ASR model (plus aligner) is kept for the session, keyed by
-# (checkpoint, device, aligner). Loading takes seconds, but each model set is
-# several GB of device memory, so a settings change releases the old one
-# before loading its replacement rather than accumulating copies.
+# A single loaded ASR model (plus aligner) is kept for the session, keyed by (checkpoint, device, aligner).
+# Loading takes seconds, but each model set is several GB of device memory,
+# so a settings change releases the old one before loading its replacement.
 _loaded_key : tuple[str, str, str]|None = None
 _loaded_model : object|None = None
 

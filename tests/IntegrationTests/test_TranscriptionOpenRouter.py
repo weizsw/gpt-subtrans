@@ -9,7 +9,7 @@ from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Transcription.Providers.Clients.OpenRouterTranscriptionClient import (
     OpenRouterTranscriptionClient,
-    parse_transcription_payload,
+    _parse_transcription_payload,
 )
 from PySubtrans.Transcription.Providers.Provider_OpenRouter import (
     OpenRouterTranscriptionProvider,
@@ -101,7 +101,7 @@ class TestOpenRouterParsing(LoggedTestCase):
                 {'word': 'world', 'start': 1.0, 'end': 1.4, 'speaker': 1},
             ],
         }
-        text, language, _parts, words = parse_transcription_payload(payload)
+        text, language, _parts, words = _parse_transcription_payload(payload)
 
         self.assertLoggedEqual("text", "hello world", text)
         self.assertLoggedEqual("language", "en", language)
@@ -120,7 +120,7 @@ class TestOpenRouterParsing(LoggedTestCase):
                 {'text': 'second', 'start': 2.5, 'end': 4.0},
             ],
         }
-        _text, _language, parts, words = parse_transcription_payload(payload)
+        _text, _language, parts, words = _parse_transcription_payload(payload)
 
         self.assertLoggedEqual("part count", 2, len(parts))
         self.assertLoggedEqual("part speaker", "A", parts[0].speaker)
@@ -135,7 +135,7 @@ class TestOpenRouterParsing(LoggedTestCase):
             'segments': [{'text': '', 'start': 0.0, 'end': 1.0}, 'junk', {'text': 'ok', 'start': 5.0, 'end': 4.0}],
             'words': [{'word': 'ok', 'start': 'soon', 'end': 1.0}],
         }
-        text, _language, parts, words = parse_transcription_payload(payload)
+        text, _language, parts, words = _parse_transcription_payload(payload)
 
         self.assertLoggedEqual("text", "ok", text)
         self.assertLoggedEqual("part count", 0, len(parts))
@@ -147,7 +147,7 @@ class TestOpenRouterParsing(LoggedTestCase):
             'text': 'hi',
             'segments': [{'text': 'hi', 'start': 0.0, 'end': 1.0}],
         }
-        text, _language, parts, _words = parse_transcription_payload(payload)
+        text, _language, parts, _words = _parse_transcription_payload(payload)
 
         self.assertLoggedEqual("text", "hi", text)
         self.assertLoggedEqual("part count", 1, len(parts))
@@ -238,7 +238,7 @@ class TestOpenRouterClient(LoggedTestCase):
             'text': 'hmm',
             'segments': [{'text': 'hmm', 'start': 1.0, 'end': 2.0, 'no_speech_prob': 0.85}],
         }
-        _text, _language, parts, _words = parse_transcription_payload(payload)
+        _text, _language, parts, _words = _parse_transcription_payload(payload)
 
         self.assertLoggedEqual("part count", 1, len(parts))
         assert parts[0].confidence is not None  # Type narrowing for PyLance
