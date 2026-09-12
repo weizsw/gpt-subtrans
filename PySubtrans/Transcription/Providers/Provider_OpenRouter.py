@@ -19,7 +19,6 @@ class OpenRouterTranscriptionProvider(TranscriptionProvider):
     information = _("""
     <p>Transcribe with OpenRouter speech-to-text models.</p>
     <p>Word timestamps and diarization depend on the selected model.</p>
-    <p>You must have credit to use OpenRouter models.</p>
     """)
 
     information_noapikey = _("""

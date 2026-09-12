@@ -24,7 +24,6 @@ class OpenRouterProvider(TranslationProvider):
 
     information_noapikey = """
     <p>To use this provider you need <a href="https://openrouter.ai/keys">an OpenRouter API key</a>.</p>
-    <p>Note that you must have credit to use OpenRouter models.</p>
     """
 
     def __init__(self, settings : SettingsType):
