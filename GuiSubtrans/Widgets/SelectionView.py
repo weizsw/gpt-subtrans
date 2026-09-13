@@ -36,7 +36,7 @@ class SelectionView(QFrame):
             self._label.setText(str(selection))
 
         _show(self._translate_button, selection.lines and selection.Any())
-        _show(self._reparse_button, selection.AnyBatches() and selection.AllTranslated())
+        _show(self._reparse_button, selection.AnyBatches() and selection.OnlyBatches() and selection.AnyTranslated())
         _show(self._autosplit_batch_button, selection.AnyBatches() and selection.OnlyBatches() and not selection.MultipleSelected())
         _show(self._split_batch_button, selection.AnyLines() and not selection.MultipleSelected() and not selection.IsFirstInBatchSelected())
         _show(self._split_scene_button, selection.AnyBatches() and not selection.MultipleSelected() and not selection.IsFirstInSceneSelected())

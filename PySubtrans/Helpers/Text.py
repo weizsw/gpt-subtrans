@@ -13,9 +13,26 @@ emdash = "—"
 
 standard_filler_words = "um,umm,uh,uhh,er,err,ah,ahh,oh,eh,hm,hmm,hmmm,huh,ha,mmm,ow,oww"
 
+_non_word_pattern = regex.compile(r'[^\w\s-]')
+_whitespace_run_pattern = regex.compile(r'\s+')
+
+def SanitiseForFilename(text : str) -> str:
+    """
+    Sanitise a string for use as a filename component.
+
+    Strips non-word characters (preserving Unicode letters, digits, underscores
+    and hyphens), collapses whitespace runs to hyphens, and lowercases.
+    """
+    sanitised = _non_word_pattern.sub('', text).strip().lower()
+    return _whitespace_run_pattern.sub('-', sanitised)
+
 whitespace_and_punctuation_pattern = regex.compile(r'[\p{P}\p{Z}\p{C}]')
 
 whitespace_pattern = regex.compile(r'\s+')
+
+# Scripts whose characters run together without spaces, plus CJK punctuation and
+# fullwidth forms. Hangul is deliberately excluded - Korean is space-separated.
+CJK_BOUNDARY = regex.compile(r'[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\u3000-\u303f\uff00-\uffef]')
 
 priority_break_sequences = [
     regex.escape(dialog_marker),  # Dialog marker
@@ -98,6 +115,50 @@ def Linearise(lines : str|list[str]) -> str:
 
     lines = [ str(line).strip() for line in lines ]
     return " | ".join(lines)
+
+def NeedsSpace(previous : str, current : str) -> bool:
+    """
+    Whether a space is needed between two adjacent word tokens.
+
+    Handles Latin scripts (space between words), CJK (no space between
+    ideographs), and punctuation (no space before closing marks or after
+    opening ones). Straight quotes use parity to distinguish open/close.
+
+    Examples: ['Hello', 'world'] -> 'Hello world'
+              ['你好', '世界']   -> '你好世界'
+              ['He', 'said', '"Hello"'] -> 'He said "Hello"'
+    """
+    if not previous or not current or previous[-1].isspace() or current[0].isspace():
+        return False
+
+    last = previous[-1]
+    first = current[0]
+    if CJK_BOUNDARY.fullmatch(last) and CJK_BOUNDARY.fullmatch(first):
+        return False
+
+    last_category = unicodedata.category(last)
+    first_category = unicodedata.category(first)
+    # Straight quotes need the accumulated text to distinguish opening/closing.
+    if first == '"':
+        if previous.count('"') % 2:
+            return False
+    elif first_category.startswith('P') and first_category not in ('Ps', 'Pi'):
+        return False
+
+    if last in "'-\u2019" or last_category in ('Ps', 'Pi'):
+        return False
+    if last == '"':
+        return previous.count('"') % 2 == 0
+    return True
+
+def JoinWords(words : list[str]) -> str:
+    """Join aligned word tokens with language-appropriate spacing."""
+    text = ""
+    for word in words:
+        if NeedsSpace(text, word):
+            text += " "
+        text += word
+    return text.strip()
 
 def ConvertWhitespaceBlocksToNewlines(text : str) -> str:
     """

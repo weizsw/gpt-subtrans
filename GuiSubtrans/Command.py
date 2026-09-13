@@ -36,6 +36,8 @@ class Command(QRunnable, QObject):
         self.succeeded : bool|None = False
         self.aborted : bool = False
         self.terminal : bool = False        # If true, command ended with a fatal error, no further commands can be executed
+        # Follow-up commands inherit and report against the current data model by default.
+        self.updates_datamodel : bool = True
         self.callback : Callable[[Command], Any]|None = None
         self.undo_callback : Callable[[Command], Any]|None = None
         self.model_updates : list[ModelUpdate] = []

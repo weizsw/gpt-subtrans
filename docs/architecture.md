@@ -36,11 +36,34 @@ Contains all subtitle processing, translation logic, and project management. Thi
 - `SubtitleBuilder` – fluent API for programmatically building subtitle structures
 - `SubtitleEditor` – handles mutation operations on subtitle data with thread safety
 
+### Shared Helpers
+`PySubtrans/Helpers/` holds the cross-cutting utilities. **Check here before writing a new utility function** - most common string, time and parsing operations already exist.
+- `Text` – text manipulation and script-aware rules: whitespace and punctuation normalisation, break/split sequences for long lines, dialog markers, filler words, xml-like tag extraction, token joining (`JoinWords` / `NeedsSpace` handle CJK vs Latin spacing) and RTL detection.
+- `Time` – `timedelta` parsing and formatting, including SRT timestamps.
+- `Parse` – key/value pairs, name lists, numeric coercion, and retry-delay/error-message extraction from provider responses.
+- `SubtitleHelpers` – operations that need `SubtitleLine`: insert-or-replace by number, merging lines, merging translations back onto originals.
+- `ContextHelpers` – assembles batch context and history for translation prompts.
+- `Localization` – the `_()` and `tr()` gettext wrappers plus locale discovery.
+- `Languages` – language name and BCP-47 tag resolution via Babel locales.
+- `InstructionsHelpers` – loading and saving instruction files from bundled resources or the user config directory.
+- `Resources` – config directory and resource path resolution, handling portable and frozen builds.
+- `TestCases` / `Tests` – `LoggedTestCase`, `SubtitleTestCase` and the `assertLogged*` assertions used by the unit tests, dummy subtitle/provider builders, and `skip_if_debugger_attached`.
+- `Color`, `Version`, `__init__` – smaller odds and ends: colour serialisation, version comparison, input/output path derivation and enum value naming.
+
 ### Subtitle Format Handling
 Subtitle files are processed through a pluggable system:
 - `SubtitleFileHandler` implementations read and write specific formats while exposing a common interface.
 - `SubtitleFormatRegistry` loads handlers from `PySubtrans/Formats/` and maps file extensions to the appropriate handler based on priority.
 - `SubtitleProject` uses the registry to detect formats from filenames and can convert subtitles when the output extension differs from the source.
+
+### Transcription Pipeline
+Media-to-subtitles transcription lives under `PySubtrans/Transcription/` and mirrors the translation provider split:
+- `TranscriptionProvider` / `TranscriptionClient` – pluggable speech-to-text backends (`PySubtrans/Transcription/Providers/`), returning a `TranscriptionResult` per audio chunk with optional word timings or sub-segments.
+- `AudioExtractor` / `AudioChunker` – ffmpeg-backed track listing, audio reading, silence detection and chunk planning (`PlanChunksStream` yields chunks while silence detection is still running).
+- `TranscriptionLines` – `TranscriptionLineBuilder` turns a transcribed chunk into timed subtitle lines. Words are cut into utterances at pauses, speaker changes and sentence punctuation; utterances exceeding the `max_characters` / `max_line_duration` options are split at their best pause (pause length weighted by centrality, with clause-punctuation bonuses and `min_split_chars` guarding fragments) rather than stranding a short tail. Also rebases provider sub-segments and merges slivers. Pure logic with no provider or audio dependencies.
+- `TranscriptionCoordinator` – end-to-end orchestration: plans chunks, transcribes each with the client, applies the resume/abort/failure policy and returns a `TranscriptionOutcome` (status, subtitles, error, line count, cost). Expected failures are reported as a FAILED outcome rather than raised. Emits `TranscriptionEvents` signals (`progress`, `audio_progress`, `segment`) during the run. `TranscriptionProvider.ResolveProviderSettings` merges shared credentials into the `"<name> Transcription"` settings namespace.
+
+The CLI entry point is `scripts/transcribe.py`; the GUI runs the same coordinator through `TranscribeMediaCommand`.
 
 ### GuiSubtrans (User Interface)
 PySide6-based interface using MVVM pattern. Work here for UI features, dialogs, and user interactions.
@@ -120,6 +143,7 @@ GUI operations use the Command pattern for background execution and undo/redo su
 
 - **CommandQueue** – executes commands on background `QThreadPool`, manages concurrency and synchronisation
 - **Commands** – in `GuiSubtrans/Commands/`, encapsulate operations (translation, file I/O, etc.)
+- Follow-up commands inherit their parent data model by default. Standalone file-only commands can opt out of data-model updates so their completion cannot replace the active GUI model.
 - **Undo/Redo** – maintained via `undo_stack` and `redo_stack`
 
 ## Settings Management
@@ -268,6 +292,7 @@ The specific format for translation requests can vary by provider and responses 
 
 - **New file formats** → `PySubtrans/Formats/` (add file handler, extend `SubtitleFileHandler`, add import to `__init__.py`)
 - **Translation providers** → `PySubtrans/Providers/` (subclass `TranslationProvider` and `TranslationClient`, add import to `__init__.py`)
+- **Transcription providers** → `PySubtrans/Transcription/Providers/` (subclass `TranscriptionProvider` and `TranscriptionClient`)
 - **GUI features** → `GuiSubtrans/Widgets/` (new views/dialogs), `GuiSubtrans/Commands/` (new operations)
 - **Settings** → update `Options` schema, add to `SettingsDialog.SECTIONS`
 - **Background operations** → implement `Command` pattern in `GuiSubtrans/Commands/` for thread safety and undo support

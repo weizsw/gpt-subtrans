@@ -2,9 +2,12 @@
 
 source envsubtrans/bin/activate
 python scripts/sync_version.py
-pip install --upgrade -e ".[gui,openai,gemini,claude,mistral,bedrock]"
+pip install --upgrade -e ".[gui,openai,gemini,claude,mistral,bedrock,qwen-asr]"
 
 python scripts/update_translations.py
+
+python tests/unit_tests.py || exit 1
+python tests/integration_tests.py || exit 1
 
 pyinstaller --noconfirm --additional-hooks-dir="hooks-subtrans" \
     --add-data "theme/*:theme/"  --add-data "assets/*:assets/" \

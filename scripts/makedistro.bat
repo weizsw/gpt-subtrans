@@ -3,7 +3,7 @@ call envsubtrans/scripts/activate
 .\envsubtrans\Scripts\python.exe -m pip install --upgrade pip
 .\envsubtrans\Scripts\python.exe -m pip install pywin32-ctypes
 .\envsubtrans\Scripts\python.exe -m pip install --upgrade pyinstaller
-.\envsubtrans\Scripts\python.exe -m pip install --upgrade -e ".[gui,openai,gemini,claude,mistral]"
+.\envsubtrans\Scripts\python.exe -m pip install --upgrade -e ".[gui,openai,gemini,claude,mistral,qwen-asr]"
 rem pip install --upgrade "boto3"  REM Bedrock dependencies excluded
 
 rem Update and compile localization files before tests/build
@@ -12,6 +12,12 @@ rem Update and compile localization files before tests/build
 .\envsubtrans\scripts\python.exe tests/unit_tests.py
 if %errorlevel% neq 0 (
     echo Unit tests failed. Exiting...
+    exit /b %errorlevel%
+)
+
+.\envsubtrans\scripts\python.exe tests/integration_tests.py
+if %errorlevel% neq 0 (
+    echo Integration tests failed. Exiting...
     exit /b %errorlevel%
 )
 

@@ -155,6 +155,12 @@ class ProjectSelection():
 
         return True
 
+    def AnyTranslated(self) -> bool:
+        """
+        Are any selected batches translated?
+        """
+        return any(batch.translated for batch in self.selected_batches)
+
     def AllTranslated(self) -> bool:
         """
         Are all selected batches translated?

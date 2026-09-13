@@ -25,7 +25,6 @@ class RequestyProvider(TranslationProvider):
 
     information_noapikey = """
     <p>To use this provider you need <a href="https://app.requesty.ai/api-keys">a Requesty API key</a>.</p>
-    <p>Note that you must have credit to use Requesty models.</p>
     """
 
     def __init__(self, settings : SettingsType):

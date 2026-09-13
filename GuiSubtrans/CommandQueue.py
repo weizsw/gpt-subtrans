@@ -292,7 +292,8 @@ class CommandQueue(QObject):
         if command.commands_to_queue:
             with QMutexLocker(self.mutex):
                 for queued_command in command.commands_to_queue:
-                    self._queue_command(queued_command, command.datamodel)
+                    datamodel = command.datamodel if queued_command.updates_datamodel else None
+                    self._queue_command(queued_command, datamodel)
 
             for queued_command in command.commands_to_queue:
                 self.commandAdded.emit(queued_command)

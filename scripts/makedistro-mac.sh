@@ -8,7 +8,7 @@ pip install --upgrade PyInstaller pyinstaller-hooks-contrib
 pip install --upgrade setuptools
 pip install --upgrade jaraco.text
 pip install --upgrade charset_normalizer
-pip install --upgrade -e ".[gui,openai,gemini,claude,mistral]"
+pip install --upgrade -e ".[gui,openai,gemini,claude,mistral,qwen-asr]"
 
 # Remove boto3 from packaged version
 pip uninstall boto3
@@ -18,7 +18,13 @@ pip uninstall boto3
 ./envsubtrans/bin/python tests/unit_tests.py
 if [ $? -ne 0 ]; then
     echo "Unit tests failed. Exiting..."
-    exit $?
+    exit 1
+fi
+
+./envsubtrans/bin/python tests/integration_tests.py
+if [ $? -ne 0 ]; then
+    echo "Integration tests failed. Exiting..."
+    exit 1
 fi
 
 ./envsubtrans/bin/pyinstaller --noconfirm \

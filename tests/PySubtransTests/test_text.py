@@ -15,6 +15,7 @@ from PySubtrans.Helpers.Text import (
     ExtractTagDict,
     ExtractTagList,
     IsTextContentEqual,
+    JoinWords,
     LimitTextLength,
     Linearise,
     NormaliseDialogTags,
@@ -276,6 +277,22 @@ class TestTextHelpers(LoggedTestCase):
             with self.subTest(text=text):
                 result = EnsureFullWidthPunctuation(text)
                 self.assertLoggedEqual("fullwidth punctuation", expected, result, input_value=text)
+
+    join_words_cases = [
+        (['Hello', 'world'], "Hello world"),
+        (['He', 'said', '"Hello', 'world."', 'Then'], 'He said "Hello world." Then'),
+        (['He', 'said', '"', 'Hello', 'world.', '"', 'Then'], 'He said "Hello world." Then'),
+        (["l'", "amour"], "l'amour"),
+        (['well-', 'known'], "well-known"),
+        (['你好', '世界'], "你好世界"),
+        (['你好', '，', '世界'], "你好，世界"),
+    ]
+
+    def test_JoinWords(self):
+        for words, expected in self.join_words_cases:
+            with self.subTest(words=words):
+                result = JoinWords(words)
+                self.assertLoggedEqual("joined words", expected, result, input_value=str(words))
 
 if __name__ == '__main__':
     unittest.main()
