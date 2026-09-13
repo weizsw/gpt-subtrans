@@ -6,7 +6,7 @@ from PySubtrans.Helpers.Localization import _
 from PySubtrans.Options import env_float, env_int
 from PySubtrans.SettingsType import GuiSettingsType, SettingsType
 from PySubtrans.SubtitleError import SubtitleError
-from PySubtrans.Transcription.Providers.TorchRuntime import TorchConfigOption
+from PySubtrans.Transcription.TorchRuntime import TorchConfigOption
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 
@@ -106,8 +106,7 @@ try:
                 'max_new_tokens': (int, _("Generation budget per chunk (long chunks need headroom)")),
                 'rate_limit': (float, _("Maximum requests per minute (0 for unlimited)")),
                 'allow_cpu_fallback': (bool, _("Allow emergency CPU fallback (may be slow)")),
-                'torch_installation_directory': (str, _("Directory of the Python environment containing Torch (restart after changing)")),
-                'torch_setup': (TorchConfigOption, _("Configure the Torch environment for local transcription")),
+                'torch_installation_directory': (TorchConfigOption, _("Set up Torch...")),
             }
             return options
 

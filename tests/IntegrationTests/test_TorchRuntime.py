@@ -8,7 +8,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from PySubtrans.Helpers.TestCases import LoggedTestCase
-from PySubtrans.Transcription.Providers import TorchRuntime
+from PySubtrans.Transcription import TorchRuntime
 
 
 class TestTorchRuntime(LoggedTestCase):
@@ -85,7 +85,7 @@ class TestTorchRuntime(LoggedTestCase):
             metadata_path = root / TorchRuntime.METADATA_FILENAME
             metadata_path.write_text(json.dumps(metadata), encoding='utf-8')
 
-            with patch('PySubtrans.Transcription.Providers.TorchRuntime.find_compatibility_metadata', return_value=metadata_path):
+            with patch('PySubtrans.Transcription.TorchRuntime.find_compatibility_metadata', return_value=metadata_path):
                 with self.assertRaises(TorchRuntime.TorchRuntimeError) as context:
                     with patch.object(TorchRuntime.PathFinder, 'find_spec', return_value=object()):
                         TorchRuntime.PrepareTorchRuntime(directory)

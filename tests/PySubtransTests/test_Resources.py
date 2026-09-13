@@ -1,10 +1,12 @@
 import os
+import sys
 import unittest
 from unittest.mock import patch
 
 from PySubtrans.Helpers.Resources import (
     ConfigureConfigDir,
     ConfigureConfigDirFromArguments,
+    GetAppDir,
     default_config_dir,
 )
 from PySubtrans.Helpers.TestCases import LoggedTestCase
@@ -70,6 +72,36 @@ class TestResources(LoggedTestCase):
 
         self.assertLoggedEqual('environment configuration directory', expected_path, result)
         mock_isdir.assert_not_called()
+
+
+class TestGetAppDir(LoggedTestCase):
+    """Test application directory resolution."""
+
+    @patch.object(sys, 'frozen', True, create=True)
+    @patch.object(sys, 'executable', os.path.join('C:', os.sep, 'Apps', 'gui-subtrans', 'gui-subtrans.exe'))
+    @patch('PySubtrans.Helpers.Resources.os.path.realpath', side_effect=lambda p: p)
+    def test_frozen_build_returns_executable_parent(self, _mock_realpath):
+        """Frozen builds place the torch env beside the executable."""
+        expected = os.path.join('C:', os.sep, 'Apps', 'gui-subtrans')
+
+        result = GetAppDir()
+
+        self.assertLoggedEqual('frozen app directory', expected, result)
+
+    def test_dev_mode_returns_current_working_directory(self):
+        """Development runs use the current working directory."""
+        # Ensure sys.frozen is not set (normal dev state)
+        frozen = getattr(sys, 'frozen', None)
+        if frozen is not None:
+            delattr(sys, 'frozen')
+
+        try:
+            result = GetAppDir()
+
+            self.assertLoggedEqual('dev app directory', os.path.abspath('.'), result)
+        finally:
+            if frozen is not None:
+                sys.frozen = frozen  # type: ignore[attr-defined]
 
 
 if __name__ == '__main__':

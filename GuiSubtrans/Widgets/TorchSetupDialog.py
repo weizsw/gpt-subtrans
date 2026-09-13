@@ -35,7 +35,7 @@ from PySide6.QtWidgets import (
 )
 
 from PySubtrans.Helpers.Localization import _
-from PySubtrans.Helpers.Resources import GetConfigDir
+from PySubtrans.Helpers.Resources import GetAppDir
 from PySubtrans.Transcription.TorchValidation import (
     build_current_compatibility,
     check_compatibility,
@@ -65,6 +65,14 @@ _CUDA_MIN_DRIVER_LINUX : list[tuple[str, str, str]] = [
 
 _ROCM_INDEX_URL = 'https://download.pytorch.org/whl/rocm6.2.4'
 _CPU_INDEX_URL = 'https://download.pytorch.org/whl/cpu'
+
+_DEFAULT_TORCH_DIR_NAME = 'torch-env'
+
+# Approximate total disk usage (venv + torch + dependencies) by build variant.
+_ESTIMATED_SIZE_CUDA = _("~5 GB")
+_ESTIMATED_SIZE_ROCM = _("~3.5 GB")
+_ESTIMATED_SIZE_CPU = _("~350 MB")
+_ESTIMATED_SIZE_MPS = _("~450 MB")
 _NVIDIA_CUDA_VERSION_PATTERN = regex.compile(
     r'CUDA\s+(?:UMD\s+)?Version:\s*([0-9]+(?:\.[0-9]+)?)',
     regex.IGNORECASE,
@@ -81,12 +89,14 @@ class _HardwareDetection:
         is_gpu : bool,
         guidance : str = '',
         hardware_detected : bool = False,
+        estimated_size : str = '',
     ):
         self.description = description
         self.index_url = index_url
         self.is_gpu = is_gpu
         self.guidance = guidance
         self.hardware_detected = hardware_detected
+        self.estimated_size = estimated_size
 
 
 def _parse_driver_version(version_str : str) -> tuple[int, ...]:
@@ -212,6 +222,7 @@ def _detect_hardware() -> _HardwareDetection|None:
             description=_("Apple Silicon detected -- Torch will use Metal Performance Shaders (MPS)"),
             index_url='',  # default PyPI wheel includes MPS
             is_gpu=True,
+            estimated_size=_ESTIMATED_SIZE_MPS,
         )
 
     # Try NVIDIA via driver query
@@ -232,6 +243,7 @@ def _detect_hardware() -> _HardwareDetection|None:
                     driver=driver_version, reported=reported_text, cuda=cuda_version),
                 index_url=index_url,
                 is_gpu=True,
+                estimated_size=_ESTIMATED_SIZE_CUDA,
             )
 
         # Driver found but too old for any known CUDA
@@ -241,6 +253,7 @@ def _detect_hardware() -> _HardwareDetection|None:
             index_url=_CPU_INDEX_URL,
             is_gpu=False,
             hardware_detected=True,
+            estimated_size=_ESTIMATED_SIZE_CPU,
         )
 
     # Try AMD ROCm (Linux only — PyTorch does not ship ROCm wheels for Windows)
@@ -249,6 +262,7 @@ def _detect_hardware() -> _HardwareDetection|None:
             description=_("AMD GPU detected (ROCm) -- will install Torch with ROCm support"),
             index_url=_ROCM_INDEX_URL,
             is_gpu=True,
+            estimated_size=_ESTIMATED_SIZE_ROCM,
         )
 
     # No NVIDIA driver detected — scan for GPU hardware and give specific guidance
@@ -262,6 +276,7 @@ def _detect_hardware() -> _HardwareDetection|None:
             guidance=_("Install the latest NVIDIA driver for this GPU from nvidia.com, "
                        "restart the computer, and choose Set up Torch again."),
             hardware_detected=True,
+            estimated_size=_ESTIMATED_SIZE_CPU,
         )
 
     if gpu_vendor == 'amd':
@@ -272,6 +287,7 @@ def _detect_hardware() -> _HardwareDetection|None:
                 is_gpu=False,
                 guidance=_("Install ROCm from AMD's documentation, restart, and try again."),
                 hardware_detected=True,
+                estimated_size=_ESTIMATED_SIZE_CPU,
             )
         return _HardwareDetection(
             description=_("AMD GPU found"),
@@ -279,6 +295,7 @@ def _detect_hardware() -> _HardwareDetection|None:
             is_gpu=False,
             guidance=_("PyTorch GPU support for AMD requires Linux with ROCm."),
             hardware_detected=True,
+            estimated_size=_ESTIMATED_SIZE_CPU,
         )
 
     if gpu_vendor == 'intel':
@@ -288,6 +305,7 @@ def _detect_hardware() -> _HardwareDetection|None:
             is_gpu=False,
             guidance=_("PyTorch XPU support requires the Intel oneAPI toolkit (intel.com/oneapi)."),
             hardware_detected=True,
+            estimated_size=_ESTIMATED_SIZE_CPU,
         )
 
     # No GPU detected at all — return None-like result; dialog will ask the user
@@ -303,6 +321,7 @@ _GPU_VENDOR_OPTIONS : dict[str, _HardwareDetection] = {
         guidance=_("Install the latest NVIDIA driver for this GPU from nvidia.com, "
                    "restart the computer, and choose Set up Torch again."),
         hardware_detected=True,
+        estimated_size=_ESTIMATED_SIZE_CPU,
     ),
     _("AMD"): _HardwareDetection(
         description=_("AMD selected"),
@@ -311,6 +330,7 @@ _GPU_VENDOR_OPTIONS : dict[str, _HardwareDetection] = {
         guidance='' if sys.platform == 'linux'
                  else _("PyTorch GPU support for AMD requires Linux with ROCm."),
         hardware_detected=sys.platform != 'linux',
+        estimated_size=_ESTIMATED_SIZE_ROCM if sys.platform == 'linux' else _ESTIMATED_SIZE_CPU,
     ),
     _("Intel"): _HardwareDetection(
         description=_("Intel selected"),
@@ -318,11 +338,13 @@ _GPU_VENDOR_OPTIONS : dict[str, _HardwareDetection] = {
         is_gpu=False,
         guidance=_("PyTorch XPU support requires the Intel oneAPI toolkit (intel.com/oneapi)."),
         hardware_detected=True,
+        estimated_size=_ESTIMATED_SIZE_CPU,
     ),
     _("No GPU / CPU only"): _HardwareDetection(
         description=_("CPU selected -- transcription will work but will be significantly slower than with a GPU"),
         index_url=_CPU_INDEX_URL,
         is_gpu=False,
+        estimated_size=_ESTIMATED_SIZE_CPU,
     ),
 }
 
@@ -330,8 +352,16 @@ _GPU_VENDOR_OPTIONS : dict[str, _HardwareDetection] = {
 def _find_existing_torch() -> str|None:
     """Try to locate an existing torch installation.
 
-    Returns the directory path if found, or None.
+    Checks the default install location next to the application first,
+    then falls back to scanning sys.path.  Returns the directory path
+    if found, or None.
     """
+    # Check the default install path beside the application
+    default_path = os.path.join(GetAppDir(), _DEFAULT_TORCH_DIR_NAME)
+    if has_torch_package(Path(default_path)):
+        return default_path
+
+    # Fall back to whatever is already on sys.path
     spec = importlib.util.find_spec('torch')
     if spec and spec.origin:
         torch_path = Path(spec.origin).parent
@@ -442,7 +472,7 @@ class TorchSetupDialog(QDialog):
         directory_group = QGroupBox(_("Installation folder"), page)
         directory_layout = QVBoxLayout(directory_group)
         dir_row = QHBoxLayout()
-        default_path = current_path or os.path.join(GetConfigDir(), "torch-env")
+        default_path = current_path or os.path.join(GetAppDir(), _DEFAULT_TORCH_DIR_NAME)
         self._dir_field = QLineEdit(default_path, directory_group)
         self._dir_field.setCursorPosition(0)
         self._dir_field.setToolTip(_("A new Python virtual environment will be created here."))
@@ -491,6 +521,12 @@ class TorchSetupDialog(QDialog):
             self._vendor_guidance_label.setOpenExternalLinks(True)
             hardware_layout.addWidget(self._vendor_guidance_label)
         page_layout.addWidget(hardware_group)
+
+        size_text = self._hardware.estimated_size if self._hardware else ''
+        self._size_label = QLabel(
+            _("Estimated disk usage: {size}").format(size=size_text) if size_text else '',
+            page)
+        page_layout.addWidget(self._size_label)
 
         self._cpu_fallback_checkbox = QCheckBox(
             _("Install CPU-only Torch anyway (transcription will be slower)"), page)
@@ -637,6 +673,10 @@ class TorchSetupDialog(QDialog):
         if selection:
             self._hardware = selection
             self._vendor_guidance_label.setText(selection.guidance)
+            if hasattr(self, '_size_label'):
+                self._size_label.setText(
+                    _("Estimated disk usage: {size}").format(size=selection.estimated_size)
+                    if selection.estimated_size else '')
         else:
             self._hardware = None
         self._update_cpu_fallback_choice()
