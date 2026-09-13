@@ -1586,3 +1586,14 @@ Python is included in distributions in accordance with the PSF License Agreement
    to be bound by the terms and conditions of this License Agreement.
    
 
+==========================
+Qwen ASR
+==========================
+
+Copyright 2026 Alibaba Cloud
+
+Qwen ASR is licensed under the Apache License, Version 2.0. The complete
+Apache License text is included above in the Mistral AI section.
+
+Source: https://github.com/QwenLM/Qwen3-ASR
+
