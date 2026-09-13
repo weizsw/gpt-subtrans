@@ -389,7 +389,6 @@ class TorchSetupDialog(QDialog):
         self._existing_path : str|None = None
         self._cpu_fallback_checkbox : QCheckBox|None = None
         self._current_page : int = 0
-        self._installation_complete : bool = False
         self._installation_failed : bool = False
 
         self._build_ui(current_path)
@@ -404,19 +403,15 @@ class TorchSetupDialog(QDialog):
         self._build_choice_page()
         self._build_install_page(current_path)
         self._build_progress_page()
-        self._build_completion_page()
 
         self._button_box = QDialogButtonBox(self)
         self._back_button = QPushButton(_("Back"), self)
         self._next_button = QPushButton(_("Continue"), self)
-        self._finish_button = QPushButton(_("Save Torch selection"), self)
         self._button_box.addButton(self._back_button, QDialogButtonBox.ButtonRole.ActionRole)
         self._button_box.addButton(self._next_button, QDialogButtonBox.ButtonRole.ActionRole)
-        self._button_box.addButton(self._finish_button, QDialogButtonBox.ButtonRole.ActionRole)
         self._cancel_button = self._button_box.addButton(QDialogButtonBox.StandardButton.Cancel)
         self._back_button.clicked.connect(self._on_back)
         self._next_button.clicked.connect(self._on_next)
-        self._finish_button.clicked.connect(self._on_accept)
         self._button_box.rejected.connect(self.reject)
         layout.addWidget(self._button_box)
 
@@ -561,22 +556,6 @@ class TorchSetupDialog(QDialog):
         page_layout.addWidget(self._log_output)
         self._page_stack.addWidget(page)
 
-    def _build_completion_page(self) -> None:
-        """Build the final page that confirms the selected environment."""
-        page = QWidget(self)
-        page_layout = QVBoxLayout(page)
-        title = QLabel(_("Torch setup complete"))
-        title.setStyleSheet("font-weight: bold;")
-        page_layout.addWidget(title)
-        self._completion_summary = QLabel(_("The Torch environment is ready to use."), page)
-        self._completion_summary.setWordWrap(True)
-        page_layout.addWidget(self._completion_summary)
-        self._completion_path_label = QLabel('', page)
-        self._completion_path_label.setWordWrap(True)
-        page_layout.addWidget(self._completion_path_label)
-        page_layout.addWidget(QLabel(_("Click Save Torch selection, then restart the application before starting a local transcription."), page))
-        page_layout.addStretch(1)
-        self._page_stack.addWidget(page)
 
     def _show_page(self, page_index : int) -> None:
         """Show one setup page and configure only its relevant navigation buttons."""
@@ -585,10 +564,8 @@ class TorchSetupDialog(QDialog):
 
         self._back_button.setVisible(page_index == 1 or (page_index == 2 and self._installation_failed))
         self._back_button.setEnabled(page_index == 1 or (page_index == 2 and self._installation_failed))
-        self._next_button.setVisible(page_index in (0, 1) or (page_index == 2 and self._installation_complete))
-        self._next_button.setEnabled(page_index in (0, 1) or (page_index == 2 and self._installation_complete))
-        self._finish_button.setVisible(page_index == 3)
-        self._cancel_button.setVisible(page_index != 3)
+        self._next_button.setVisible(page_index in (0, 1))
+        self._next_button.setEnabled(page_index in (0, 1))
 
         if page_index == 0:
             self._on_choice_changed()
@@ -597,8 +574,6 @@ class TorchSetupDialog(QDialog):
             self._next_button.setText(
                 _("Install CPU-only Torch") if self._requires_cpu_confirmation() else _("Install Torch"))
             self._next_button.setEnabled(self._can_start_install())
-        elif page_index == 2:
-            self._next_button.setText(_("Continue"))
 
     def _on_choice_changed(self) -> None:
         """Update the first-page action to match the selected setup route."""
@@ -618,7 +593,6 @@ class TorchSetupDialog(QDialog):
             if self._existing_radio.isChecked():
                 if self._existing_path:
                     self._validate_and_accept(self._existing_path)
-                    self._show_page(3)
             else:
                 self._show_page(1)
             return
@@ -626,10 +600,6 @@ class TorchSetupDialog(QDialog):
         if self._current_page == 1:
             if self._on_install():
                 self._show_page(2)
-            return
-
-        if self._current_page == 2 and self._installation_complete:
-            self._show_page(3)
 
     def _on_back(self) -> None:
         """Return to the previous setup choice when no installation is running."""
@@ -724,7 +694,6 @@ class TorchSetupDialog(QDialog):
             return False
 
         self._install_error_label.clear()
-        self._installation_complete = False
         self._installation_failed = False
         self._step_status_label.setText(_("Step 1 of 2: Creating the private Python environment..."))
         self._log_output.clear()
@@ -841,22 +810,12 @@ class TorchSetupDialog(QDialog):
                 self._log(_("The installation may not work with this application."))
 
         self.chosen_path = directory
-        self._installation_complete = True
-        self._installation_failed = False
-        self._completion_path_label.setText(_("Selected environment: {path}").format(path=directory))
-        self._completion_summary.setText(_("Torch is installed and the environment has been selected."))
-        self._step_status_label.setText(_("Installation complete. Click Continue to review the selected environment."))
-        self._show_page(2)
-
-    def _on_accept(self) -> None:
-        """Show a restart reminder and accept the selected environment."""
-        if not self.chosen_path:
-            return
 
         QMessageBox.information(
             self,
             _("Restart Required"),
-            _("The application needs to be restarted for the new Torch installation to take effect."),
+            _("Torch environment selected at:\n{path}\n\n"
+              "The application needs to be restarted for the change to take effect.").format(path=directory),
         )
         self.accept()
 
