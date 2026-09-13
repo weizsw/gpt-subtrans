@@ -35,6 +35,8 @@ try:
 
         information = _("""
         <p>Transcribe audio on your local machine with Qwen3-ASR.</p>
+        <p>The first transcription downloads model weights (~6 GB) to the
+        Hugging Face cache. Subsequent runs reuse the cached files.</p>
         """)
 
         aligner_models = [_ALIGNER_CHECKPOINT]
@@ -48,7 +50,7 @@ try:
         @property
         def recommended_min_chunk_seconds(self) -> float:
             """Short chunks fit the default generation budget and GPU memory."""
-            return 8.0
+            return 30.0
 
         @property
         def recommended_max_chunk_seconds(self) -> float:
@@ -61,7 +63,7 @@ try:
                 'language': settings.get_str('language', os.getenv('TRANSCRIPTION_LANGUAGE')),
                 'device': settings.get_str('device', os.getenv('QWEN_LOCAL_DEVICE', 'auto')),
                 'aligner_model': settings.get_str('aligner_model', os.getenv('QWEN_ALIGNER_MODEL', _ALIGNER_CHECKPOINT)),
-                'max_new_tokens': settings.get_int('max_new_tokens', env_int('QWEN_MAX_NEW_TOKENS', 1024)),
+                'max_new_tokens': settings.get_int('max_new_tokens', env_int('QWEN_MAX_NEW_TOKENS', 2048)),
                 'request_timeout': settings.get_float('request_timeout', env_float('TRANSCRIPTION_TIMEOUT', 300.0)),
                 'rate_limit': settings.get_float('rate_limit', env_float('QWEN_TRANSCRIPTION_RATE_LIMIT')),
                 'allow_cpu_fallback': settings.get_bool('allow_cpu_fallback', False),
@@ -131,6 +133,7 @@ try:
                 ])
             elif torch_device == "Unknown":
                 notes.append(_("<p>Torch is configured but has not been verified by a transcription yet.</p>"))
+                notes.append(_("<p>The first transcription will download model weights (~6 GB) to the Hugging Face cache.</p>"))
             elif "cpu" in torch_device.casefold():
                 if self.settings.get_bool('allow_cpu_fallback', False):
                     notes.append(_("<p>Running on CPU: transcription will work but likely much slower than on a GPU.</p>"))
