@@ -35,6 +35,7 @@ fi
 ./envsubtrans/bin/pyinstaller --noconfirm \
     --additional-hooks-dir="hooks" \
     --exclude-module torch --exclude-module torchgen \
+    --runtime-hook "hooks/rthook-nagisa-compat.py" \
     --paths="./envsubtrans/lib" \
     --add-data "theme/*:theme/" \
     --add-data "assets/*:assets/" \
