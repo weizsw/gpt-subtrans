@@ -654,12 +654,14 @@ class TranscriptionDialog(QDialog):
         self._abort_requested = False
         self.active_command = command
 
+        command.statusChanged.connect(self._on_status, Qt.ConnectionType.QueuedConnection)
         command.progressed.connect(self._on_progress, Qt.ConnectionType.QueuedConnection)
         command.audioProgressed.connect(self._on_audio_progress, Qt.ConnectionType.QueuedConnection)
         command.segmented.connect(self._on_segment, Qt.ConnectionType.QueuedConnection)
 
         self._show_results(True)
         self.status_label.setText(status)
+        self.progress_bar.setRange(0, 0)  # Indeterminate until first progress
 
         # Connect before submission so even an immediate failure is observed.
         self._completion_slot = self._defer_command_completed
@@ -668,6 +670,7 @@ class TranscriptionDialog(QDialog):
 
     def _release(self, command : TranscribeMediaCommand) -> None:
         """Stop observing a finished command."""
+        command.statusChanged.disconnect(self._on_status)
         command.progressed.disconnect(self._on_progress)
         command.audioProgressed.disconnect(self._on_audio_progress)
         command.segmented.disconnect(self._on_segment)
@@ -685,6 +688,10 @@ class TranscriptionDialog(QDialog):
             self._set_close_enabled(True)
             self.active_command.FinishEarly()
             self.status_label.setText(_("Aborting..."))
+
+    @Slot(str)
+    def _on_status(self, text : str) -> None:
+        self.status_label.setText(text)
 
     @Slot(int, int, str)
     def _on_progress(self, done : int, total : int, span : str) -> None:
