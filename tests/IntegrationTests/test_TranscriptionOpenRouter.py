@@ -174,7 +174,7 @@ class TestOpenRouterCatalog(LoggedTestCase):
             mock_client.return_value.__enter__.return_value.get.return_value = self._mock_get("")
             models = provider.GetAvailableModels()
 
-        self.assertLoggedIn("fallback model", "openai/whisper-large-v3", models)
+        self.assertLoggedIn("fallback model", OpenRouterTranscriptionProvider.default_transcription_model, models)
 
     def test_malformed_catalog_falls_back(self):
         """Non-JSON catalog responses degrade without raising anything."""
@@ -184,7 +184,7 @@ class TestOpenRouterCatalog(LoggedTestCase):
             mock_client.return_value.__enter__.return_value.get.return_value = self._mock_get("not json{")
             models = provider.GetAvailableModels()
 
-        self.assertLoggedIn("fallback model", "openai/whisper-large-v3", models)
+        self.assertLoggedIn("fallback model", OpenRouterTranscriptionProvider.default_transcription_model, models)
 
     def test_html_catalog_body_falls_back(self):
         """HTML error pages degrade without raising anything."""
@@ -195,7 +195,7 @@ class TestOpenRouterCatalog(LoggedTestCase):
                 "<!DOCTYPE html><html>Bad Gateway</html>")
             models = provider.GetAvailableModels()
 
-        self.assertLoggedIn("fallback model", "openai/whisper-large-v3", models)
+        self.assertLoggedIn("fallback model", OpenRouterTranscriptionProvider.default_transcription_model, models)
 
     def test_unreachable_catalog_falls_back(self):
         """Unreachable catalogs degrade without raising anything."""
@@ -204,10 +204,10 @@ class TestOpenRouterCatalog(LoggedTestCase):
         with patch('httpx.Client', side_effect=Exception("unreachable")):
             models = provider.GetAvailableModels()
 
-        self.assertLoggedIn("fallback model", "openai/whisper-large-v3", models)
+        self.assertLoggedIn("fallback model", OpenRouterTranscriptionProvider.default_transcription_model, models)
 
 class TestOpenRouterClient(LoggedTestCase):
-    def _client(self, model : str = "openai/whisper-large-v3", diarize : bool = False):
+    def _client(self, model : str = OpenRouterTranscriptionProvider.default_transcription_model, diarize : bool = False):
         return OpenRouterTranscriptionClient(SettingsType({
             'server_address': 'http://127.0.0.1:9/v1', 'api_key': 'test-key',
             'model': model, 'diarize': diarize,
@@ -217,7 +217,7 @@ class TestOpenRouterClient(LoggedTestCase):
         """Usage blocks attach duration and billed cost to the result."""
         client = OpenRouterTranscriptionClient(SettingsType({
             'server_address': 'http://127.0.0.1:9/v1', 'api_key': 'test-key',
-            'model': 'openai/whisper-large-v3',
+            'model': OpenRouterTranscriptionProvider.default_transcription_model,
         }))
 
         with patch('httpx.Client') as mock_client:

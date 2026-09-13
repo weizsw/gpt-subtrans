@@ -28,6 +28,8 @@ class OpenRouterTranscriptionProvider(TranscriptionProvider):
     # Endpoint and quotas live in Settings; model, diarization and language vary per job
     advanced_settings = ['api_key', 'request_timeout', 'rate_limit']
 
+    default_transcription_model = 'microsoft/mai-transcribe-2'
+
     @property
     def recommended_min_chunk_seconds(self) -> float:
         """Short chunks bound base64 request bodies and the blast radius of retries."""
@@ -42,7 +44,7 @@ class OpenRouterTranscriptionProvider(TranscriptionProvider):
         super().__init__(self.name, SettingsType({
             'api_key': settings.get_str('api_key', os.getenv('OPENROUTER_API_KEY')),
             'server_address': settings.get_str('server_address', os.getenv('OPENROUTER_SERVER_ADDRESS', 'https://openrouter.ai/api/v1')),
-            'model': settings.get_str('model', os.getenv('OPENROUTER_STT_MODEL', 'openai/whisper-large-v3')),
+            'model': settings.get_str('model', os.getenv('OPENROUTER_STT_MODEL', 'microsoft/mai-transcribe-2')),
             'language': settings.get_str('language', os.getenv('TRANSCRIPTION_LANGUAGE')),
             'diarize': settings.get_bool('diarize', False),
             'request_timeout': settings.get_float('request_timeout', env_float('TRANSCRIPTION_TIMEOUT', 300.0)),
@@ -68,10 +70,7 @@ class OpenRouterTranscriptionProvider(TranscriptionProvider):
         if models:
             return models
 
-        return ['openai/whisper-large-v3', 'openai/whisper-large-v3-turbo',
-                'qwen/qwen3-asr-1.7b', 'qwen/qwen3-asr-0.6b',
-                'microsoft/mai-transcribe-2', 'google/chirp-3',
-                'x-ai/grok-stt-1.0']
+        return ["microsoft/mai-transcribe-2", "deepgram/nova-3", "openai/whisper-large-v3-turbo", "x-ai/grok-stt-1.0"]
 
     def GetTranscriptionClient(self, settings : SettingsType) -> TranscriptionClient:
         """Returns a new client merging provider defaults with call settings."""

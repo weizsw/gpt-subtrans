@@ -35,8 +35,8 @@ class OpenRouterTranscriptionClient(TranscriptionClient):
 
     @property
     def model(self) -> str:
-        """STT model slug, e.g. openai/whisper-large-v3."""
-        return self.settings.get_str('model') or 'openai/whisper-large-v3'
+        """STT model slug, e.g. microsoft/mai-transcribe-2."""
+        return self.settings.get_str('model') or 'microsoft/mai-transcribe-2'
 
     @property
     def diarize(self) -> bool:
