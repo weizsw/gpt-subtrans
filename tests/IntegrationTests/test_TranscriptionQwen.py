@@ -30,10 +30,10 @@ class TestQwenLocalProvider(LoggedTestCase):
 
         self.assertLoggedIn("qwen present", "Qwen Local", providers)
 
-    def test_options_ungated(self):
-        """Keyless local provider always shows the full schema."""
+    def test_options_ungated_when_torch_configured(self):
+        """Full schema is shown when torch_installation_directory is set."""
         assert QwenLocalProvider is not None  # Type narrowing for PyLance
-        provider = QwenLocalProvider(SettingsType())
+        provider = QwenLocalProvider(SettingsType({'torch_installation_directory': '/fake/path'}))
         options = provider.GetOptions(provider.settings)
 
         for key in ("model", "language", "device", "aligner_model", "max_new_tokens", "rate_limit",
@@ -42,9 +42,17 @@ class TestQwenLocalProvider(LoggedTestCase):
         self.assertLoggedIn("checkpoint", "Qwen/Qwen3-ASR-1.7B", provider.GetAvailableModels())
 
         self.assertLoggedEqual("CPU fallback default", False, provider.settings.get_bool('allow_cpu_fallback'))
-        self.assertLoggedEqual("Torch directory default", '', provider.settings.get_str('torch_installation_directory'))
         self.assertLoggedIn("CPU fallback is advanced", "allow_cpu_fallback", provider.advanced_settings)
         self.assertLoggedIn("Torch directory is advanced", "torch_installation_directory", provider.advanced_settings)
+
+    def test_options_progressive_disclosure_when_unconfigured(self):
+        """Only the torch setup option is shown when torch is not configured."""
+        assert QwenLocalProvider is not None  # Type narrowing for PyLance
+        provider = QwenLocalProvider(SettingsType())
+        options = provider.GetOptions(provider.settings)
+
+        self.assertLoggedIn("torch_installation_directory shown", "torch_installation_directory", options)
+        self.assertLoggedEqual("only one option", 1, len(options))
 
     def test_provider_information_has_no_none_literal(self):
         """Provider information contains no interpolation artefacts."""
@@ -55,15 +63,25 @@ class TestQwenLocalProvider(LoggedTestCase):
         self.assertLoggedIsNotNone("provider information", info)
         self.assertNotIn('None', info)
 
-    def test_provider_information_warns_for_enabled_cpu_fallback(self):
-        """Enabling CPU fallback adds an explicit emergency-speed disclaimer."""
+    def test_provider_information_explains_torch_setup_when_unconfigured(self):
+        """Unconfigured Qwen Local explains how to install and select Torch."""
         assert QwenLocalProvider is not None  # Type narrowing for PyLance
-        provider = QwenLocalProvider(SettingsType({'allow_cpu_fallback': True}))
-        info = provider.GetInformation(torch_device='cuda:0')
+        provider = QwenLocalProvider(SettingsType())
+        info = provider.GetInformation(ffmpeg_available=True)
 
         self.assertLoggedIsNotNone("provider information", info)
-        self.assertIn('emergency fallback', info)
-        self.assertIn('extremely slow', info)
+        if info:
+            self.assertLoggedIn(f"Torch setup guidance", "Torch setup required", info)
+
+    def test_provider_information_hides_setup_guidance_when_configured(self):
+        """Configured Qwen Local does not repeat the initial setup walkthrough."""
+        assert QwenLocalProvider is not None  # Type narrowing for PyLance
+        provider = QwenLocalProvider(SettingsType({'torch_installation_directory': '/fake/path'}))
+        info = provider.GetInformation(ffmpeg_available=True, torch_device='cuda:0')
+
+        self.assertLoggedIsNotNone("provider information", info)
+        if info:
+            self.assertLoggedNotIn("setup guidance omitted", "Torch setup required", info)
 
     def test_cpu_fallback_setting_refreshes_provider_information(self):
         """The settings dialog refreshes the disclaimer when consent changes."""
@@ -72,12 +90,17 @@ class TestQwenLocalProvider(LoggedTestCase):
 
         self.assertLoggedIn('CPU fallback refresh trigger', 'allow_cpu_fallback', provider.refresh_when_changed)
 
-    def test_validate_needs_no_key(self):
-        """Local inference validates without credentials."""
+    def test_validate_requires_torch_directory(self):
+        """ValidateSettings returns False when torch_installation_directory is empty."""
         assert QwenLocalProvider is not None  # Type narrowing for PyLance
         provider = QwenLocalProvider(SettingsType())
+        self.assertLoggedEqual("invalid without torch", False, provider.ValidateSettings())
 
-        self.assertLoggedEqual("valid by default", True, provider.ValidateSettings())
+    def test_validate_passes_with_torch_directory(self):
+        """ValidateSettings returns True when torch_installation_directory is set."""
+        assert QwenLocalProvider is not None  # Type narrowing for PyLance
+        provider = QwenLocalProvider(SettingsType({'torch_installation_directory': '/fake/path'}))
+        self.assertLoggedEqual("valid with torch", True, provider.ValidateSettings())
 
     @patch.object(qwen_module, "_load_qwen_dependencies", side_effect=ImportError("missing torch"))
     def test_missing_torch_returns_coordinator_compatible_error(self, _load_dependencies):
@@ -228,7 +251,7 @@ class TestQwenLocalDevice(LoggedTestCase):
     def test_options_offer_accelerators(self):
         """The device dropdown lists every supported backend."""
         assert QwenLocalProvider is not None  # Type narrowing for PyLance
-        provider = QwenLocalProvider(SettingsType())
+        provider = QwenLocalProvider(SettingsType({'torch_installation_directory': '/fake/path'}))
         options = provider.GetOptions(provider.settings)
         devices, _tooltip = options['device']
 

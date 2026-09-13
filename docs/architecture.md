@@ -80,12 +80,14 @@ from bundled Transformers and Accelerate.
 
 After PyInstaller completes, the distro scripts run
 `scripts/prepare_external_torch.py --metadata-only`, writing
-`frozen-python-compatibility.json` in the frozen application without creating a
-Torch directory or copying any Torch files into the deliverable. The helper's
-`--prepare-external-dir` and `--validate-external-dir` modes operate on a complete
-user-managed venv/site-packages location; they never reconstruct package or
-native dependency files. Users selecting a hardware build should use the official
-PyTorch selector.
+`frozen-python-compatibility.json` into the frozen application's
+`_internal/assets/` directory (PyInstaller 6+ layout). At runtime, the metadata
+is located via `GetResourcePath("assets", METADATA_FILENAME)`, which resolves
+through `sys._MEIPASS` in frozen builds and `./assets/` in development. The
+helper's `--prepare-external-dir` and `--validate-external-dir` modes operate on
+a complete user-managed venv/site-packages location; they never reconstruct
+package or native dependency files. Users selecting a hardware build should use
+the official PyTorch selector.
 
 Both external setup modes require `--frozen-metadata` pointing to the frozen
 application's JSON. Schema version 1 uses `compatibility` fields
@@ -98,6 +100,28 @@ and POSIX `lib/pythonX.Y/site-packages`; a root containing `torch` or a
 interpreter and checks directory presence and compatibility, not Torch import or
 native dependency readiness. PyInstaller failure stops every distro script before
 metadata generation.
+
+#### TorchValidation (Shared Module)
+
+`PySubtrans/Transcription/TorchValidation.py` is the single source of truth for
+Torch installation discovery and ABI compatibility checking. It lives outside
+`Providers/` so the `ProviderImportGuard` is irrelevant, and has no Torch or Qt
+imports — only stdlib and `PySubtrans.Helpers`.
+
+Three consumers import from it:
+
+| Consumer | Uses |
+|----------|------|
+| `TorchRuntime.py` | Validates frozen metadata at startup before putting the external venv on `sys.path` |
+| `prepare_external_torch.py` | Stamps metadata at build time, validates external venvs via CLI |
+| `TorchSetupDialog.py` | Validates ABI compatibility in the GUI wizard before accepting a user-selected venv |
+
+Key functions:
+- **`normalise_architecture()`** — merged alias table covering both x86 and ARM variants
+- **`candidate_site_packages_paths()` / `find_torch_site_packages()`** — canonical site-packages resolution for all layout variants
+- **`build_current_compatibility()`** — builds the 6-field compatibility dict from the running interpreter
+- **`find_compatibility_metadata()`** — locates the metadata file via `GetResourcePath`
+- **`read_compatibility_metadata()` / `check_compatibility()`** — reads and validates metadata, with an `error_type` parameter so each consumer raises its own exception type
 
 The CLI entry point is `scripts/transcribe.py`; the GUI runs the same coordinator through `TranscribeMediaCommand`.
 

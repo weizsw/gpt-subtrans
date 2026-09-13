@@ -46,7 +46,7 @@ if errorlevel 1 (
 
 .\envsubtrans\Scripts\python.exe scripts\prepare_external_torch.py ^
     --metadata-only ^
-    --metadata-path "dist\gui-subtrans\frozen-python-compatibility.json"
+    --metadata-path "dist\gui-subtrans\_internal\assets\frozen-python-compatibility.json"
 if errorlevel 1 (
     echo Failed to write frozen Python compatibility metadata.
     exit /b 1

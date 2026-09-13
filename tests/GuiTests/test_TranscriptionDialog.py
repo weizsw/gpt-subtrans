@@ -278,6 +278,27 @@ class TestTranscriptionDialogLayout(LoggedTestCase):
             dialog.deleteLater()
             self.application.processEvents()
 
+    def test_transcribe_button_requires_valid_provider_settings(self) -> None:
+        """Transcribe stays disabled until the selected provider is valid."""
+        options = Options()
+        with patch.object(TranscriptionDialog, '_refresh_providers'):
+            dialog = TranscriptionDialog(options)
+        try:
+            provider = FakeTranscriptionProvider()
+            dialog.provider = provider
+            dialog.media_path = __file__
+
+            with patch.object(provider, 'ValidateSettings', return_value=False):
+                dialog._update_settings_link()
+                self.assertLoggedFalse('invalid provider disables Transcribe', dialog.transcribe_button.isEnabled())
+
+            with patch.object(provider, 'ValidateSettings', return_value=True):
+                dialog._update_settings_link()
+                self.assertLoggedTrue('valid provider enables Transcribe', dialog.transcribe_button.isEnabled())
+        finally:
+            dialog.deleteLater()
+            self.application.processEvents()
+
     def test_invalid_chunk_bounds_are_rejected_before_command_creation(self) -> None:
         """Invalid chunk bounds are reported before a worker can start."""
         options = Options()

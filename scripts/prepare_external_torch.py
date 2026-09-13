@@ -3,55 +3,50 @@
 import argparse
 import json
 import logging
-import platform
 from pathlib import Path
 import subprocess
-import struct
 import sys
-import sysconfig
+
+from PySubtrans.Transcription.TorchValidation import (
+    METADATA_FILENAME,
+    OFFICIAL_PYTORCH_SELECTOR,
+    build_current_compatibility,
+    check_compatibility,
+    find_torch_site_packages,
+    get_python_abi,
+    read_compatibility_metadata,
+)
 
 
-OFFICIAL_PYTORCH_SELECTOR = "https://pytorch.org/get-started/locally/"
-METADATA_FILENAME = "frozen-python-compatibility.json"
 PROBE_TIMEOUT_SECONDS = 15
 
 
 def BuildCompatibilityMetadata() -> dict[str, object]:
     """Return compatibility data derived from the active Python interpreter."""
+    compatibility = build_current_compatibility()
+    python_abi = get_python_abi()
     version = sys.version_info
-    python_version = f"{version.major}.{version.minor}.{version.micro}"
-    python_abi = _GetPythonAbi()
-    operating_system = platform.system() or sys.platform
-    architecture = platform.machine() or "unknown"
-    pointer_bits = struct.calcsize("P") * 8
 
     return {
         "schema_version": 1,
         "kind": "llm-subtrans-frozen-python-compatibility",
         "python_abi": python_abi,
         "python_version": f"{version.major}.{version.minor}",
-        "os": operating_system,
-        "architecture": architecture,
+        "os": compatibility["os"],
+        "architecture": compatibility["architecture"],
         "python": {
             "implementation": sys.implementation.name,
-            "version": python_version,
+            "version": f"{version.major}.{version.minor}.{version.micro}",
             "abi": python_abi,
             "cache_tag": sys.implementation.cache_tag,
         },
         "platform": {
-            "os": operating_system,
+            "os": compatibility["os"],
             "sys_platform": sys.platform,
-            "architecture": architecture,
-            "pointer_bits": pointer_bits,
+            "architecture": compatibility["architecture"],
+            "pointer_bits": compatibility["pointer_bits"],
         },
-        "compatibility": {
-            "python_implementation": sys.implementation.name,
-            "python_abi": python_abi,
-            "python_version": f"{version.major}.{version.minor}",
-            "os": operating_system,
-            "architecture": architecture,
-            "pointer_bits": pointer_bits,
-        },
+        "compatibility": compatibility,
         "torch": {
             "installation": "external",
             "package_policy": "user-installed-complete-runtime",
@@ -74,8 +69,8 @@ def PrepareExternalTorch(
     frozen_metadata = ReadCompatibilityMetadata(frozen_metadata_path)
     python_executable = _GetVenvPython(output_root)
     actual = (_ProbePythonCompatibility(python_executable) if python_executable is not None
-              else BuildCompatibilityMetadata()["compatibility"])
-    _CheckCompatibility(actual, frozen_metadata["compatibility"])
+              else build_current_compatibility())
+    check_compatibility(actual, _get_compatibility_section(frozen_metadata))
     output_root.mkdir(parents=True, exist_ok=True)
     _GetSitePackagesDirectory(output_root, create=True)
 
@@ -107,47 +102,24 @@ def ValidateExternalTorch(installation_directory : str|Path, frozen_metadata_pat
         )
 
     actual = _ProbePythonCompatibility(python_executable)
-    _CheckCompatibility(actual, frozen_metadata["compatibility"])
+    check_compatibility(actual, _get_compatibility_section(frozen_metadata))
 
     logging.info("Torch directory present; interpreter matches frozen metadata: %s", installation_root)
     logging.info("Torch import, native dependencies, and accelerator availability have not been tested.")
     return installation_root
 
 
+def _get_compatibility_section(metadata : dict[str, object]) -> dict[str, object]:
+    """Extract the validated compatibility dict from full metadata."""
+    compatibility = metadata["compatibility"]
+    if not isinstance(compatibility, dict):
+        raise ValueError("Missing compatibility section in metadata.")
+    return compatibility
+
+
 def ReadCompatibilityMetadata(metadata_path : str|Path) -> dict[str, object]:
     """Read the frozen build's required schema, rejecting incomplete targets."""
-    metadata = json.loads(Path(metadata_path).expanduser().read_text(encoding="utf-8"))
-    if not isinstance(metadata, dict) or metadata.get("schema_version") != 1 or metadata.get("kind") != "llm-subtrans-frozen-python-compatibility":
-        raise ValueError("Unsupported frozen Python compatibility metadata.")
-
-    compatibility = metadata.get("compatibility")
-    fields = ("python_implementation", "python_abi", "python_version", "os", "architecture")
-    if not isinstance(compatibility, dict) or any(
-        not isinstance(compatibility.get(key), str) or not compatibility[key] for key in fields
-    ) or type(compatibility.get("pointer_bits")) is not int or compatibility["pointer_bits"] not in (32, 64):
-        raise ValueError("Frozen Python metadata has missing or invalid compatibility fields.")
-    return metadata
-
-
-def _CheckCompatibility(actual : object, expected : object) -> None:
-    """Compare interpreter facts to the frozen target, accepting architecture aliases."""
-    if not isinstance(actual, dict) or not isinstance(expected, dict):
-        raise ValueError("Invalid interpreter compatibility facts.")
-
-    aliases = {"amd64": "x8664", "aarch64": "arm64", "i386": "x86", "i686": "x86"}
-    mismatches : list[str] = []
-    for key in ("python_implementation", "python_abi", "python_version", "os", "architecture", "pointer_bits"):
-        observed = actual.get(key)
-        required = expected.get(key)
-        if key == "architecture":
-            observed = str(observed).casefold().replace("-", "").replace("_", "")
-            required = str(required).casefold().replace("-", "").replace("_", "")
-            observed = aliases.get(observed, observed)
-            required = aliases.get(required, required)
-        if observed != required:
-            mismatches.append(f"{key}: external={observed!r}, frozen={required!r}")
-    if mismatches:
-        raise RuntimeError("Interpreter does not match frozen application: " + "; ".join(mismatches))
+    return read_compatibility_metadata(metadata_path)
 
 
 def WriteCompatibilityMetadata(metadata_path : str|Path) -> dict[str, object]:
@@ -217,23 +189,20 @@ def main(arguments : list[str]|None = None) -> int:
     return 0
 
 
-def _GetPythonAbi() -> str:
-    """Return the interpreter cache tag used by compatible extension wheels."""
-    cache_tag = sys.implementation.cache_tag
-    if cache_tag:
-        return cache_tag
-
-    soabi = sysconfig.get_config_var("SOABI")
-    if soabi:
-        return str(soabi)
-    return f"{sys.implementation.name}{sys.version_info.major}{sys.version_info.minor}"
-
-
 def _GetSitePackagesDirectory(root : Path, create : bool) -> Path:
-    """Resolve a runtime layout supported by TorchRuntime."""
-    candidates = [root, root / "site-packages", root / "Lib" / "site-packages"]
-    candidates.extend(sorted(root.glob("lib/python*/site-packages")))
-    for candidate in candidates:
+    """Resolve a runtime layout supported by TorchRuntime.
+
+    For lookup (create=False), delegates to find_torch_site_packages first,
+    then falls back to glob-based discovery for venvs with non-standard Python
+    versions.  For creation, picks the best directory layout to create.
+    """
+    # Try the standard candidates via the shared module
+    found = find_torch_site_packages(root)
+    if found is not None:
+        return found
+
+    # Glob-based fallback for venvs whose Python version differs from ours
+    for candidate in sorted(root.glob("lib/python*/site-packages")):
         if (candidate / "torch").is_dir():
             return candidate
 

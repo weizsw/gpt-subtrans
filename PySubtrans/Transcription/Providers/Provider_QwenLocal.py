@@ -8,6 +8,7 @@ from PySubtrans.Helpers.Parse import TryParseFloat
 from PySubtrans.Options import env_float, env_int
 from PySubtrans.SettingsType import GuiSettingsType, SettingsType
 from PySubtrans.SubtitleError import SubtitleError
+from PySubtrans.Transcription.Providers.TorchRuntime import TorchConfigOption
 from PySubtrans.Transcription.WordTiming import WordTiming
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
@@ -69,16 +70,22 @@ try:
         """)
 
         def _get_provider_information(self, torch_device : str = "Unknown") -> str|None:
-            """Describe torch setup and any explicitly enabled CPU fallback."""
+            """Describe Torch setup and any explicitly enabled CPU fallback."""
             base = super()._get_provider_information(torch_device)
             notes : list[str] = []
-            if torch_device == "Unknown":
-                notes.append(_("<p>Needs a working torch install; see the <a href=\"https://pytorch.org/get-started/locally/\">official PyTorch installation page</a>.</p>"))
-            elif "cpu" in torch_device.casefold():
-                notes.append(_("<p>Running on CPU: transcription will work but much slower than on a GPU.</p>"))
 
-            if self.settings.get_bool('allow_cpu_fallback', False):
-                notes.append(_("<p>CPU inference is enabled as an emergency fallback and may be impractically or extremely slow.</p>"))
+            if not self.settings.get_str('torch_installation_directory'):
+                notes.extend([
+                    _("<p><b>Torch setup required:</b> Qwen3-ASR needs a separate PyTorch installation. The correct build depends on your operating system and hardware.</p>"),
+                    _("<p>Click <b>Set up Torch...</b> to detect available hardware and install a suitable Torch build.</p>"),
+                ])
+            elif torch_device == "Unknown":
+                notes.append(_("<p>Torch is configured but has not been verified by a transcription yet.</p>"))
+            elif "cpu" in torch_device.casefold():
+                if self.settings.get_bool('allow_cpu_fallback', False):
+                    notes.append(_("<p>Running on CPU: transcription will work but likely much slower than on a GPU.</p>"))
+                else:
+                    notes.append(_("<p>CPU inference is disabled. Enable it if you accept the performance implications.</p>"))
 
             parts = [part for part in [base, *notes] if part]
             return "\n".join(parts) if parts else None
@@ -111,7 +118,8 @@ try:
                 'allow_cpu_fallback': settings.get_bool('allow_cpu_fallback', False),
                 'torch_installation_directory': settings.get_str('torch_installation_directory', ''),
             }))
-            self.refresh_when_changed = ['allow_cpu_fallback']
+
+            self.refresh_when_changed = ['allow_cpu_fallback', 'torch_installation_directory']
 
         def GetAvailableModels(self) -> list[str]:
             """ASR checkpoints served by this provider."""
@@ -130,8 +138,22 @@ try:
             return QwenLocalClient(client_settings)
 
         def GetOptions(self, settings : SettingsType) -> GuiSettingsType:
-            """Returns the configurable options for the provider."""
-            return {
+            """Returns the configurable options for the provider.
+
+            Uses progressive disclosure: when torch_installation_directory is
+            not configured, only the torch directory setting is shown so the
+            user focuses on the critical prerequisite first.
+            """
+            if not settings.get_str('torch_installation_directory'):
+                return {
+                    'torch_installation_directory': (
+                        TorchConfigOption,
+                        _("A Torch environment is required for local transcription"),
+                    ),
+                }
+
+            options : GuiSettingsType = {
+                'torch_installation_directory': (str, _("Directory of the Python environment containing Torch (restart after changing)")),
                 'model': (self.available_models, _("ASR checkpoint to run locally")),
                 'language': (str, _("Spoken language hint, e.g. Chinese or English (optional, auto-detected when empty)")),
                 'device': (['auto', 'cuda', 'mps', 'xpu', 'cpu'], _("Compute device for local inference (auto prefers CUDA, then MPS, then XPU)")),
@@ -139,8 +161,12 @@ try:
                 'max_new_tokens': (int, _("Generation budget per chunk (long chunks need headroom)")),
                 'rate_limit': (float, _("Maximum requests per minute (0 for unlimited; local inference is unmetered)")),
                 'allow_cpu_fallback': (bool, _("Allow emergency CPU fallback (may be impractically or extremely slow)")),
-                'torch_installation_directory': (str, _("Optional external Torch installation directory; restart after changing")),
             }
+            return options
+
+        def ValidateSettings(self) -> bool:
+            """Torch installation directory is required for local transcription."""
+            return bool(self.settings.get_str('torch_installation_directory'))
 
         def ResolveLanguageCode(self, language : str|None, display_language : str|None = None) -> str|None:
             """qwen-asr takes English language names ("Chinese", "English"), or None to auto-detect."""

@@ -26,7 +26,7 @@ pyinstaller --noconfirm --additional-hooks-dir="hooks" \
 
 ./envsubtrans/bin/python scripts/prepare_external_torch.py \
     --metadata-only \
-    --metadata-path "dist/gui-subtrans/frozen-python-compatibility.json" || exit 1
+    --metadata-path "dist/gui-subtrans/_internal/assets/frozen-python-compatibility.json" || exit 1
 
 pip install pip-audit
 python -m pip_audit

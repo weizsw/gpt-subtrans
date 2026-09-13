@@ -47,7 +47,7 @@ fi
 
 ./envsubtrans/bin/python scripts/prepare_external_torch.py \
     --metadata-only \
-    --metadata-path "dist/gui-subtrans/frozen-python-compatibility.json" || exit 1
+    --metadata-path "dist/gui-subtrans/_internal/assets/frozen-python-compatibility.json" || exit 1
 
 ./envsubtrans/bin/python -m pip install pip-audit
 ./envsubtrans/bin/python -m pip_audit

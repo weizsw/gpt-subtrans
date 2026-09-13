@@ -364,10 +364,26 @@ class TranscriptionDialog(QDialog):
         """
         if self.provider is None:
             self.settings_button.setVisible(False)
+            self._update_transcribe_button()
             return
 
+        provider_valid = self._provider_is_valid()
+        self.settings_button.setVisible(not provider_valid)
+        self._update_transcribe_button()
+
+    def _provider_is_valid(self) -> bool:
+        """Return whether the current provider has valid, current settings."""
+        if self.provider is None:
+            return False
+
         self._apply_provider_fields(self.provider)
-        self.settings_button.setVisible(not self.provider.ValidateSettings())
+        return self.provider.ValidateSettings()
+
+    def _update_transcribe_button(self) -> None:
+        """Enable Transcribe only when setup can create a valid command."""
+        media_valid = bool(self.media_path and os.path.isfile(self.media_path))
+        provider_valid = self._provider_is_valid() if media_valid else False
+        self.transcribe_button.setEnabled(self._phase == "setup" and media_valid and provider_valid)
 
     def _update_language_warning(self) -> None:
         """
@@ -453,8 +469,7 @@ class TranscriptionDialog(QDialog):
         if self.media_path and os.path.isfile(self.media_path):
             self._load_tracks()
 
-        if self._phase == "setup":
-            self.transcribe_button.setEnabled(bool(self.media_path))
+        self._update_transcribe_button()
 
         self.progress_bar.setValue(0)
         self.results_view.clear()
@@ -818,7 +833,7 @@ class TranscriptionDialog(QDialog):
         self.progress_bar.setVisible(False)
 
         self.transcribe_button.setVisible(True)
-        self.transcribe_button.setEnabled(bool(self.media_path))
+        self._update_transcribe_button()
         self.resume_button.setVisible(self._can_resume)
         self.resume_button.setEnabled(self._can_resume and bool(self.media_path))
         self.abort_button.setVisible(False)

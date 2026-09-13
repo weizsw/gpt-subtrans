@@ -18,6 +18,10 @@ from PySubtrans.version import __version__
 
 MULTILINE_OPTION = 'multiline'
 
+class ConfigActionOption:
+    """Sentinel base for settings that need an action button."""
+    label : str = ""
+
 # Load environment variables from .env file
 dotenv.load_dotenv()
 

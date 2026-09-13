@@ -74,6 +74,7 @@ class TestTorchRuntime(LoggedTestCase):
                 'kind': 'llm-subtrans-frozen-python-compatibility',
                 'schema_version': 1,
                 'compatibility': {
+                    'python_implementation': sys.implementation.name,
                     'python_abi': sys.implementation.cache_tag,
                     'python_version': f'{version.major}.{version.minor}',
                     'os': platform.system(),
@@ -81,9 +82,10 @@ class TestTorchRuntime(LoggedTestCase):
                     'pointer_bits': struct.calcsize('P') * 8,
                 },
             }
-            (root / TorchRuntime.METADATA_FILENAME).write_text(json.dumps(metadata), encoding='utf-8')
+            metadata_path = root / TorchRuntime.METADATA_FILENAME
+            metadata_path.write_text(json.dumps(metadata), encoding='utf-8')
 
-            with patch.object(TorchRuntime.sys, 'frozen', True, create=True):
+            with patch('PySubtrans.Transcription.Providers.TorchRuntime.find_compatibility_metadata', return_value=metadata_path):
                 with self.assertRaises(TorchRuntime.TorchRuntimeError) as context:
                     with patch.object(TorchRuntime.PathFinder, 'find_spec', return_value=object()):
                         TorchRuntime.PrepareTorchRuntime(directory)
