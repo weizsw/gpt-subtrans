@@ -1,6 +1,7 @@
+import importlib.util
+import tempfile
 import unittest
 from datetime import timedelta
-import tempfile
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import Mock, patch
@@ -12,17 +13,15 @@ from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.TranscriptionCoordinator import TranscriptionCoordinator
 from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionStatus
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
-from PySubtrans.Transcription.Providers.Provider_QwenLocal import parse_qwen_result
-import PySubtrans.Transcription.Providers.Provider_QwenLocal as _qwen_module
-import PySubtrans.Transcription.Providers.Clients.QwenLocalClient as qwen_module
+from PySubtrans.Transcription.Providers.Provider_QwenLocal import QwenLocalProvider
+from PySubtrans.Transcription.Providers.Clients import QwenLocalClient as qwen_module
 
-QwenLocalProvider = getattr(_qwen_module, 'QwenLocalProvider', None)
+QWEN_ASR_AVAILABLE = importlib.util.find_spec("qwen_asr") is not None
+QwenLocalClientClass = qwen_module.QwenLocalClient
 
 class TestQwenLocalProvider(LoggedTestCase):
     def setUp(self):
         super().setUp()
-        if QwenLocalProvider is None:
-            self.skipTest("qwen-asr not installed")
 
     def test_registered(self):
         """Qwen Local registers when its SDK is present."""
@@ -32,7 +31,6 @@ class TestQwenLocalProvider(LoggedTestCase):
 
     def test_options_ungated_when_torch_configured(self):
         """Full schema is shown when torch_installation_directory is set."""
-        assert QwenLocalProvider is not None  # Type narrowing for PyLance
         provider = QwenLocalProvider(SettingsType({'torch_installation_directory': '/fake/path'}))
         options = provider.GetOptions(provider.settings)
 
@@ -47,7 +45,6 @@ class TestQwenLocalProvider(LoggedTestCase):
 
     def test_options_progressive_disclosure_when_unconfigured(self):
         """Only the torch setup option is shown when torch is not configured."""
-        assert QwenLocalProvider is not None  # Type narrowing for PyLance
         provider = QwenLocalProvider(SettingsType())
         options = provider.GetOptions(provider.settings)
 
@@ -56,16 +53,15 @@ class TestQwenLocalProvider(LoggedTestCase):
 
     def test_provider_information_has_no_none_literal(self):
         """Provider information contains no interpolation artefacts."""
-        assert QwenLocalProvider is not None  # Type narrowing for PyLance
         provider = QwenLocalProvider(SettingsType())
         info = provider.GetInformation(torch_device='cuda:0')
 
         self.assertLoggedIsNotNone("provider information", info)
-        self.assertNotIn('None', info)
+        if info:
+            self.assertNotIn('None', info)
 
     def test_provider_information_explains_torch_setup_when_unconfigured(self):
         """Unconfigured Qwen Local explains how to install and select Torch."""
-        assert QwenLocalProvider is not None  # Type narrowing for PyLance
         provider = QwenLocalProvider(SettingsType())
         info = provider.GetInformation(ffmpeg_available=True)
 
@@ -75,7 +71,6 @@ class TestQwenLocalProvider(LoggedTestCase):
 
     def test_provider_information_hides_setup_guidance_when_configured(self):
         """Configured Qwen Local does not repeat the initial setup walkthrough."""
-        assert QwenLocalProvider is not None  # Type narrowing for PyLance
         provider = QwenLocalProvider(SettingsType({'torch_installation_directory': '/fake/path'}))
         info = provider.GetInformation(ffmpeg_available=True, torch_device='cuda:0')
 
@@ -85,27 +80,23 @@ class TestQwenLocalProvider(LoggedTestCase):
 
     def test_cpu_fallback_setting_refreshes_provider_information(self):
         """The settings dialog refreshes the disclaimer when consent changes."""
-        assert QwenLocalProvider is not None  # Type narrowing for PyLance
         provider = QwenLocalProvider(SettingsType())
 
         self.assertLoggedIn('CPU fallback refresh trigger', 'allow_cpu_fallback', provider.refresh_when_changed)
 
     def test_validate_requires_torch_directory(self):
         """ValidateSettings returns False when torch_installation_directory is empty."""
-        assert QwenLocalProvider is not None  # Type narrowing for PyLance
         provider = QwenLocalProvider(SettingsType())
         self.assertLoggedEqual("invalid without torch", False, provider.ValidateSettings())
 
     def test_validate_passes_with_torch_directory(self):
         """ValidateSettings returns True when torch_installation_directory is set."""
-        assert QwenLocalProvider is not None  # Type narrowing for PyLance
         provider = QwenLocalProvider(SettingsType({'torch_installation_directory': '/fake/path'}))
         self.assertLoggedEqual("valid with torch", True, provider.ValidateSettings())
 
     @patch.object(qwen_module, "_load_qwen_dependencies", side_effect=ImportError("missing torch"))
     def test_missing_torch_returns_coordinator_compatible_error(self, _load_dependencies):
         """A missing Torch runtime becomes a failed outcome instead of leaking ImportError."""
-        assert QwenLocalProvider is not None  # Type narrowing for PyLance
         provider = QwenLocalProvider(SettingsType())
         coordinator = TranscriptionCoordinator(provider, SettingsType())
 
@@ -119,28 +110,27 @@ class TestQwenLocalProvider(LoggedTestCase):
         self.assertLoggedIsInstance("original loader cause", outcome.error.error, ImportError)
 
 
+@unittest.skipUnless(QWEN_ASR_AVAILABLE, "qwen-asr not installed")
 class TestQwenLocalDevice(LoggedTestCase):
     def setUp(self):
         super().setUp()
-        if QwenLocalProvider is None:
-            self.skipTest("qwen-asr not installed")
         # Warm the lazy client import BEFORE any backend patching: the client
         # module (and qwen_asr beneath it) reads torch backends at import
         # time, and the fake backends installed below would break that
         # first import. Construction alone loads no model.
         try:
-            assert QwenLocalProvider is not None  # Type narrowing for PyLance
             QwenLocalProvider(SettingsType()).GetTranscriptionClient(SettingsType())
         except SubtitleError:
             self.skipTest("torch not installed")
 
-    def _client(self, device_setting : str, allow_cpu_fallback : bool = False):
-        assert QwenLocalProvider is not None  # Type narrowing for PyLance
+    def _client(self, device_setting : str, allow_cpu_fallback : bool = False) -> qwen_module.QwenLocalClient:
         provider = QwenLocalProvider(SettingsType())
-        return provider.GetTranscriptionClient(SettingsType({
+        client = provider.GetTranscriptionClient(SettingsType({
             'device': device_setting,
             'allow_cpu_fallback': allow_cpu_fallback,
         }))
+        assert isinstance(client, QwenLocalClientClass)
+        return client
 
     def _no_accelerator(self):
         """Patch every GPU backend to unavailable for CPU-fallback cases."""
@@ -250,7 +240,6 @@ class TestQwenLocalDevice(LoggedTestCase):
 
     def test_options_offer_accelerators(self):
         """The device dropdown lists every supported backend."""
-        assert QwenLocalProvider is not None  # Type narrowing for PyLance
         provider = QwenLocalProvider(SettingsType({'torch_installation_directory': '/fake/path'}))
         options = provider.GetOptions(provider.settings)
         devices, _tooltip = options['device']
@@ -263,7 +252,7 @@ class TestQwenResultParsing(LoggedTestCase):
         """qwen-asr results extract text, language and word timings."""
         unit = type("Unit", (), {'text': 'hello', 'start_time': 0.5, 'end_time': 0.9})()
         result = type("Result", (), {'text': 'hello', 'language': 'Chinese', 'time_stamps': [unit]})()
-        text, language, words = parse_qwen_result(result)
+        text, language, words = qwen_module.parse_qwen_result(result)
 
         self.assertLoggedEqual("text", "hello", text)
         self.assertLoggedEqual("language", "Chinese", language)
@@ -273,7 +262,7 @@ class TestQwenResultParsing(LoggedTestCase):
     def test_parse_flat_result(self):
         """Results without timestamps parse to text-only."""
         result = type("Result", (), {'text': 'hi', 'language': None, 'time_stamps': None})()
-        text, language, words = parse_qwen_result(result)
+        text, language, words = qwen_module.parse_qwen_result(result)
 
         self.assertLoggedEqual("text", "hi", text)
         self.assertLoggedEqual("language", None, language)
@@ -283,8 +272,6 @@ class TestQwenLanguage(LoggedTestCase):
     @skip_if_debugger_attached
     def test_provider_resolves_english_names(self):
         """Hints become the English names qwen-asr expects; unknown hints are rejected."""
-        if QwenLocalProvider is None:
-            self.skipTest("qwen-asr not installed")
         provider = QwenLocalProvider(SettingsType())
 
         self.assertLoggedIsNone("no hint", provider.ResolveLanguageCode(None))
@@ -297,11 +284,10 @@ class TestQwenLanguage(LoggedTestCase):
             provider.ResolveLanguageCode("Klingon")
         self.log_expected_result(SubtitleError, type(context.exception), description="unknown hint rejected")
 
+    @unittest.skipUnless(QWEN_ASR_AVAILABLE, "qwen-asr not installed")
     def test_client_falls_back_to_auto_detect_outside_sdk_list(self):
         """A resolvable language the SDK cannot handle warns once at construction and auto-detects."""
-        client_type = getattr(qwen_module, 'QwenLocalClient', None)
-        if client_type is None:
-            self.skipTest("qwen-asr not installed")
+        client_type = QwenLocalClientClass
 
         client = client_type(SettingsType({'language': 'Chinese'}))
         self.assertLoggedEqual("supported language kept", "Chinese", client.language)
@@ -309,11 +295,10 @@ class TestQwenLanguage(LoggedTestCase):
         client = client_type(SettingsType({'language': 'Welsh'}))
         self.assertLoggedIsNone("unsupported language dropped", client.language)
 
+    @unittest.skipUnless(QWEN_ASR_AVAILABLE, "qwen-asr not installed")
     def test_hint_passes_straight_to_model(self):
         """The client no longer normalises: the resolved name goes to the SDK unchanged."""
-        client_type = getattr(qwen_module, 'QwenLocalClient', None)
-        if client_type is None:
-            self.skipTest("qwen-asr not installed")
+        client_type = QwenLocalClientClass
         client = client_type(SettingsType({'language': 'Chinese'}))
         result = type("Result", (), {"text": "ni hao", "language": "Chinese", "time_stamps": None})()
         model = Mock()
@@ -327,12 +312,11 @@ class TestQwenLanguage(LoggedTestCase):
             audio="chunk.wav", language="Chinese", return_time_stamps=True)
 
 
+@unittest.skipUnless(QWEN_ASR_AVAILABLE, "qwen-asr not installed")
 class TestQwenAlignment(LoggedTestCase):
     def test_auto_detect_requests_timestamps(self):
         """An omitted hint still enables Qwen forced alignment."""
-        client_type = getattr(qwen_module, 'QwenLocalClient', None)
-        if client_type is None:
-            self.skipTest("qwen-asr not installed")
+        client_type = QwenLocalClientClass
         client = client_type(SettingsType())
         result = type("Result", (), {"text": "hello", "language": "English", "time_stamps": None})()
         model = Mock()
@@ -348,9 +332,7 @@ class TestQwenAlignment(LoggedTestCase):
     @skip_if_debugger_attached
     def test_unsupported_detected_language_falls_back_to_text(self):
         """Unsupported forced alignment tries English before text-only output."""
-        client_type = getattr(qwen_module, 'QwenLocalClient', None)
-        if client_type is None:
-            self.skipTest("qwen-asr not installed")
+        client_type = QwenLocalClientClass
         client = client_type(SettingsType())
         result = type("Result", (), {"text": "bonjour", "language": "Klingon", "time_stamps": None})()
         model = Mock()
@@ -374,13 +356,11 @@ class TestQwenAlignment(LoggedTestCase):
                                model.transcribe.call_args_list[2].kwargs['return_time_stamps'])
 
 
+@unittest.skipUnless(QWEN_ASR_AVAILABLE, "qwen-asr not installed")
 class TestQwenModelCache(LoggedTestCase):
     def setUp(self):
         super().setUp()
-        client_type = getattr(qwen_module, 'QwenLocalClient', None)
-        if client_type is None:
-            self.skipTest("qwen-asr not installed")
-        self.client_type : type[Any] = client_type
+        self.client_type : type[Any] = QwenLocalClientClass
 
         self._saved_key = qwen_module._loaded_key
         self._saved_model = qwen_module._loaded_model

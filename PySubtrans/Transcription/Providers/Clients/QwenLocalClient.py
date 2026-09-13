@@ -1,3 +1,4 @@
+from datetime import timedelta
 import gc
 import importlib
 import logging
@@ -6,6 +7,7 @@ import tempfile
 from typing import Any
 
 from PySubtrans.Helpers.Localization import _
+from PySubtrans.Helpers.Parse import TryParseFloat
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
@@ -14,8 +16,8 @@ from PySubtrans.Transcription.Providers.TorchRuntime import PrepareTorchRuntime
 from PySubtrans.Transcription.Providers.Provider_QwenLocal import (
     _ALIGNER_CHECKPOINT,
     _QWEN_CHECKPOINTS,
-    parse_qwen_result,
 )
+from PySubtrans.Transcription.WordTiming import WordTiming
 
 # A single loaded ASR model (plus aligner) is kept for the session, keyed by (checkpoint, device, aligner).
 # Loading takes seconds, but each model set is several GB of device memory,
@@ -296,3 +298,32 @@ class QwenLocalClient(TranscriptionClient):
         with os.fdopen(handle, 'wb') as f:
             f.write(audio_bytes)
         return path
+
+def parse_qwen_result(result : object) -> tuple[str, str|None, list[WordTiming]]:
+    """
+    Extract (text, language, word timings) from a qwen-asr result.
+
+    Pure function over the result shape so it is unit-testable without
+    torch installed.
+    """
+    text = str(getattr(result, 'text', '') or '').strip()
+    language = getattr(result, 'language', None)
+    language = str(language).strip() if language else None
+
+    words : list[WordTiming] = []
+    for unit in getattr(result, 'time_stamps', None) or []:
+        unit_text = str(getattr(unit, 'text', '') or '').strip()
+        if not unit_text:
+            continue
+        start = TryParseFloat(getattr(unit, 'start_time', None))
+        end = TryParseFloat(getattr(unit, 'end_time', None))
+        if start is None or end is None or end <= start:
+            continue
+        words.append(WordTiming(text=unit_text,
+                                start=timedelta(seconds=max(0.0, start)),
+                                end=timedelta(seconds=max(0.0, end))))
+
+    words.sort(key=lambda w: w.start)
+    return text, language, words
+
+

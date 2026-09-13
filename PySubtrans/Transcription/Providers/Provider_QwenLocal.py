@@ -1,15 +1,12 @@
 import logging
 import os
-from datetime import timedelta
 
 from PySubtrans.Helpers.Languages import LanguageName
 from PySubtrans.Helpers.Localization import _
-from PySubtrans.Helpers.Parse import TryParseFloat
 from PySubtrans.Options import env_float, env_int
 from PySubtrans.SettingsType import GuiSettingsType, SettingsType
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.Providers.TorchRuntime import TorchConfigOption
-from PySubtrans.Transcription.WordTiming import WordTiming
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 
@@ -19,35 +16,6 @@ _QWEN_CHECKPOINTS : list[str] = [
 ]
 
 _ALIGNER_CHECKPOINT = 'Qwen/Qwen3-ForcedAligner-0.6B'
-
-
-def parse_qwen_result(result : object) -> tuple[str, str|None, list[WordTiming]]:
-    """
-    Extract (text, language, word timings) from a qwen-asr result.
-
-    Pure function over the result shape so it is unit-testable without
-    torch installed.
-    """
-    text = str(getattr(result, 'text', '') or '').strip()
-    language = getattr(result, 'language', None)
-    language = str(language).strip() if language else None
-
-    words : list[WordTiming] = []
-    for unit in getattr(result, 'time_stamps', None) or []:
-        unit_text = str(getattr(unit, 'text', '') or '').strip()
-        if not unit_text:
-            continue
-        start = TryParseFloat(getattr(unit, 'start_time', None))
-        end = TryParseFloat(getattr(unit, 'end_time', None))
-        if start is None or end is None or end <= start:
-            continue
-        words.append(WordTiming(text=unit_text,
-                                start=timedelta(seconds=max(0.0, start)),
-                                end=timedelta(seconds=max(0.0, end))))
-
-    words.sort(key=lambda w: w.start)
-    return text, language, words
-
 
 try:
     class QwenLocalProvider(TranscriptionProvider):
@@ -69,26 +37,7 @@ try:
         <p>Transcribe audio on your local machine with Qwen3-ASR.</p>
         """)
 
-        def _get_provider_information(self, torch_device : str = "Unknown") -> str|None:
-            """Describe Torch setup and any explicitly enabled CPU fallback."""
-            base = super()._get_provider_information(torch_device)
-            notes : list[str] = []
-
-            if not self.settings.get_str('torch_installation_directory'):
-                notes.extend([
-                    _("<p><b>Torch setup required:</b> Qwen3-ASR needs a separate PyTorch installation. The correct build depends on your operating system and hardware.</p>"),
-                    _("<p>Click <b>Set up Torch...</b> to detect available hardware and install a suitable Torch build.</p>"),
-                ])
-            elif torch_device == "Unknown":
-                notes.append(_("<p>Torch is configured but has not been verified by a transcription yet.</p>"))
-            elif "cpu" in torch_device.casefold():
-                if self.settings.get_bool('allow_cpu_fallback', False):
-                    notes.append(_("<p>Running on CPU: transcription will work but likely much slower than on a GPU.</p>"))
-                else:
-                    notes.append(_("<p>CPU inference is disabled. Enable it if you accept the performance implications.</p>"))
-
-            parts = [part for part in [base, *notes] if part]
-            return "\n".join(parts) if parts else None
+        aligner_models = [_ALIGNER_CHECKPOINT]
 
         # Device and budgets rarely change per job; model and language do
         advanced_settings = [
@@ -146,21 +95,19 @@ try:
             """
             if not settings.get_str('torch_installation_directory'):
                 return {
-                    'torch_installation_directory': (
-                        TorchConfigOption,
-                        _("A Torch environment is required for local transcription"),
-                    ),
+                    'torch_installation_directory': (TorchConfigOption, _("Configure the Torch environment for local transcription")),
                 }
 
             options : GuiSettingsType = {
-                'torch_installation_directory': (str, _("Directory of the Python environment containing Torch (restart after changing)")),
-                'model': (self.available_models, _("ASR checkpoint to run locally")),
-                'language': (str, _("Spoken language hint, e.g. Chinese or English (optional, auto-detected when empty)")),
-                'device': (['auto', 'cuda', 'mps', 'xpu', 'cpu'], _("Compute device for local inference (auto prefers CUDA, then MPS, then XPU)")),
-                'aligner_model': (str, _("Forced-aligner checkpoint for word timestamps")),
+                'model': (self.available_models, _("Transcription model to run")),
+                'language': (str, _("Spoken language hint (optional, auto-detected when empty)")),
+                'device': (['auto', 'cuda', 'mps', 'xpu', 'cpu'], _("Compute device for local inference")),
+                'aligner_model': (self.aligner_models, _("Aligner model for word timestamps")),
                 'max_new_tokens': (int, _("Generation budget per chunk (long chunks need headroom)")),
-                'rate_limit': (float, _("Maximum requests per minute (0 for unlimited; local inference is unmetered)")),
-                'allow_cpu_fallback': (bool, _("Allow emergency CPU fallback (may be impractically or extremely slow)")),
+                'rate_limit': (float, _("Maximum requests per minute (0 for unlimited)")),
+                'allow_cpu_fallback': (bool, _("Allow emergency CPU fallback (may be slow)")),
+                'torch_installation_directory': (str, _("Directory of the Python environment containing Torch (restart after changing)")),
+                'torch_setup': (TorchConfigOption, _("Configure the Torch environment for local transcription")),
             }
             return options
 
@@ -172,6 +119,28 @@ try:
             """qwen-asr takes English language names ("Chinese", "English"), or None to auto-detect."""
             locale = self.ResolveLanguageLocale(language, display_language)
             return LanguageName(locale) if locale is not None else None
+
+        def _get_provider_information(self, torch_device : str = "Unknown") -> str|None:
+            """Describe Torch setup and any explicitly enabled CPU fallback."""
+            base = super()._get_provider_information(torch_device)
+            notes : list[str] = []
+
+            if not self.settings.get_str('torch_installation_directory'):
+                notes.extend([
+                    _("<p><b>Torch setup required:</b> Qwen3-ASR needs a separate PyTorch installation. The correct build depends on your operating system and hardware.</p>"),
+                    _("<p>Click <b>Set up Torch...</b> to detect available hardware and install a suitable Torch build.</p>"),
+                ])
+            elif torch_device == "Unknown":
+                notes.append(_("<p>Torch is configured but has not been verified by a transcription yet.</p>"))
+            elif "cpu" in torch_device.casefold():
+                if self.settings.get_bool('allow_cpu_fallback', False):
+                    notes.append(_("<p>Running on CPU: transcription will work but likely much slower than on a GPU.</p>"))
+                else:
+                    notes.append(_("<p>CPU inference is disabled. Enable it if you accept the performance implications.</p>"))
+
+            parts = [part for part in [base, *notes] if part]
+            return "\n".join(parts) if parts else None
+
 
 except Exception as e:
     logging.warning(_("Qwen Local provider could not be registered: {}").format(e))

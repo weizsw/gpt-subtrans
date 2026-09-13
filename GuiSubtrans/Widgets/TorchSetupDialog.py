@@ -14,6 +14,7 @@ from pathlib import Path
 
 from PySide6.QtCore import QProcess
 from PySide6.QtWidgets import (
+    QButtonGroup,
     QCheckBox,
     QComboBox,
     QDialog,
@@ -420,6 +421,10 @@ class TorchSetupDialog(QDialog):
         page_layout.addWidget(install_group)
         page_layout.addStretch(1)
 
+        self._choice_button_group = QButtonGroup(self)
+        self._choice_button_group.setExclusive(True)
+        self._choice_button_group.addButton(self._existing_radio)
+        self._choice_button_group.addButton(self._automatic_radio)
         self._existing_radio.toggled.connect(self._on_choice_changed)
         self._automatic_radio.toggled.connect(self._on_choice_changed)
         self._page_stack.addWidget(page)
@@ -645,6 +650,8 @@ class TorchSetupDialog(QDialog):
             )
             self._existing_path = existing
             self._existing_radio.setEnabled(True)
+            self._existing_radio.setChecked(True)
+            self._automatic_radio.setChecked(False)
         else:
             self._existing_label.setText(_("No existing Torch installation found on this system."))
             self._existing_path = None
