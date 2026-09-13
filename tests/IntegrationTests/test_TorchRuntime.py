@@ -19,8 +19,14 @@ class TestTorchRuntime(LoggedTestCase):
         self._saved_path = TorchRuntime._configured_path
         self._saved_sys_path = list(sys.path)
         TorchRuntime._configured_path = None
+        # These tests exercise path validation without a loaded torch runtime.
+        # Hide any ambient torch import (present when running in the dev venv)
+        # so the "already-loaded" guard in PrepareTorchRuntime does not fire.
+        self._torch_patcher = patch.dict(sys.modules, {'torch': None})
+        self._torch_patcher.start()
 
     def tearDown(self):
+        self._torch_patcher.stop()
         TorchRuntime._configured_path = self._saved_path
         sys.path[:] = self._saved_sys_path
         super().tearDown()
