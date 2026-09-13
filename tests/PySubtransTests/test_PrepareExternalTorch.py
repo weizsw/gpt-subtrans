@@ -1,4 +1,6 @@
 import ast
+import contextlib
+import io
 import json
 import os
 import shutil
@@ -157,7 +159,10 @@ class TestPrepareExternalTorch(LoggedTestCase):
         """Neither external workflow may infer a frozen target from the helper."""
         for mode in ('--prepare-external-dir', '--validate-external-dir'):
             with self.subTest(mode=mode), self.assertRaises(SystemExit) as error:
-                prepare_external_torch.main([mode, 'unused'])
+                # argparse prints usage + error to stderr before raising SystemExit;
+                # redirect so the expected error does not pollute test runner output.
+                with contextlib.redirect_stderr(io.StringIO()):
+                    prepare_external_torch.main([mode, 'unused'])
             self.assertLoggedEqual('missing target is a CLI error', 2, error.exception.code)
 
     @skip_if_debugger_attached

@@ -225,6 +225,11 @@ if errorlevel 1 (
     exit /b 1
 )
 
+REM Qt no longer ships bundled fonts; create the expected directory so Qt's font
+REM discovery does not emit a warning when running headless (offscreen) tests.
+for /f "delims=" %%P in ('.\envsubtrans\Scripts\python.exe -c "import PySide6, os; print(os.path.join(os.path.dirname(PySide6.__file__), 'lib', 'fonts'))"') do set "QT_FONTS_DIR=%%P"
+if not exist "!QT_FONTS_DIR!" mkdir "!QT_FONTS_DIR!" >nul 2>&1
+
 if /i "!install_transcription!"=="y" (
     echo.
     echo Checking torch for Qwen Local transcription...

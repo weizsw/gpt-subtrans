@@ -1,10 +1,12 @@
 """Integration coverage for transcription queue and project handoff behavior."""
 import os
+import sys
 import time
 from datetime import timedelta
 from unittest.mock import Mock, patch
 
-os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+if sys.platform != 'win32':
+    os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
 from PySide6.QtCore import QObject, Signal
 from PySide6.QtWidgets import QApplication, QDialog, QMainWindow

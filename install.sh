@@ -269,6 +269,11 @@ fi
 
 pip install --upgrade -e "$install_target"
 
+# Qt no longer ships bundled fonts; create the expected directory so Qt's font
+# discovery does not emit a warning when running headless (offscreen) tests.
+qt_fonts_dir=$(python3 -c "import PySide6, os; print(os.path.join(os.path.dirname(PySide6.__file__), 'lib', 'fonts'))" 2>/dev/null || true)
+[ -n "$qt_fonts_dir" ] && mkdir -p "$qt_fonts_dir"
+
 if [ "$install_transcription" = "y" ] || [ "$install_transcription" = "Y" ]; then
     echo
     echo "Checking torch for Qwen Local transcription..."

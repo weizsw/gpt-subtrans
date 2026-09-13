@@ -1,4 +1,5 @@
 import os
+import sys
 
 from PySide6.QtCore import QCoreApplication
 from PySide6.QtWidgets import QApplication
@@ -17,7 +18,8 @@ class GuiSubtitleTestCase(SubtitleTestCase):
     def setUpClass(cls) -> None:
         super().setUpClass()
         if QCoreApplication.instance() is None:
-            os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
+            if sys.platform != 'win32':
+                os.environ.setdefault("QT_QPA_PLATFORM", "offscreen")
             cls._qt_app = QApplication([])
         else:
             cls._qt_app = QCoreApplication.instance()

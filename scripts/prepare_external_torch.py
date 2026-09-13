@@ -2,6 +2,7 @@
 
 import argparse
 import json
+import logging
 import platform
 from pathlib import Path
 import subprocess
@@ -81,10 +82,10 @@ def PrepareExternalTorch(
     metadata = frozen_metadata
     _WriteMetadata(output_root / METADATA_FILENAME, metadata)
 
-    print(f"Prepared external Torch location: {output_root}")
-    print("Install a complete compatible Torch environment using the command selected at:")
-    print(OFFICIAL_PYTORCH_SELECTOR)
-    print("Point Qwen Local at the complete venv root after installation.")
+    logging.info("Prepared external Torch location: %s", output_root)
+    logging.info("Install a complete compatible Torch environment using the command selected at:")
+    logging.info(OFFICIAL_PYTORCH_SELECTOR)
+    logging.info("Point Qwen Local at the complete venv root after installation.")
     return metadata
 
 
@@ -108,8 +109,8 @@ def ValidateExternalTorch(installation_directory : str|Path, frozen_metadata_pat
     actual = _ProbePythonCompatibility(python_executable)
     _CheckCompatibility(actual, frozen_metadata["compatibility"])
 
-    print(f"Torch directory present; interpreter matches frozen metadata: {installation_root}")
-    print("Torch import, native dependencies, and accelerator availability have not been tested.")
+    logging.info("Torch directory present; interpreter matches frozen metadata: %s", installation_root)
+    logging.info("Torch import, native dependencies, and accelerator availability have not been tested.")
     return installation_root
 
 
@@ -154,12 +155,17 @@ def WriteCompatibilityMetadata(metadata_path : str|Path) -> dict[str, object]:
     metadata = BuildCompatibilityMetadata()
     resolved_path = Path(metadata_path).expanduser().resolve()
     _WriteMetadata(resolved_path, metadata)
-    print(f"Frozen Python compatibility metadata: {resolved_path}")
+    logging.info("Frozen Python compatibility metadata: %s", resolved_path)
     return metadata
 
 
 def main(arguments : list[str]|None = None) -> int:
     """Run metadata-only, preparation, or validation mode."""
+    # When invoked as a subprocess (e.g. from makedistro) there is no pre-existing
+    # logging configuration, so set up a clean stdout handler. basicConfig() is a
+    # no-op when handlers are already present, so test runners that route logging to
+    # a file are unaffected.
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(message)s')
     parser = argparse.ArgumentParser(
         description=(
             "Prepare or validate an external Torch location without copying or downloading packages. "
