@@ -36,6 +36,20 @@ Contains all subtitle processing, translation logic, and project management. Thi
 - `SubtitleBuilder` – fluent API for programmatically building subtitle structures
 - `SubtitleEditor` – handles mutation operations on subtitle data with thread safety
 
+### Shared Helpers
+`PySubtrans/Helpers/` holds the cross-cutting utilities. **Check here before writing a new utility function** - most common string, time and parsing operations already exist.
+- `Text` – text manipulation and script-aware rules: whitespace and punctuation normalisation, break/split sequences for long lines, dialog markers, filler words, xml-like tag extraction, token joining (`JoinWords` / `NeedsSpace` handle CJK vs Latin spacing) and RTL detection.
+- `Time` – `timedelta` parsing and formatting, including SRT timestamps.
+- `Parse` – key/value pairs, name lists, numeric coercion, and retry-delay/error-message extraction from provider responses.
+- `SubtitleHelpers` – operations that need `SubtitleLine`: insert-or-replace by number, merging lines, merging translations back onto originals.
+- `ContextHelpers` – assembles batch context and history for translation prompts.
+- `Localization` – the `_()` and `tr()` gettext wrappers plus locale discovery.
+- `Languages` – language name and BCP-47 tag resolution via Babel locales.
+- `InstructionsHelpers` – loading and saving instruction files from bundled resources or the user config directory.
+- `Resources` – config directory and resource path resolution, handling portable and frozen builds.
+- `TestCases` / `Tests` – `LoggedTestCase`, `SubtitleTestCase` and the `assertLogged*` assertions used by the unit tests, dummy subtitle/provider builders, and `skip_if_debugger_attached`.
+- `Color`, `Version`, `__init__` – smaller odds and ends: colour serialisation, version comparison, input/output path derivation and enum value naming.
+
 ### Subtitle Format Handling
 Subtitle files are processed through a pluggable system:
 - `SubtitleFileHandler` implementations read and write specific formats while exposing a common interface.

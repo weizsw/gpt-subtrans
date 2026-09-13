@@ -12,6 +12,7 @@ import httpx
 
 from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.Helpers.Tests import skip_if_debugger_attached
+from PySubtrans.Helpers.Text import JoinWords
 from PySubtrans.Options import Options
 from PySubtrans.SettingsType import GuiSettingsType, SettingsType
 from PySubtrans.SubtitleBuilder import SubtitleBuilder
@@ -23,7 +24,7 @@ from PySubtrans.Transcription.SilenceStream import SilenceStream
 from PySubtrans.Transcription.WordTiming import WordTiming
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionCoordinator import TranscriptionCoordinator, TranscriptionStatus
-from PySubtrans.Transcription.TranscriptionLines import JoinWords, TranscriptionLineBuilder
+from PySubtrans.Transcription.TranscriptionLines import TranscriptionLineBuilder
 from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionOutcome
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionResult, TranscriptionSegment
@@ -346,14 +347,6 @@ class TestWordGrouping(LoggedTestCase):
         lines = self._scene_lines(self._builder(), "café noir. следующий", words)
 
         self.assertLoggedEqual("unicode spacing", "café noir. следующий", lines[0].text)
-
-    def test_join_words_handles_quotes_apostrophes_and_hyphens(self):
-        """Token joins preserve ordinary English punctuation conventions."""
-        self.assertLoggedEqual("quoted phrase", 'He said "Hello world." Then',
-                                JoinWords(['He', 'said', '"Hello', 'world."', 'Then']))
-        self.assertLoggedEqual("apostrophe", "l'amour", JoinWords(["l'", "amour"]))
-        self.assertLoggedEqual("hyphen", "well-known", JoinWords(['well-', 'known']))
-        self.assertLoggedEqual("CJK punctuation", "你好，世界", JoinWords(['你好', '，', '世界']))
 
     def test_speaker_change_splits_lines(self):
         """Speaker turns break subtitle lines and label them."""

@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 import logging
-import unicodedata
 from datetime import timedelta
 
-import regex
-
 from PySubtrans.Helpers.Localization import _
+from PySubtrans.Helpers.Text import JoinWords
 from PySubtrans.Transcription.AudioChunker import AudioChunk
 from PySubtrans.Transcription.WordTiming import WordTiming
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionSegment
@@ -34,58 +32,10 @@ CLAUSE_END_BONUS = 0.15
 SHORT_WORD_PENALTY = 0.05
 SHORT_WORD_CHARS = 3
 
-CJK_BOUNDARY = regex.compile(r'[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\u3000-\u303f\uff00-\uffef]')
-
 
 def SpanLabel(span : AudioChunk|TranscriptionSegment) -> str:
     """Human-readable start-end label for a chunk or segment, in seconds."""
     return f"{span.start.total_seconds():.1f}s-{span.end.total_seconds():.1f}s"
-
-
-def NeedsSpace(previous : str, current : str) -> bool:
-    """
-    Whether a space is needed between two adjacent word tokens.
-
-    Handles Latin scripts (space between words), CJK (no space between
-    ideographs), and punctuation (no space before closing marks or after
-    opening ones). Straight quotes use parity to distinguish open/close.
-
-    Examples: ['Hello', 'world'] -> 'Hello world'
-              ['你好', '世界']   -> '你好世界'
-              ['He', 'said', '"Hello"'] -> 'He said "Hello"'
-    """
-    if not previous or not current or previous[-1].isspace() or current[0].isspace():
-        return False
-
-    last = previous[-1]
-    first = current[0]
-    if CJK_BOUNDARY.fullmatch(last) and CJK_BOUNDARY.fullmatch(first):
-        return False
-
-    last_category = unicodedata.category(last)
-    first_category = unicodedata.category(first)
-    # Straight quotes need the accumulated text to distinguish opening/closing.
-    if first == '"':
-        if previous.count('"') % 2:
-            return False
-    elif first_category.startswith('P') and first_category not in ('Ps', 'Pi'):
-        return False
-
-    if last in "'-\u2019" or last_category in ('Ps', 'Pi'):
-        return False
-    if last == '"':
-        return previous.count('"') % 2 == 0
-    return True
-
-
-def JoinWords(words : list[str]) -> str:
-    """Join aligned word tokens with language-appropriate spacing."""
-    text = ""
-    for word in words:
-        if NeedsSpace(text, word):
-            text += " "
-        text += word
-    return text.strip()
 
 
 class TranscriptionLineBuilder:

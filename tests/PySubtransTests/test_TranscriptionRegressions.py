@@ -7,7 +7,6 @@ from PySubtrans.Options import Options
 from PySubtrans.Transcription.AudioChunker import AudioChunk
 from PySubtrans.Transcription.WordTiming import WordTiming
 from PySubtrans.Transcription.TranscriptionCoordinator import TranscriptionCoordinator, TranscriptionStatus
-from PySubtrans.Transcription.TranscriptionLines import JoinWords
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionResult, TranscriptionSegment
 from PySubtrans.Transcription.TranscriptionRun import TranscriptionRun
 from tests.PySubtransTests.test_Transcription import FakeTranscriptionClient, FakeTranscriptionProvider, FailingTranscriptionClient, _subtitles_of, stub_media
@@ -87,10 +86,3 @@ class TestTranscriptionRegressions(LoggedTestCase):
             TranscriptionSegment(timedelta(seconds=0.3), timedelta(seconds=1.0), '- B\n- C')])
         self.assertLoggedEqual('merged text', '- A\n- B\n- C', lines[0].text)
         self.assertLoggedEqual('mixed attribution stays empty', None, lines[0].speaker)
-
-    def test_standalone_quote_tokens_and_cjk_punctuation(self) -> None:
-        """Split quote tokens must not add spaces inside a quoted phrase."""
-        self.assertLoggedEqual('quote tokens', 'He said "Hello world." Then',
-                               JoinWords(['He', 'said', '"', 'Hello', 'world.', '"', 'Then']))
-        self.assertLoggedEqual('CJK punctuation', '你好，世界',
-                               JoinWords(['你好', '，', '世界']))
