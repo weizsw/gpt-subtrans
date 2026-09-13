@@ -6,7 +6,7 @@ from unittest.mock import patch
 if sys.platform != 'win32':
     os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox
 
 from GuiSubtrans.Commands.TranscribeMediaCommand import TranscribeMediaCommand
 from GuiSubtrans.SettingsDialog import SettingsDialog
@@ -274,6 +274,32 @@ class TestTranscriptionDialogLayout(LoggedTestCase):
             self.assertLoggedIn('per-run field present', 'model', dialog.provider_fields)
             self.assertNotIn('allow_cpu_fallback', dialog.provider_fields)
             self.assertNotIn('torch_installation_directory', dialog.provider_fields)
+        finally:
+            dialog.deleteLater()
+            self.application.processEvents()
+
+    def test_close_requires_abort_and_then_forces_close(self) -> None:
+        """Close is disabled during a run but hard-closes after abort is requested."""
+        options = Options()
+        with patch.object(TranscriptionDialog, '_refresh_providers'):
+            dialog = TranscriptionDialog(options)
+        try:
+            command = TranscribeMediaCommand(FakeTranscriptionProvider(), 'media.wav', SettingsType())
+            dialog.active_command = command
+            dialog._show_results(True)
+            close_button = dialog.button_box.button(QDialogButtonBox.StandardButton.Close)
+
+            self.assertLoggedIsNotNone('close button exists', close_button)
+            if close_button is None:
+                return
+
+            self.assertLoggedFalse('close disabled during transcription', close_button.isEnabled())
+            dialog._abort_transcription()
+            self.assertLoggedTrue('close enabled after abort', close_button.isEnabled())
+
+            dialog.reject()
+            self.assertLoggedIsNone('hard abort releases active command', dialog.active_command)
+            self.assertLoggedEqual('hard abort rejects dialog', QDialog.DialogCode.Rejected, dialog.result())
         finally:
             dialog.deleteLater()
             self.application.processEvents()
