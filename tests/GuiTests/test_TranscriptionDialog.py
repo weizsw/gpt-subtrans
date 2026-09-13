@@ -261,9 +261,9 @@ class TestTranscriptionDialogLayout(LoggedTestCase):
             provider = FakeTranscriptionProvider()
             provider.advanced_settings = ['allow_cpu_fallback', 'torch_installation_directory']
             provider.GetOptions = lambda settings: {
-                'model': (['model-a'], None),
-                'allow_cpu_fallback': (bool, None),
-                'torch_installation_directory': (str, None),
+                'model': (['model-a'], ''),
+                'allow_cpu_fallback': (bool, ''),
+                'torch_installation_directory': (str, ''),
             }
             dialog.provider = provider
             dialog._rebuild_provider_form()

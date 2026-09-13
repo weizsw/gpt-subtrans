@@ -51,6 +51,8 @@ def _load_qwen_dependencies(settings: SettingsType) -> None:
 
 def _mps_available() -> bool:
     """Apple Silicon GPU backend; absent on torch builds without it."""
+    if torch is None:
+        return False
     mps = getattr(torch.backends, 'mps', None)
     if mps is None:
         return False
@@ -153,6 +155,7 @@ class QwenLocalClient(TranscriptionClient):
 
     def _resolve_device(self, candidate : str) -> str|None:
         """Resolve a device candidate without importing anything new."""
+        assert torch is not None  # invariant: torch loaded in __init__ via _load_qwen_dependencies
         if candidate == 'cuda':
             # Covers NVIDIA CUDA and AMD ROCm (which exposes the CUDA API).
             return 'cuda:0' if torch.cuda.is_available() else None
@@ -165,6 +168,7 @@ class QwenLocalClient(TranscriptionClient):
     @property
     def inference_dtype(self) -> Any:
         """Torch dtype matching the resolved device (MPS lacks bfloat16)."""
+        assert torch is not None  # invariant: torch loaded in __init__ via _load_qwen_dependencies
         device = self.device
         if device.startswith('mps') or device.startswith('xpu'):
             return torch.float16
@@ -250,6 +254,8 @@ class QwenLocalClient(TranscriptionClient):
 
         logging.info(_("Loading Qwen model {} on {}").format(self.checkpoint, self.device))
 
+        assert Qwen3ASRModel is not None  # invariant: loaded in __init__ via _load_qwen_dependencies
+
         try:
             dtype = self.inference_dtype
             model = Qwen3ASRModel.from_pretrained(
@@ -278,10 +284,11 @@ class QwenLocalClient(TranscriptionClient):
         _loaded_model = None
         gc.collect()
 
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        elif _mps_available():
-            torch.mps.empty_cache()
+        if torch is not None:
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            elif _mps_available():
+                torch.mps.empty_cache()
 
     def _write_chunk(self, audio_bytes : bytes) -> str:
         handle, path = tempfile.mkstemp(suffix='.wav', prefix='subtrans-qwen-')

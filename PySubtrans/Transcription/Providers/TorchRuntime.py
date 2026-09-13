@@ -1,6 +1,5 @@
 """Runtime support for loading an optional external Torch installation."""
 
-import importlib.util
 import json
 import logging
 import os

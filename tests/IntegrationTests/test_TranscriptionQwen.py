@@ -391,8 +391,10 @@ class TestQwenModelCache(LoggedTestCase):
             loaded.append(model)
             return model
 
+        assert qwen_module.torch is not None  # torch loaded by module-level setup
+        _torch_cuda = qwen_module.torch.cuda
         with patch.object(qwen_module.Qwen3ASRModel, 'from_pretrained', side_effect=fake_load) as from_pretrained, \
-                patch.object(qwen_module.torch.cuda, 'is_available', return_value=False), \
+                patch.object(_torch_cuda, 'is_available', return_value=False), \
                 patch.object(qwen_module, '_mps_available', return_value=False):
             first = self.client_type(SettingsType({'model': 'Qwen/Qwen3-ASR-1.7B', 'device': 'cpu', 'allow_cpu_fallback': True}))
             first_model = first._load_model()

@@ -42,14 +42,13 @@ class TestTorchRuntime(LoggedTestCase):
             self.assertLoggedIn('external path appended', str(root.resolve()), sys.path)
 
     def test_path_scoped_lookup_finds_target_without_ambient_torch_spec(self):
-        """An external Torch package is found even when ambient lookup cannot see it."""
+        """An external Torch package is found via path-scoped PathFinder even when ambient lookup would miss it."""
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             (root / 'torch' / 'lib').mkdir(parents=True)
             (root / 'torch' / '__init__.py').write_text('', encoding='utf-8')
 
-            with patch.object(TorchRuntime.importlib.util, 'find_spec', return_value=None):
-                TorchRuntime.PrepareTorchRuntime(directory)
+            TorchRuntime.PrepareTorchRuntime(directory)
 
             self.assertLoggedIn('target package path appended', str(root.resolve()), sys.path)
 

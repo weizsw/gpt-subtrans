@@ -28,7 +28,9 @@ class TestPrepareExternalTorch(LoggedTestCase):
         self.assertLoggedIn("Python ABI", "python_abi", compatibility)
         self.assertLoggedIn("operating system", "os", compatibility)
         self.assertLoggedIn("architecture", "architecture", compatibility)
-        self.assertLoggedEqual("external Torch policy", "external", metadata["torch"]["installation"])
+        torch_meta = metadata["torch"]
+        assert isinstance(torch_meta, dict)
+        self.assertLoggedEqual("external Torch policy", "external", torch_meta["installation"])
 
     def test_prepare_creates_only_layout_and_metadata(self):
         """Preparation never copies a Torch or native payload."""
@@ -215,6 +217,7 @@ class TestPrepareExternalTorch(LoggedTestCase):
             probe = line.split(' -c "', 1)[1].split('"', 1)[0]
             tree = ast.parse(probe)
             exit_call = tree.body[-1]
+            assert isinstance(exit_call, (ast.Raise, ast.Expr))
             call = exit_call.exc if isinstance(exit_call, ast.Raise) else exit_call.value
             assert isinstance(call, ast.Call)
             expression = compile(ast.Expression(call.args[0]), '<installer-probe>', 'eval')
