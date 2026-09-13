@@ -8,6 +8,11 @@ pip install --upgrade PyInstaller pyinstaller-hooks-contrib
 pip install --upgrade setuptools
 pip install --upgrade jaraco.text
 pip install --upgrade charset_normalizer
+./envsubtrans/bin/python -c "import torch" >/dev/null 2>&1 || {
+    echo "Torch is required in the build environment before qwen-asr is installed."
+    echo "Choose the hardware-appropriate command at https://pytorch.org/get-started/locally/"
+    exit 1
+}
 pip install --upgrade -e ".[gui,openai,gemini,claude,mistral,qwen-asr]"
 
 # Remove boto3 from packaged version
@@ -29,6 +34,7 @@ fi
 
 ./envsubtrans/bin/pyinstaller --noconfirm \
     --additional-hooks-dir="hooks" \
+    --exclude-module torch --exclude-module torchgen \
     --paths="./envsubtrans/lib" \
     --add-data "theme/*:theme/" \
     --add-data "assets/*:assets/" \
@@ -36,4 +42,15 @@ fi
     --add-data "LICENSE:." \
     --add-data "locales/*:locales/" \
     --noconfirm \
-    scripts/gui-subtrans.py
+    scripts/gui-subtrans.py || exit $?
+
+./envsubtrans/bin/python scripts/prepare_external_torch.py \
+    --metadata-only \
+    --metadata-path "dist/gui-subtrans/frozen-python-compatibility.json" || exit 1
+
+./envsubtrans/bin/python -m pip install pip-audit
+./envsubtrans/bin/python -m pip_audit
+if [ $? -ne 0 ]; then
+    echo "WARNING: Vulnerability scan detected known vulnerabilities. DO NOT publish or run this build!"
+    exit 1
+fi

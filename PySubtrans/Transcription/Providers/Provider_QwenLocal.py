@@ -57,7 +57,7 @@ else:
             """
             Local transcription via the qwen-asr package (optional).
 
-            Requires a GPU-enabled torch install (CUDA on NVIDIA, MPS on Apple Silicon).
+            Prefers a hardware accelerator and requires explicit consent for CPU inference.
             """
             name = "Qwen Local"
 
@@ -66,19 +66,25 @@ else:
             """)
 
             def _get_provider_information(self, torch_device : str = "Unknown") -> str|None:
-                """Append torch install guidance until a run records a device."""
+                """Describe torch setup and any explicitly enabled CPU fallback."""
                 base = super()._get_provider_information(torch_device)
+                notes : list[str] = []
                 if torch_device == "Unknown":
-                    note = _("<p>Needs a working torch install (<a href=\"https://pytorch.org/get-started/locally/\">pytorch.org</a>); ")
+                    notes.append(_("<p>Needs a working torch install; see the <a href=\"https://pytorch.org/get-started/locally/\">official PyTorch installation page</a>.</p>"))
                 elif "cpu" in torch_device.casefold():
-                    note = _("<p>Running on CPU: transcription will work but much slower than on a GPU.</p>")
-                else:
-                    note = None
+                    notes.append(_("<p>Running on CPU: transcription will work but much slower than on a GPU.</p>"))
 
-                return f"{base}\n{note}" if base else note
+                if self.settings.get_bool('allow_cpu_fallback', False):
+                    notes.append(_("<p>CPU inference is enabled as an emergency fallback and may be impractically or extremely slow.</p>"))
+
+                parts = [part for part in [base, *notes] if part]
+                return "\n".join(parts) if parts else None
 
             # Device and budgets rarely change per job; model and language do
-            advanced_settings = ['device', 'aligner_model', 'max_new_tokens', 'rate_limit']
+            advanced_settings = [
+                'device', 'aligner_model', 'max_new_tokens', 'rate_limit',
+                'allow_cpu_fallback', 'torch_installation_directory',
+            ]
 
             @property
             def recommended_min_chunk_seconds(self) -> float:
@@ -99,7 +105,10 @@ else:
                     'max_new_tokens': settings.get_int('max_new_tokens', env_int('QWEN_MAX_NEW_TOKENS', 1024)),
                     'request_timeout': settings.get_float('request_timeout', env_float('TRANSCRIPTION_TIMEOUT', 300.0)),
                     'rate_limit': settings.get_float('rate_limit', env_float('QWEN_TRANSCRIPTION_RATE_LIMIT')),
+                    'allow_cpu_fallback': settings.get_bool('allow_cpu_fallback', False),
+                    'torch_installation_directory': settings.get_str('torch_installation_directory', ''),
                 }))
+                self.refresh_when_changed = ['allow_cpu_fallback']
 
             def GetAvailableModels(self) -> list[str]:
                 """ASR checkpoints served by this provider."""
@@ -126,6 +135,8 @@ else:
                     'aligner_model': (str, _("Forced-aligner checkpoint for word timestamps")),
                     'max_new_tokens': (int, _("Generation budget per chunk (long chunks need headroom)")),
                     'rate_limit': (float, _("Maximum requests per minute (0 for unlimited; local inference is unmetered)")),
+                    'allow_cpu_fallback': (bool, _("Allow emergency CPU fallback (may be impractically or extremely slow)")),
+                    'torch_installation_directory': (str, _("Optional external Torch installation directory; restart after changing")),
                 }
 
             def ResolveLanguageCode(self, language : str|None, display_language : str|None = None) -> str|None:

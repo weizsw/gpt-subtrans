@@ -100,11 +100,12 @@ function install_bedrock() {
 
 function install_qwen_local() {
     echo "Qwen Local runs on-device transcription (Qwen3-ASR with word timestamps)."
-    echo "It needs a GPU-enabled torch in the virtual environment -- PyPI's default"
-    echo "torch is CPU-only on most platforms and will be unusably slow (CUDA on"
-    echo "NVIDIA, MPS on Apple Silicon -- see https://pytorch.org/get-started/locally/)."
-    echo "After installing dependencies the installer verifies torch; if it is"
-    echo "missing, the Qwen install is rolled back so you can add torch and re-run."
+    echo "Install a hardware-appropriate PyTorch build before Qwen dependencies."
+    echo "Use the official selector: https://pytorch.org/get-started/locally/"
+    if ! python -c "import torch" 2>/dev/null; then
+        echo "Torch is not installed in this environment. Install it first, then re-run this installer."
+        exit 1
+    fi
     echo
 
     extras+=("qwen-asr")
@@ -280,14 +281,14 @@ if [ "$install_transcription" = "y" ] || [ "$install_transcription" = "Y" ]; the
         done
         extras=("${filtered_extras[@]}")
         echo
-        echo "Install a GPU-enabled torch first (CUDA on NVIDIA, MPS on Apple"
-        echo "Silicon -- PyPI's default is CPU-only on most platforms):"
+        echo "Install a hardware-appropriate Torch build from the official selector:"
         echo "  https://pytorch.org/get-started/locally/"
         echo "then re-run the installer and choose Qwen Local again."
         echo "The transcribe command is still installed for cloud providers."
-    elif ! python -c "import torch; raise SystemExit(0 if torch.cuda.is_available() or torch.backends.mps.is_available() else 1)" 2>/dev/null; then
-        echo "WARNING: torch has no GPU build (no CUDA or MPS); Qwen Local will fall"
-        echo "back to slow CPU inference. For GPU transcription, install a GPU torch:"
+    elif ! ./envsubtrans/bin/python -c "import torch; raise SystemExit(0 if any(getattr(backend, 'is_available', lambda: False)() for backend in (torch.cuda, getattr(torch.backends, 'mps', None), getattr(torch, 'xpu', None))) else 1)" 2>/dev/null; then
+        echo "No supported accelerator was detected. CPU inference is disabled by default."
+        echo "Enable allow_cpu_fallback in Qwen Local advanced settings to consent to slow CPU inference."
+        echo "For acceleration, choose a hardware-appropriate Torch build:"
         echo "  https://pytorch.org/get-started/locally/"
     else
         echo "torch with GPU support detected - Qwen Local transcription is ready."

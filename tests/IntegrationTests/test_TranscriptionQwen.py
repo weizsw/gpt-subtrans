@@ -1,5 +1,6 @@
 import unittest
 from datetime import timedelta
+import tempfile
 from types import SimpleNamespace
 from typing import Any
 from unittest.mock import Mock, patch
@@ -8,6 +9,8 @@ from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.Helpers.Tests import skip_if_debugger_attached
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleError import SubtitleError
+from PySubtrans.Transcription.TranscriptionCoordinator import TranscriptionCoordinator
+from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionStatus
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Transcription.Providers.Provider_QwenLocal import parse_qwen_result
 import PySubtrans.Transcription.Providers.Provider_QwenLocal as _qwen_module
@@ -33,9 +36,41 @@ class TestQwenLocalProvider(LoggedTestCase):
         provider = QwenLocalProvider(SettingsType())
         options = provider.GetOptions(provider.settings)
 
-        for key in ("model", "language", "device", "aligner_model", "max_new_tokens", "rate_limit"):
+        for key in ("model", "language", "device", "aligner_model", "max_new_tokens", "rate_limit",
+                    "allow_cpu_fallback", "torch_installation_directory"):
             self.assertLoggedIn(f"{key} option", key, options)
         self.assertLoggedIn("checkpoint", "Qwen/Qwen3-ASR-1.7B", provider.GetAvailableModels())
+
+        self.assertLoggedEqual("CPU fallback default", False, provider.settings.get_bool('allow_cpu_fallback'))
+        self.assertLoggedEqual("Torch directory default", '', provider.settings.get_str('torch_installation_directory'))
+        self.assertLoggedIn("CPU fallback is advanced", "allow_cpu_fallback", provider.advanced_settings)
+        self.assertLoggedIn("Torch directory is advanced", "torch_installation_directory", provider.advanced_settings)
+
+    def test_provider_information_has_no_none_literal(self):
+        """Provider information contains no interpolation artefacts."""
+        assert QwenLocalProvider is not None  # Type narrowing for PyLance
+        provider = QwenLocalProvider(SettingsType())
+        info = provider.GetInformation(torch_device='cuda:0')
+
+        self.assertLoggedIsNotNone("provider information", info)
+        self.assertNotIn('None', info)
+
+    def test_provider_information_warns_for_enabled_cpu_fallback(self):
+        """Enabling CPU fallback adds an explicit emergency-speed disclaimer."""
+        assert QwenLocalProvider is not None  # Type narrowing for PyLance
+        provider = QwenLocalProvider(SettingsType({'allow_cpu_fallback': True}))
+        info = provider.GetInformation(torch_device='cuda:0')
+
+        self.assertLoggedIsNotNone("provider information", info)
+        self.assertIn('emergency fallback', info)
+        self.assertIn('extremely slow', info)
+
+    def test_cpu_fallback_setting_refreshes_provider_information(self):
+        """The settings dialog refreshes the disclaimer when consent changes."""
+        assert QwenLocalProvider is not None  # Type narrowing for PyLance
+        provider = QwenLocalProvider(SettingsType())
+
+        self.assertLoggedIn('CPU fallback refresh trigger', 'allow_cpu_fallback', provider.refresh_when_changed)
 
     def test_validate_needs_no_key(self):
         """Local inference validates without credentials."""
@@ -43,6 +78,22 @@ class TestQwenLocalProvider(LoggedTestCase):
         provider = QwenLocalProvider(SettingsType())
 
         self.assertLoggedEqual("valid by default", True, provider.ValidateSettings())
+
+    @patch.object(qwen_module, "_load_qwen_dependencies", side_effect=ImportError("missing torch"))
+    def test_missing_torch_returns_coordinator_compatible_error(self, _load_dependencies):
+        """A missing Torch runtime becomes a failed outcome instead of leaking ImportError."""
+        assert QwenLocalProvider is not None  # Type narrowing for PyLance
+        provider = QwenLocalProvider(SettingsType())
+        coordinator = TranscriptionCoordinator(provider, SettingsType())
+
+        with tempfile.NamedTemporaryFile(suffix=".wav") as media:
+            outcome = coordinator.TranscribeMedia(media.name)
+
+        self.assertLoggedEqual("missing Torch status", TranscriptionStatus.FAILED, outcome.status)
+        self.assertLoggedIsInstance("missing Torch error", outcome.error, SubtitleError)
+        assert outcome.error is not None
+        self.assertLoggedIn("actionable Torch message", "external Torch", outcome.error.message or "")
+        self.assertLoggedIsInstance("original loader cause", outcome.error.error, ImportError)
 
 
 class TestQwenLocalDevice(LoggedTestCase):
@@ -60,10 +111,13 @@ class TestQwenLocalDevice(LoggedTestCase):
         except SubtitleError:
             self.skipTest("torch not installed")
 
-    def _client(self, device_setting : str):
+    def _client(self, device_setting : str, allow_cpu_fallback : bool = False):
         assert QwenLocalProvider is not None  # Type narrowing for PyLance
         provider = QwenLocalProvider(SettingsType())
-        return provider.GetTranscriptionClient(SettingsType({'device': device_setting}))
+        return provider.GetTranscriptionClient(SettingsType({
+            'device': device_setting,
+            'allow_cpu_fallback': allow_cpu_fallback,
+        }))
 
     def _no_accelerator(self):
         """Patch every GPU backend to unavailable for CPU-fallback cases."""
@@ -94,11 +148,21 @@ class TestQwenLocalDevice(LoggedTestCase):
                 self.assertLoggedEqual("auto device", "mps", client.device)
                 self.assertLoggedEqual("mps dtype", "torch.float16", str(client.inference_dtype))
 
-    def test_auto_falls_back_to_cpu(self):
-        """Auto selection lands on CPU with bfloat16 math when no accelerator exists."""
+    def test_auto_refuses_cpu_without_fallback_consent(self):
+        """Auto selection refuses CPU when no accelerator exists without consent."""
         cuda_off, mps_off, xpu_off = self._no_accelerator()
         with cuda_off, mps_off, xpu_off:
             client = self._client('auto')
+
+            with self.assertRaises(SubtitleError) as context:
+                _device = client.device
+            self.assertIn('allow_cpu_fallback', str(context.exception))
+
+    def test_auto_uses_cpu_when_fallback_is_enabled(self):
+        """Auto selection uses CPU only after explicit consent."""
+        cuda_off, mps_off, xpu_off = self._no_accelerator()
+        with cuda_off, mps_off, xpu_off:
+            client = self._client('auto', allow_cpu_fallback=True)
 
             self.assertLoggedEqual("auto device", "cpu", client.device)
             self.assertLoggedEqual("cpu dtype", "torch.bfloat16", str(client.inference_dtype))
@@ -122,21 +186,37 @@ class TestQwenLocalDevice(LoggedTestCase):
 
             self.assertLoggedEqual("explicit device", "mps", client.device)
 
-    def test_explicit_mps_unavailable_falls_back_to_cpu(self):
-        """An explicit MPS request without the backend falls back to CPU."""
+    def test_explicit_mps_unavailable_is_refused_without_fallback_consent(self):
+        """An unavailable explicit MPS request fails without CPU consent."""
         with patch("torch.backends.mps",
                    SimpleNamespace(is_available=lambda: False, is_built=lambda: False),
                    create=True):
             client = self._client('mps')
 
-            self.assertLoggedEqual("fallback device", "cpu", client.device)
+            with self.assertRaises(SubtitleError) as context:
+                _device = client.device
+            self.assertIn('unavailable', str(context.exception))
 
-    def test_explicit_cuda_unavailable_falls_back_to_cpu(self):
-        """An explicit CUDA request without CUDA falls back to CPU."""
+    def test_explicit_cuda_unavailable_uses_cpu_with_fallback_consent(self):
+        """An unavailable explicit CUDA request uses CPU after consent."""
         with patch("torch.cuda.is_available", return_value=False):
-            client = self._client('cuda')
+            client = self._client('cuda', allow_cpu_fallback=True)
 
             self.assertLoggedEqual("fallback device", "cpu", client.device)
+
+    def test_explicit_cpu_is_refused_without_fallback_consent(self):
+        """Explicit CPU selection requires the persistent consent setting."""
+        client = self._client('cpu')
+
+        with self.assertRaises(SubtitleError) as context:
+            _device = client.device
+        self.assertIn('allow_cpu_fallback', str(context.exception))
+
+    def test_explicit_cpu_is_allowed_with_fallback_consent(self):
+        """Explicit CPU selection is allowed after consent."""
+        client = self._client('cpu', allow_cpu_fallback=True)
+
+        self.assertLoggedEqual("explicit CPU device", "cpu", client.device)
 
     def test_invalid_device_falls_back_to_auto(self):
         """Unknown device names warn and resolve automatically."""
@@ -314,21 +394,21 @@ class TestQwenModelCache(LoggedTestCase):
         with patch.object(qwen_module.Qwen3ASRModel, 'from_pretrained', side_effect=fake_load) as from_pretrained, \
                 patch.object(qwen_module.torch.cuda, 'is_available', return_value=False), \
                 patch.object(qwen_module, '_mps_available', return_value=False):
-            first = self.client_type(SettingsType({'model': 'Qwen/Qwen3-ASR-1.7B', 'device': 'cpu'}))
+            first = self.client_type(SettingsType({'model': 'Qwen/Qwen3-ASR-1.7B', 'device': 'cpu', 'allow_cpu_fallback': True}))
             first_model = first._load_model()
             self.assertLoggedIs("first load cached", first_model, qwen_module._loaded_model)
 
-            same = self.client_type(SettingsType({'model': 'Qwen/Qwen3-ASR-1.7B', 'device': 'cpu', 'max_new_tokens': 4096}))
+            same = self.client_type(SettingsType({'model': 'Qwen/Qwen3-ASR-1.7B', 'device': 'cpu', 'allow_cpu_fallback': True, 'max_new_tokens': 4096}))
             self.assertLoggedIs("budget change reuses model", first_model, same._load_model())
             self.assertLoggedEqual("single load so far", 1, from_pretrained.call_count)
 
-            second = self.client_type(SettingsType({'model': 'Qwen/Qwen3-ASR-0.6B', 'device': 'cpu'}))
+            second = self.client_type(SettingsType({'model': 'Qwen/Qwen3-ASR-0.6B', 'device': 'cpu', 'allow_cpu_fallback': True}))
             second_model = second._load_model()
             self.assertLoggedEqual("second load performed", 2, from_pretrained.call_count)
             self.assertLoggedIs("latest model cached", second_model, qwen_module._loaded_model)
             self.assertLoggedIsNot("previous model dropped", first_model, qwen_module._loaded_model)
 
-            again = self.client_type(SettingsType({'model': 'Qwen/Qwen3-ASR-1.7B', 'device': 'cpu'}))
+            again = self.client_type(SettingsType({'model': 'Qwen/Qwen3-ASR-1.7B', 'device': 'cpu', 'allow_cpu_fallback': True}))
             again._load_model()
             self.assertLoggedEqual("original key reloads", 3, from_pretrained.call_count)
 

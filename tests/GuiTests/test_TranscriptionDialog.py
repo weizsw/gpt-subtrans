@@ -252,6 +252,30 @@ class TestTranscriptionDialogLayout(LoggedTestCase):
             dialog.deleteLater()
             self.application.processEvents()
 
+    def test_advanced_provider_rows_are_hidden_from_run_dialog(self) -> None:
+        """Advanced provider settings stay available only through SettingsDialog."""
+        options = Options()
+        with patch.object(TranscriptionDialog, '_refresh_providers'):
+            dialog = TranscriptionDialog(options)
+        try:
+            provider = FakeTranscriptionProvider()
+            provider.advanced_settings = ['allow_cpu_fallback', 'torch_installation_directory']
+            provider.GetOptions = lambda settings: {
+                'model': (['model-a'], None),
+                'allow_cpu_fallback': (bool, None),
+                'torch_installation_directory': (str, None),
+            }
+            dialog.provider = provider
+            dialog._rebuild_provider_form()
+
+            self.assertLoggedEqual('only per-run rows inserted', 1, dialog._provider_row_count)
+            self.assertLoggedIn('per-run field present', 'model', dialog.provider_fields)
+            self.assertNotIn('allow_cpu_fallback', dialog.provider_fields)
+            self.assertNotIn('torch_installation_directory', dialog.provider_fields)
+        finally:
+            dialog.deleteLater()
+            self.application.processEvents()
+
     def test_invalid_chunk_bounds_are_rejected_before_command_creation(self) -> None:
         """Invalid chunk bounds are reported before a worker can start."""
         options = Options()

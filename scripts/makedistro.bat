@@ -3,6 +3,13 @@ call envsubtrans/scripts/activate
 .\envsubtrans\Scripts\python.exe -m pip install --upgrade pip
 .\envsubtrans\Scripts\python.exe -m pip install pywin32-ctypes
 .\envsubtrans\Scripts\python.exe -m pip install --upgrade pyinstaller
+echo Checking for an installed Torch build before installing Qwen dependencies...
+.\envsubtrans\Scripts\python.exe -c "import torch" >nul 2>&1
+if %errorlevel% neq 0 (
+    echo Torch is required in the build environment before qwen-asr is installed.
+    echo Choose the hardware-appropriate command at https://pytorch.org/get-started/locally/
+    exit /b 1
+)
 .\envsubtrans\Scripts\python.exe -m pip install --upgrade -e ".[gui,openai,gemini,claude,mistral,qwen-asr]"
 rem pip install --upgrade "boto3"  REM Bedrock dependencies excluded
 
@@ -23,12 +30,26 @@ if %errorlevel% neq 0 (
 
 .\envsubtrans\scripts\pyinstaller --noconfirm ^
     --additional-hooks-dir="hooks" ^
+    --exclude-module torch ^
+    --exclude-module torchgen ^
     --add-data "theme/*;theme/" ^
     --add-data "assets/*;assets/" ^
     --add-data "instructions/*;instructions/" ^
     --add-data "LICENSE;." ^
     --add-data "locales/*;locales/" ^
     "scripts/gui-subtrans.py"
+if errorlevel 1 (
+    echo PyInstaller failed. Exiting...
+    exit /b %errorlevel%
+)
+
+.\envsubtrans\Scripts\python.exe scripts\prepare_external_torch.py ^
+    --metadata-only ^
+    --metadata-path "dist\gui-subtrans\frozen-python-compatibility.json"
+if errorlevel 1 (
+    echo Failed to write frozen Python compatibility metadata.
+    exit /b 1
+)
 
 .\envsubtrans\Scripts\python.exe -m pip install pip-audit
 .\envsubtrans\Scripts\python.exe -m pip_audit
