@@ -66,3 +66,15 @@ def GetResourcePath(relative_path : str, *parts : str) -> str:
 
     return os.path.join(os.path.abspath("."), relative_path or "", *parts)
 
+
+def GetAppDir() -> str:
+    """Return the directory containing the application.
+
+    For frozen (PyInstaller) builds this is the parent of the executable.
+    For development runs this is the current working directory.
+    """
+    if getattr(sys, "frozen", False):
+        return os.path.dirname(os.path.realpath(sys.executable))
+
+    return os.path.abspath(".")
+

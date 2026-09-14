@@ -1,4 +1,5 @@
 import logging
+from collections.abc import Callable
 from PySide6.QtCore import Qt, QThread, Slot
 from PySide6.QtWidgets import (QDialog, QVBoxLayout, QTabWidget, QDialogButtonBox, QWidget, QFormLayout, QFrame, QLabel, QScrollArea)
 from GuiSubtrans.GuiHelpers import ClearForm, GetThemeNames
@@ -6,9 +7,11 @@ from GuiSubtrans.GuiHelpers import ClearForm, GetThemeNames
 from GuiSubtrans.Widgets.OptionsWidgets import CreateOptionWidget, OptionWidget, ParseOptionDefinition
 from GuiSubtrans.Widgets.TranscriptionProviderLoader import TranscriptionProviderLoader
 from PySubtrans.Helpers.InstructionsHelpers import GetInstructionsFiles, LoadInstructions
-from PySubtrans.Options import Options
+from PySubtrans.Options import ConfigActionOption, Options
+from GuiSubtrans.Widgets.TorchSetupDialog import TorchSetupDialog
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.Substitutions import Substitutions
+from PySubtrans.Transcription.TorchRuntime import TorchConfigOption
 from PySubtrans.TranslationProvider import TranslationProvider
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Helpers.Localization import LocaleDisplayItem, _, get_locale_display_items
@@ -634,6 +637,13 @@ class SettingsDialog(QDialog):
 
         for key, option_definition in schema.items():
             key_type, tooltip, placeholder = ParseOptionDefinition(option_definition)
+
+            # Resolve ConfigActionOption sentinels to a callable handler so
+            # CreateOptionWidget produces a ButtonTextOptionWidget.
+            if isinstance(key_type, type) and issubclass(key_type, ConfigActionOption):
+                placeholder = key_type.label
+                key_type = self._get_setting_action_handler(key_type)
+
             field = CreateOptionWidget(
                 key,
                 self.transcription_provider.settings.get(key),
@@ -643,6 +653,22 @@ class SettingsDialog(QDialog):
             field.contentChanged.connect(lambda setting=field: self._on_setting_changed(section_name, setting.key, setting.GetValue()))
             layout.addRow(field.name, field)
             self.widgets[key] = field
+
+    def _get_setting_action_handler(self, key_type : type) -> Callable[[str], str|None]:
+        """Return a callable handler for a ConfigActionOption sentinel type.
+
+        The handler takes the current setting value and returns the new value
+        (or None to cancel).
+        """
+        if issubclass(key_type, TorchConfigOption):
+            def _torch_handler(current_path : str) -> str|None:
+                dialog = TorchSetupDialog(current_path, parent=self)
+                if dialog.exec() == QDialog.DialogCode.Accepted:
+                    return dialog.chosen_path
+                return None
+            return _torch_handler
+
+        return lambda current_value: None
 
     def closeEvent(self, event) -> None:
         """Stop the provider loader if the dialog closes early."""

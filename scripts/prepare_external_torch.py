@@ -1,0 +1,266 @@
+"""Prepare and validate an external Torch location for frozen Qwen builds."""
+
+import argparse
+import json
+import logging
+from pathlib import Path
+import subprocess
+import sys
+
+from PySubtrans.Transcription.TorchValidation import (
+    METADATA_FILENAME,
+    OFFICIAL_PYTORCH_SELECTOR,
+    build_current_compatibility,
+    check_compatibility,
+    find_torch_site_packages,
+    get_python_abi,
+    read_compatibility_metadata,
+)
+
+
+PROBE_TIMEOUT_SECONDS = 15
+
+
+def BuildCompatibilityMetadata() -> dict[str, object]:
+    """Return compatibility data derived from the active Python interpreter."""
+    compatibility = build_current_compatibility()
+    python_abi = get_python_abi()
+    version = sys.version_info
+
+    return {
+        "schema_version": 1,
+        "kind": "llm-subtrans-frozen-python-compatibility",
+        "python_abi": python_abi,
+        "python_version": f"{version.major}.{version.minor}",
+        "os": compatibility["os"],
+        "architecture": compatibility["architecture"],
+        "python": {
+            "implementation": sys.implementation.name,
+            "version": f"{version.major}.{version.minor}.{version.micro}",
+            "abi": python_abi,
+            "cache_tag": sys.implementation.cache_tag,
+        },
+        "platform": {
+            "os": compatibility["os"],
+            "sys_platform": sys.platform,
+            "architecture": compatibility["architecture"],
+            "pointer_bits": compatibility["pointer_bits"],
+        },
+        "compatibility": compatibility,
+        "torch": {
+            "installation": "external",
+            "package_policy": "user-installed-complete-runtime",
+        },
+        "pytorch_selector": OFFICIAL_PYTORCH_SELECTOR,
+    }
+
+
+def PrepareExternalTorch(
+    output_directory : str|Path,
+    frozen_metadata_path : str|Path,
+) -> dict[str, object]:
+    """Prepare an empty external location and print official install guidance.
+
+    This function checks the frozen target before creating layout and metadata. It never
+    copies, installs, downloads, or reconstructs Torch packages. The user must
+    install a complete compatible Torch venv using the official selector.
+    """
+    output_root = Path(output_directory).expanduser().resolve()
+    frozen_metadata = ReadCompatibilityMetadata(frozen_metadata_path)
+    python_executable = _GetVenvPython(output_root)
+    actual = (_ProbePythonCompatibility(python_executable) if python_executable is not None
+              else build_current_compatibility())
+    check_compatibility(actual, _get_compatibility_section(frozen_metadata))
+    output_root.mkdir(parents=True, exist_ok=True)
+    _GetSitePackagesDirectory(output_root, create=True)
+
+    metadata = frozen_metadata
+    _WriteMetadata(output_root / METADATA_FILENAME, metadata)
+
+    logging.info("Prepared external Torch location: %s", output_root)
+    logging.info("Install a complete compatible Torch environment using the command selected at:")
+    logging.info(OFFICIAL_PYTORCH_SELECTOR)
+    logging.info("Point Qwen Local at the complete venv root after installation.")
+    return metadata
+
+
+def ValidateExternalTorch(installation_directory : str|Path, frozen_metadata_path : str|Path) -> Path:
+    """Check Torch directory presence and interpreter compatibility, without importing Torch."""
+    frozen_metadata = ReadCompatibilityMetadata(frozen_metadata_path)
+    installation_root = Path(installation_directory).expanduser().resolve()
+    site_packages = _GetSitePackagesDirectory(installation_root, create=False)
+    if not (site_packages / "torch").is_dir():
+        raise RuntimeError(
+            "The external location does not contain a 'torch' package directory. "
+            f"Install the complete hardware-appropriate environment selected at {OFFICIAL_PYTORCH_SELECTOR}."
+        )
+
+    python_executable = _GetVenvPython(installation_root)
+    if python_executable is None:
+        raise RuntimeError(
+            "The external Torch location must be a complete venv root containing its Python executable."
+        )
+
+    actual = _ProbePythonCompatibility(python_executable)
+    check_compatibility(actual, _get_compatibility_section(frozen_metadata))
+
+    logging.info("Torch directory present; interpreter matches frozen metadata: %s", installation_root)
+    logging.info("Torch import, native dependencies, and accelerator availability have not been tested.")
+    return installation_root
+
+
+def _get_compatibility_section(metadata : dict[str, object]) -> dict[str, object]:
+    """Extract the validated compatibility dict from full metadata."""
+    compatibility = metadata["compatibility"]
+    if not isinstance(compatibility, dict):
+        raise ValueError("Missing compatibility section in metadata.")
+    return compatibility
+
+
+def ReadCompatibilityMetadata(metadata_path : str|Path) -> dict[str, object]:
+    """Read the frozen build's required schema, rejecting incomplete targets."""
+    return read_compatibility_metadata(metadata_path)
+
+
+def WriteCompatibilityMetadata(metadata_path : str|Path) -> dict[str, object]:
+    """Write compatibility metadata without creating or copying a runtime."""
+    metadata = BuildCompatibilityMetadata()
+    resolved_path = Path(metadata_path).expanduser().resolve()
+    _WriteMetadata(resolved_path, metadata)
+    logging.info("Frozen Python compatibility metadata: %s", resolved_path)
+    return metadata
+
+
+def main(arguments : list[str]|None = None) -> int:
+    """Run metadata-only, preparation, or validation mode."""
+    # When invoked as a subprocess (e.g. from makedistro) there is no pre-existing
+    # logging configuration, so set up a clean stdout handler. basicConfig() is a
+    # no-op when handlers are already present, so test runners that route logging to
+    # a file are unaffected.
+    logging.basicConfig(stream=sys.stdout, level=logging.INFO, format='%(message)s')
+    parser = argparse.ArgumentParser(
+        description=(
+            "Prepare or validate an external Torch location without copying or downloading packages. "
+            "Use the official PyTorch selector for installation."
+        )
+    )
+    mode = parser.add_mutually_exclusive_group(required=True)
+    mode.add_argument(
+        "--metadata-only",
+        action="store_true",
+        help="Write compatibility metadata only; copy no Torch files.",
+    )
+    mode.add_argument(
+        "--prepare-external-dir",
+        metavar="PATH",
+        help="Create an empty external venv/site-packages location and print install guidance.",
+    )
+    mode.add_argument(
+        "--validate-external-dir",
+        metavar="PATH",
+        help="Check Torch directory presence and interpreter compatibility in a user-installed venv.",
+    )
+    parser.add_argument(
+        "--metadata-path",
+        help="Output JSON path for --metadata-only.",
+    )
+    parser.add_argument("--frozen-metadata", help="Required frozen application's JSON for preparation and validation.")
+    parsed = parser.parse_args(arguments)
+
+    try:
+        if parsed.metadata_only:
+            if parsed.frozen_metadata:
+                parser.error("--frozen-metadata is not used with --metadata-only")
+            if not parsed.metadata_path:
+                parser.error("--metadata-only requires --metadata-path")
+            WriteCompatibilityMetadata(parsed.metadata_path)
+        else:
+            if parsed.metadata_path:
+                parser.error("--metadata-path is only used with --metadata-only")
+            if not parsed.frozen_metadata:
+                parser.error("External setup requires --frozen-metadata from the frozen application")
+            if parsed.prepare_external_dir:
+                PrepareExternalTorch(parsed.prepare_external_dir, parsed.frozen_metadata)
+            else:
+                ValidateExternalTorch(parsed.validate_external_dir, parsed.frozen_metadata)
+    except (OSError, RuntimeError, ValueError, subprocess.SubprocessError) as error:
+        print(f"Unable to prepare or validate external Torch: {error}", file=sys.stderr)
+        return 1
+    return 0
+
+
+def _GetSitePackagesDirectory(root : Path, create : bool) -> Path:
+    """Resolve a runtime layout supported by TorchRuntime.
+
+    For lookup (create=False), delegates to find_torch_site_packages first,
+    then falls back to glob-based discovery for venvs with non-standard Python
+    versions.  For creation, picks the best directory layout to create.
+    """
+    # Try the standard candidates via the shared module
+    found = find_torch_site_packages(root)
+    if found is not None:
+        return found
+
+    # Glob-based fallback for venvs whose Python version differs from ours
+    for candidate in sorted(root.glob("lib/python*/site-packages")):
+        if (candidate / "torch").is_dir():
+            return candidate
+
+    if not create:
+        raise RuntimeError("The external Torch location has no supported site-packages directory.")
+
+    posix_paths = sorted(root.glob("lib/python*/site-packages"))
+    if posix_paths:
+        destination = posix_paths[0]
+    elif (root / "Lib").is_dir():
+        destination = root / "Lib" / "site-packages"
+    else:
+        destination = root / "site-packages"
+    destination.mkdir(parents=True, exist_ok=True)
+    return destination
+
+
+def _GetVenvPython(root : Path) -> Path|None:
+    """Find a Windows or POSIX venv interpreter."""
+    candidates = (root / "Scripts" / "python.exe", root / "bin" / "python")
+    return next((candidate for candidate in candidates if candidate.is_file()), None)
+
+
+def _ProbePythonCompatibility(python_executable : Path) -> dict[str, object]:
+    """Read ABI and platform facts from the external venv's own interpreter."""
+    probe = (
+        "import json,platform,struct,sys,sysconfig;"
+        "v=sys.version_info;"
+        "abi=sys.implementation.cache_tag or sysconfig.get_config_var('SOABI') or "
+        "f'{sys.implementation.name}{v.major}{v.minor}';"
+        "print(json.dumps({'python_implementation': sys.implementation.name,"
+        "'python_abi': abi,"
+        "'python_version': f'{v.major}.{v.minor}',"
+        "'os': platform.system() or sys.platform,"
+        "'architecture': platform.machine() or 'unknown',"
+        "'pointer_bits': struct.calcsize('P') * 8}))"
+    )
+    result = subprocess.run(
+        [str(python_executable), "-I", "-S", "-c", probe],
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=PROBE_TIMEOUT_SECONDS,
+    )
+    parsed = json.loads(result.stdout)
+    if not isinstance(parsed, dict):
+        raise RuntimeError("The external venv returned invalid compatibility data.")
+    return parsed
+
+
+def _WriteMetadata(metadata_path : Path, metadata : dict[str, object]) -> None:
+    """Write deterministic UTF-8 compatibility metadata."""
+    metadata_path.parent.mkdir(parents=True, exist_ok=True)
+    metadata_path.write_text(
+        json.dumps(metadata, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

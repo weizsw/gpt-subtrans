@@ -25,7 +25,8 @@ def Main() -> int:
                         encoding='utf-8', level=logging.INFO)
     suite = unittest.TestLoader().discover(
         str(root / 'tests' / 'IntegrationTests'), pattern='test_*.py', top_level_dir=str(root))
-    os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+    if sys.platform != 'win32':
+        os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
     try:
         importlib.import_module('PySide6.QtGui')
         importlib.import_module('PySide6.QtWidgets')
@@ -38,7 +39,7 @@ def Main() -> int:
     if suite.countTestCases() == 0:
         print('No integration tests discovered.', file=sys.stderr)
         return 1
-    result = unittest.TextTestRunner(verbosity=2).run(suite)
+    result = unittest.TextTestRunner(verbosity=1).run(suite)
     return 0 if result.wasSuccessful() else 1
 
 

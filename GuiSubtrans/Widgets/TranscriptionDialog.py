@@ -100,6 +100,7 @@ class TranscriptionDialog(QDialog):
         self._phase : str = "setup"
         self.run_progress : TranscriptionRunProgress = TranscriptionRunProgress()
         self._close_requested : bool = False
+        self._abort_requested : bool = False
         self.active_command : TranscribeMediaCommand|None = None
         self._completion_slot : Callable[[TranscribeMediaCommand], None]|None = None
         self._pending_accept : bool = False
@@ -270,6 +271,12 @@ class TranscriptionDialog(QDialog):
         if open_button is not None:
             open_button.setEnabled(enabled)
 
+    def _set_close_enabled(self, enabled : bool) -> None:
+        """Enable or disable closing the dialog through the button box."""
+        close_button = self.button_box.button(QDialogButtonBox.StandardButton.Close)
+        if close_button is not None:
+            close_button.setEnabled(enabled)
+
     # ---- Providers -------------------------------------------------------
 
     def _refresh_providers(self) -> None:
@@ -364,10 +371,26 @@ class TranscriptionDialog(QDialog):
         """
         if self.provider is None:
             self.settings_button.setVisible(False)
+            self._update_transcribe_button()
             return
 
+        provider_valid = self._provider_is_valid()
+        self.settings_button.setVisible(not provider_valid)
+        self._update_transcribe_button()
+
+    def _provider_is_valid(self) -> bool:
+        """Return whether the current provider has valid, current settings."""
+        if self.provider is None:
+            return False
+
         self._apply_provider_fields(self.provider)
-        self.settings_button.setVisible(not self.provider.ValidateSettings())
+        return self.provider.ValidateSettings()
+
+    def _update_transcribe_button(self) -> None:
+        """Enable Transcribe only when setup can create a valid command."""
+        media_valid = bool(self.media_path and os.path.isfile(self.media_path))
+        provider_valid = self._provider_is_valid() if media_valid else False
+        self.transcribe_button.setEnabled(self._phase == "setup" and media_valid and provider_valid)
 
     def _update_language_warning(self) -> None:
         """
@@ -453,8 +476,7 @@ class TranscriptionDialog(QDialog):
         if self.media_path and os.path.isfile(self.media_path):
             self._load_tracks()
 
-        if self._phase == "setup":
-            self.transcribe_button.setEnabled(bool(self.media_path))
+        self._update_transcribe_button()
 
         self.progress_bar.setValue(0)
         self.results_view.clear()
@@ -629,6 +651,7 @@ class TranscriptionDialog(QDialog):
         """Observe the command, switch to the running view and submit it to the queue."""
         self._pending_accept = False
         self._close_requested = False
+        self._abort_requested = False
         self.active_command = command
 
         command.progressed.connect(self._on_progress, Qt.ConnectionType.QueuedConnection)
@@ -658,6 +681,8 @@ class TranscriptionDialog(QDialog):
     def _abort_transcription(self) -> None:
         """Stop the run after its current chunk; partial results are retained."""
         if self.active_command is not None:
+            self._abort_requested = True
+            self._set_close_enabled(True)
             self.active_command.FinishEarly()
             self.status_label.setText(_("Aborting..."))
 
@@ -723,6 +748,7 @@ class TranscriptionDialog(QDialog):
 
         self._release(command)
         self._show_results(False)
+        self._abort_requested = False
 
         completed = command.status is TranscriptionStatus.COMPLETED and not command.aborted
         if self._close_requested:
@@ -774,11 +800,12 @@ class TranscriptionDialog(QDialog):
     def reject(self) -> None:
         """Confirm before discarding transcription results via Close or X."""
         if self.active_command is not None:
-            if self._close_requested:
-                # Second close attempt while aborting: force-close without
-                # waiting for the in-flight request to finish or timeout.
+            if self._abort_requested:
+                # Once abort has been requested, Close is the hard-abort
+                # escape hatch and must not wait for the worker to finish.
                 self.active_command = None
                 self._close_requested = False
+                self._abort_requested = False
                 super().reject()
                 return
 
@@ -818,13 +845,14 @@ class TranscriptionDialog(QDialog):
         self.progress_bar.setVisible(False)
 
         self.transcribe_button.setVisible(True)
-        self.transcribe_button.setEnabled(bool(self.media_path))
+        self._update_transcribe_button()
         self.resume_button.setVisible(self._can_resume)
         self.resume_button.setEnabled(self._can_resume and bool(self.media_path))
         self.abort_button.setVisible(False)
         self.back_button.setVisible(False)
 
         self._set_open_enabled(self.subtitles is not None)
+        self._set_close_enabled(True)
 
     def _show_results(self, running : bool) -> None:
         """
@@ -846,6 +874,7 @@ class TranscriptionDialog(QDialog):
         self.back_button.setEnabled(self.active_command is None)
 
         self._set_open_enabled(not running and self.active_command is None and self.subtitles is not None)
+        self._set_close_enabled(not running or self._abort_requested)
 
     def dragEnterEvent(self, event : QDragEnterEvent) -> None:
         """Accept drags that carry a single supported media file."""

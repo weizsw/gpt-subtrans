@@ -1,10 +1,11 @@
+from collections.abc import Callable
 from enum import Enum
 import json
 from datetime import datetime
-from typing import Any
+from typing import Any, cast
 
 from PySide6.QtCore import Signal, QSignalBlocker
-from PySide6.QtWidgets import (QWidget, QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QCheckBox, QTextEdit, QSizePolicy, QHBoxLayout, QVBoxLayout)
+from PySide6.QtWidgets import (QWidget, QLineEdit, QPushButton, QSpinBox, QDoubleSpinBox, QComboBox, QCheckBox, QTextEdit, QSizePolicy, QHBoxLayout, QVBoxLayout)
 from PySide6.QtGui import QTextOption
 
 from PySubtrans.Helpers import GetValueFromName, GetValueName
@@ -264,6 +265,87 @@ class DropdownOptionWidget(OptionWidget):
     def SetVisible(self, is_visible : bool):
         self.combo_box.setVisible(is_visible)
 
+class ButtonOptionWidget(OptionWidget):
+    """A single action button. The action callable receives the current value
+    and returns a new value (or ``None`` to cancel)."""
+
+    def __init__(self, key, initial_value, button_label : str, action : Callable[[str], str|None], tooltip=None):
+        super().__init__(key, initial_value, tooltip=tooltip)
+        self._action = action
+        self._value = initial_value or ''
+
+        self._layout = QHBoxLayout(self)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+
+        self._button = QPushButton(button_label, self)
+        self._button.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Fixed)
+        self._button.clicked.connect(self._on_button_clicked)
+        self._layout.addWidget(self._button)
+
+    def _on_button_clicked(self) -> None:
+        result = self._action(self._value)
+        if result is not None:
+            self._value = result
+            self.contentChanged.emit()
+
+    def GetValue(self):
+        return self._value
+
+    def SetValue(self, value : Any):
+        self._value = str(value) if value else ''
+
+    def SetEnabled(self, enabled : bool):
+        self._button.setEnabled(enabled)
+
+    def SetVisible(self, is_visible : bool):
+        self._button.setVisible(is_visible)
+
+
+class ButtonTextOptionWidget(OptionWidget):
+    """Text field with an action button. The action callable receives the
+    current text and returns a new value (or ``None`` to cancel)."""
+
+    def __init__(self, key, initial_value, button_label : str, action : Callable[[str], str|None], tooltip=None):
+        super().__init__(key, initial_value, tooltip=tooltip)
+        self._action = action
+
+        self._layout = QHBoxLayout(self)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+
+        self.text_field = QLineEdit(self)
+        self.text_field.setText(initial_value or '')
+        self.text_field.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.text_field.editingFinished.connect(self.contentChanged)
+        self._layout.addWidget(self.text_field)
+
+        self._button = QPushButton(button_label, self)
+        self._button.setSizePolicy(QSizePolicy.Policy.Fixed, QSizePolicy.Policy.Fixed)
+        self._button.clicked.connect(self._on_button_clicked)
+        self._layout.addWidget(self._button)
+
+    def _on_button_clicked(self) -> None:
+        result = self._action(self.text_field.text())
+        if result is not None:
+            self.text_field.setText(result)
+            self.contentChanged.emit()
+
+    def GetValue(self):
+        return self.text_field.text()
+
+    def SetValue(self, value : Any):
+        if not isinstance(value, str):
+            value = str(value)
+        self.text_field.setText(value)
+
+    def SetEnabled(self, enabled : bool):
+        self.text_field.setEnabled(enabled)
+        self._button.setEnabled(enabled)
+
+    def SetVisible(self, is_visible : bool):
+        self.text_field.setVisible(is_visible)
+        self._button.setVisible(is_visible)
+
+
 def CreateOptionWidget(key, initial_value, key_type, tooltip = None, placeholder = None) -> OptionWidget:
     """Create an option widget from a type or option definition."""
     key_type, definition_tooltip, definition_placeholder = ParseOptionDefinition(key_type)
@@ -284,5 +366,10 @@ def CreateOptionWidget(key, initial_value, key_type, tooltip = None, placeholder
         return FloatOptionWidget(key, initial_value, tooltip=tooltip)
     elif key_type == bool:
         return CheckboxOptionWidget(key, initial_value, tooltip=tooltip)
+    elif callable(key_type):
+        action = cast(Callable[[str], str|None], key_type)
+        if initial_value:
+            return ButtonTextOptionWidget(key, initial_value, placeholder or '', action, tooltip=tooltip)
+        return ButtonOptionWidget(key, initial_value, placeholder or '', action, tooltip=tooltip)
     else:
         raise ValueError('Unsupported option type: ' + str(type(initial_value)))

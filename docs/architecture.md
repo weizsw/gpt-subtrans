@@ -63,6 +63,66 @@ Media-to-subtitles transcription lives under `PySubtrans/Transcription/` and mir
 - `TranscriptionLines` – `TranscriptionLineBuilder` turns a transcribed chunk into timed subtitle lines. Words are cut into utterances at pauses, speaker changes and sentence punctuation; utterances exceeding the `max_characters` / `max_line_duration` options are split at their best pause (pause length weighted by centrality, with clause-punctuation bonuses and `min_split_chars` guarding fragments) rather than stranding a short tail. Also rebases provider sub-segments and merges slivers. Pure logic with no provider or audio dependencies.
 - `TranscriptionCoordinator` – end-to-end orchestration: plans chunks, transcribes each with the client, applies the resume/abort/failure policy and returns a `TranscriptionOutcome` (status, subtitles, error, line count, cost). Expected failures are reported as a FAILED outcome rather than raised. Emits `TranscriptionEvents` signals (`progress`, `audio_progress`, `segment`) during the run. `TranscriptionProvider.ResolveProviderSettings` merges shared credentials into the `"<name> Transcription"` settings namespace.
 
+### Frozen Qwen Local Packaging
+
+Packaged builds bundle Qwen ASR and its supporting Python libraries but exclude
+`torch`, `torchgen`, and Torch native payloads. A compatible Torch installation is
+provided externally and loaded in-process before Qwen's lazy import. The external
+installation must match the frozen application's Python ABI, operating system, and
+architecture; changing it after Torch has been imported requires an application
+restart. The distribution does not bundle `ffmpeg` or `ffprobe`; those remain
+external executables resolved from PATH or the configured ffmpeg path.
+
+Distribution scripts install/check Torch before the Qwen extra and link to the
+official PyTorch installation selector rather than maintaining hardware-specific
+wheel recipes. Dependency-audit checks remain a release gate, including findings
+from bundled Transformers and Accelerate.
+
+After PyInstaller completes, the distro scripts run
+`scripts/prepare_external_torch.py --metadata-only`, writing
+`frozen-python-compatibility.json` into the frozen application's
+`_internal/assets/` directory (PyInstaller 6+ layout). At runtime, the metadata
+is located via `GetResourcePath("assets", METADATA_FILENAME)`, which resolves
+through `sys._MEIPASS` in frozen builds and `./assets/` in development. The
+helper's `--prepare-external-dir` and `--validate-external-dir` modes operate on
+a complete user-managed venv/site-packages location; they never reconstruct
+package or native dependency files. Users selecting a hardware build should use
+the official PyTorch selector.
+
+Both external setup modes require `--frozen-metadata` pointing to the frozen
+application's JSON. Schema version 1 uses `compatibility` fields
+`python_implementation`, `python_abi`, `python_version` (major.minor), `os`,
+`architecture`, and `pointer_bits`. The helper compares the external interpreter's
+facts to those fields using a 15-second `-I -S` subprocess probe, bypassing site
+initialization and `.pth` execution. Venv roots resolve Windows `Lib/site-packages`
+and POSIX `lib/pythonX.Y/site-packages`; a root containing `torch` or a
+`site-packages` child is also recognized. The validation command requires a venv
+interpreter and checks directory presence and compatibility, not Torch import or
+native dependency readiness. PyInstaller failure stops every distro script before
+metadata generation.
+
+#### TorchValidation (Shared Module)
+
+`PySubtrans/Transcription/TorchValidation.py` is the single source of truth for
+Torch installation discovery and ABI compatibility checking. It lives outside
+`Providers/` so the `ProviderImportGuard` is irrelevant, and has no Torch or Qt
+imports — only stdlib and `PySubtrans.Helpers`.
+
+Three consumers import from it:
+
+| Consumer | Uses |
+|----------|------|
+| `TorchRuntime.py` | Validates frozen metadata at startup before putting the external venv on `sys.path` |
+| `prepare_external_torch.py` | Stamps metadata at build time, validates external venvs via CLI |
+| `TorchSetupDialog.py` | Validates ABI compatibility in the GUI wizard before accepting a user-selected venv |
+
+Key functions:
+- **`normalise_architecture()`** — merged alias table covering both x86 and ARM variants
+- **`candidate_site_packages_paths()` / `find_torch_site_packages()`** — canonical site-packages resolution for all layout variants
+- **`build_current_compatibility()`** — builds the 6-field compatibility dict from the running interpreter
+- **`find_compatibility_metadata()`** — locates the metadata file via `GetResourcePath`
+- **`read_compatibility_metadata()` / `check_compatibility()`** — reads and validates metadata, with an `error_type` parameter so each consumer raises its own exception type
+
 The CLI entry point is `scripts/transcribe.py`; the GUI runs the same coordinator through `TranscribeMediaCommand`.
 
 ### GuiSubtrans (User Interface)

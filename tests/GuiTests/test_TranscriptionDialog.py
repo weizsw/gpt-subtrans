@@ -1,10 +1,12 @@
 """Exercise synchronous transcription settings and result handling."""
 import os
+import sys
 from unittest.mock import patch
 
-os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+if sys.platform != 'win32':
+    os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox
 
 from GuiSubtrans.Commands.TranscribeMediaCommand import TranscribeMediaCommand
 from GuiSubtrans.SettingsDialog import SettingsDialog
@@ -248,6 +250,77 @@ class TestTranscriptionDialogLayout(LoggedTestCase):
             dialog._rebuild_provider_form()
             self.assertLoggedEqual('row count restored to initial', initial_row_count, dialog.form.rowCount())
             self.assertLoggedEqual('provider row count zeroed', 0, dialog._provider_row_count)
+        finally:
+            dialog.deleteLater()
+            self.application.processEvents()
+
+    def test_advanced_provider_rows_are_hidden_from_run_dialog(self) -> None:
+        """Advanced provider settings stay available only through SettingsDialog."""
+        options = Options()
+        with patch.object(TranscriptionDialog, '_refresh_providers'):
+            dialog = TranscriptionDialog(options)
+        try:
+            provider = FakeTranscriptionProvider()
+            provider.advanced_settings = ['allow_cpu_fallback', 'torch_installation_directory']
+            provider.GetOptions = lambda settings: {
+                'model': (['model-a'], ''),
+                'allow_cpu_fallback': (bool, ''),
+                'torch_installation_directory': (str, ''),
+            }
+            dialog.provider = provider
+            dialog._rebuild_provider_form()
+
+            self.assertLoggedEqual('only per-run rows inserted', 1, dialog._provider_row_count)
+            self.assertLoggedIn('per-run field present', 'model', dialog.provider_fields)
+            self.assertNotIn('allow_cpu_fallback', dialog.provider_fields)
+            self.assertNotIn('torch_installation_directory', dialog.provider_fields)
+        finally:
+            dialog.deleteLater()
+            self.application.processEvents()
+
+    def test_close_requires_abort_and_then_forces_close(self) -> None:
+        """Close is disabled during a run but hard-closes after abort is requested."""
+        options = Options()
+        with patch.object(TranscriptionDialog, '_refresh_providers'):
+            dialog = TranscriptionDialog(options)
+        try:
+            command = TranscribeMediaCommand(FakeTranscriptionProvider(), 'media.wav', SettingsType())
+            dialog.active_command = command
+            dialog._show_results(True)
+            close_button = dialog.button_box.button(QDialogButtonBox.StandardButton.Close)
+
+            self.assertLoggedIsNotNone('close button exists', close_button)
+            if close_button is None:
+                return
+
+            self.assertLoggedFalse('close disabled during transcription', close_button.isEnabled())
+            dialog._abort_transcription()
+            self.assertLoggedTrue('close enabled after abort', close_button.isEnabled())
+
+            dialog.reject()
+            self.assertLoggedIsNone('hard abort releases active command', dialog.active_command)
+            self.assertLoggedEqual('hard abort rejects dialog', QDialog.DialogCode.Rejected, dialog.result())
+        finally:
+            dialog.deleteLater()
+            self.application.processEvents()
+
+    def test_transcribe_button_requires_valid_provider_settings(self) -> None:
+        """Transcribe stays disabled until the selected provider is valid."""
+        options = Options()
+        with patch.object(TranscriptionDialog, '_refresh_providers'):
+            dialog = TranscriptionDialog(options)
+        try:
+            provider = FakeTranscriptionProvider()
+            dialog.provider = provider
+            dialog.media_path = __file__
+
+            with patch.object(provider, 'ValidateSettings', return_value=False):
+                dialog._update_settings_link()
+                self.assertLoggedFalse('invalid provider disables Transcribe', dialog.transcribe_button.isEnabled())
+
+            with patch.object(provider, 'ValidateSettings', return_value=True):
+                dialog._update_settings_link()
+                self.assertLoggedTrue('valid provider enables Transcribe', dialog.transcribe_button.isEnabled())
         finally:
             dialog.deleteLater()
             self.application.processEvents()

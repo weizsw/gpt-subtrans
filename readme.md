@@ -107,6 +107,25 @@ LLM-Subtrans can transcribe audio and video files (mp4, mkv, mp3, wav, ...), whi
 **Qwen Local**: runs  `qwen-asr` in-process on your machine. 
 
 A separate torch install is required to take advantage of GPU acceleration (see https://pytorch.org/get-started/locally/).
+For packaged builds, Torch is intentionally external: install a compatible Torch build
+with the same Python version and architecture as the application, then select its
+installation directory in the Qwen Local advanced provider settings. `ffmpeg` and
+`ffprobe` are also external programs and must be available on PATH (or configured).
+The frozen build contains compatibility metadata but no Torch payload. Create or
+use a complete venv made with the same compatible Python, then prepare its
+external location with `python scripts/prepare_external_torch.py
+--prepare-external-dir PATH --frozen-metadata APP/frozen-python-compatibility.json`.
+The helper checks the selected interpreter against the frozen application's JSON
+before creating the supported directory
+layout and metadata; it never copies or installs packages. Install the complete
+hardware-specific Torch environment using the official
+[PyTorch installation selector](https://pytorch.org/get-started/locally/), then
+validate it with `python scripts/prepare_external_torch.py
+--validate-external-dir PATH --frozen-metadata APP/frozen-python-compatibility.json`
+and select the venv root in Qwen Local settings. Windows venvs use
+`Lib/site-packages`; POSIX venvs use `lib/pythonX.Y/site-packages`.
+Validation checks the Torch directory's presence and the external interpreter's
+compatibility only. It does not test Torch imports, native dependencies, or GPU availability.
 
 ### Cloud transcription services
 **OpenRouter**: Provides several speech-to-text models, e.g. the excellent MAI Transcribe 2, DeepGram and Grok.
@@ -196,6 +215,10 @@ During the installing process, you can choose to input an API key for each selec
     ```
 
     This avoids pip defaulting to a CPU-only torch install.
+
+    CPU-only Torch is an emergency fallback and may be impractically slow. It is
+    disabled by default in Qwen Local; enable the persistent advanced CPU fallback
+    setting only when you explicitly accept that limitation.
 
 ## Usage
 The program works by dividing the subtitles up into batches and sending each one to the translation service in turn. 

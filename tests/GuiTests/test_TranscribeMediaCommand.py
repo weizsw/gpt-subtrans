@@ -1,12 +1,14 @@
 """Tests for queue-owned transcription execution."""
 import os
+import sys
 from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
 from threading import Event, Thread
 from unittest.mock import Mock, patch
 
-os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+if sys.platform != 'win32':
+    os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
 from GuiSubtrans.Commands.SaveSubtitleFile import SaveSubtitleFile
 from GuiSubtrans.Commands.TranscribeMediaCommand import TranscribeMediaCommand

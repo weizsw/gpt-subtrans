@@ -1,5 +1,6 @@
 """Exercise real Qt worker and transcription dialog lifetime."""
 import os
+import sys
 import time
 from datetime import timedelta
 from pathlib import Path
@@ -7,7 +8,8 @@ from tempfile import TemporaryDirectory
 from threading import Event
 from unittest.mock import patch
 
-os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+if sys.platform != 'win32':
+    os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
 
 from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QMessageBox
 
