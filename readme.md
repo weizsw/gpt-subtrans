@@ -189,17 +189,16 @@ During the installing process, you can choose to input an API key for each selec
     pip install -e ".[gui,openai,gemini,claude,mistral,bedrock]"   # Full install with optional providers (delete to taste)
     ```
 
-    For local transcription support, **first** install a hardware-appropriate Torch version from https://pytorch.org/get-started/locally/, **then** add the extra:
+5. Optionally install `qwen-asr` for local transcription. 
+  
+  **First** install a hardware-appropriate [Torch](https://pytorch.org/get-started/locally/) version, then install the qwen package.
 
     ```sh
+    python scripts/install_torch.py
     pip install -e ".[qwen-asr]"
     ```
 
-    This avoids pip defaulting to a CPU-only torch install.
-
-    CPU-only Torch is an emergency fallback and may be impractically slow. It is
-    disabled by default in Qwen Local; enable the persistent advanced CPU fallback
-    setting only when you explicitly accept that limitation.
+    This avoids qwen pulling in a generic Torch version without hardware acceleration.
 
 ## Usage
 The program works by dividing the subtitles up into batches and sending each one to the translation service in turn. 

@@ -118,7 +118,7 @@ Consumers:
 |----------|-------------|
 | `TorchSetupDialog.py` (GUI wizard) | `Hardware` (detection, index URLs), `Validation` (ABI checking) |
 | `prepare_external_torch.py` (build tool) | `Validation` (metadata stamping and venv probing) |
-| `upgrade_torch.py` (installer) | `Hardware` (detection for pre-install torch variant selection) |
+| `install_torch.py` (installer) | `Hardware` (detection for pre-install torch variant selection) |
 | `Provider_QwenLocal.py` / `QwenLocalClient.py` | `Runtime` (config option sentinel, runtime loader) |
 | `SettingsDialog.py` | `Runtime` (`TorchConfigOption` sentinel) |
 

@@ -1,7 +1,7 @@
 """GPU hardware detection for PyTorch variant selection.
 
 Pure detection logic -- no Qt, no localization, no Torch imports.
-Used by TorchSetupDialog (GUI), upgrade_torch.py (installer), and
+Used by TorchSetupDialog (GUI), install_torch.py (installer), and
 any other consumer that needs to choose a PyTorch build variant.
 """
 

@@ -274,7 +274,7 @@ qt_fonts_dir=$(python3 -c "import PySide6, os; print(os.path.join(os.path.dirnam
 if [ "$install_transcription" = "y" ] || [ "$install_transcription" = "Y" ]; then
     echo
     echo "Detecting GPU hardware and installing torch..."
-    ./envsubtrans/bin/python scripts/upgrade_torch.py
+    ./envsubtrans/bin/python scripts/install_torch.py
     torch_exit=$?
 
     if [ $torch_exit -eq 2 ]; then

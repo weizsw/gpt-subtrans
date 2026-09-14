@@ -229,7 +229,7 @@ if not exist "!QT_FONTS_DIR!" mkdir "!QT_FONTS_DIR!" >nul 2>&1
 if /i "!install_transcription!"=="y" (
     echo.
     echo Detecting GPU hardware and installing torch...
-    .\envsubtrans\Scripts\python.exe scripts\upgrade_torch.py
+    .\envsubtrans\Scripts\python.exe scripts\install_torch.py
     set TORCH_EXIT=!errorlevel!
 
     if !TORCH_EXIT! equ 2 (

@@ -214,9 +214,9 @@ class TestPrepareExternalTorch(LoggedTestCase):
             self.assertLoggedEqual(f'{name} preserves failure', 23, result.returncode)
             self.assertLoggedNotIn(f'{name} skips metadata', 'METADATA_CALLED', result.stdout)
 
-    def test_upgrade_torch_recognises_xpu_and_installers_require_cpu_consent(self) -> None:
-        """upgrade_torch.py treats XPU as a GPU backend; install scripts show CPU consent text."""
-        from scripts import upgrade_torch
+    def test_install_torch_recognises_xpu_and_installers_require_cpu_consent(self) -> None:
+        """install_torch.py treats XPU as a GPU backend; install scripts show CPU consent text."""
+        from scripts import install_torch
 
         # Simulate torch with an XPU backend available
         mock_torch = SimpleNamespace(
@@ -225,7 +225,7 @@ class TestPrepareExternalTorch(LoggedTestCase):
             xpu=SimpleNamespace(is_available=lambda: True),
         )
         with patch.dict('sys.modules', {'torch': mock_torch}):
-            result = upgrade_torch.main()
+            result = install_torch.main()
         self.assertLoggedEqual("XPU detected exits 0", 0, result)
 
         # Simulate torch with no GPU backend at all -> falls through to detect_hardware -> CPU install
@@ -236,8 +236,8 @@ class TestPrepareExternalTorch(LoggedTestCase):
         mock_pip = SimpleNamespace(returncode=0)
         with patch.dict('sys.modules', {'torch': mock_torch_cpu}), \
              patch('PySubtrans.Transcription.Torch.Hardware.DetectHardware', return_value=None), \
-             patch('scripts.upgrade_torch.subprocess.run', return_value=mock_pip):
-            result = upgrade_torch.main()
+             patch('scripts.install_torch.subprocess.run', return_value=mock_pip):
+             result = install_torch.main()
         self.assertLoggedEqual("No GPU exits 1", 1, result)
 
         # Install scripts still carry the CPU consent guidance
