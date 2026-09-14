@@ -28,25 +28,21 @@ https://openrouter.ai/privacy
 
 [OpenRouter](https://openrouter.ai/) is a service which aggregates [models](https://openrouter.ai/models) from a wide range of providers. You will need an [OpenRouter API Key](https://openrouter.ai/settings/keys) to use the service, and a credit balance (though some quite capable models are provided free of charge).
 
-You can choose to let OpenRouter select the model automatically (the "Use Default Model" setting in the GUI or `--auto` on the command line) or you can specify a specific model. Model preferences can also be specified in the OpenRouter dashboard.
-
-Since hundreds of models are available they are grouped by model family. By default the list of available models is pulled from the "Translation" category, though this excludes many models that are perfectly capable of translation (including most free options).
+You can choose to let OpenRouter select the model automatically (the "Use Default Model" setting in the GUI or `--auto` on the command line) or you can specify a specific model.
 
 ### Google Gemini
 https://ai.google.dev/terms
 
-**Please note that regions restrictions may apply: https://ai.google.dev/available_regions**
-
-Gemini 3.5 Flash is perhaps the leading model for translation speed and fluency at time of writing, despite some censorship, and Preview models are often free to use.
+Gemini Flash is probably the leading model for translation speed and fluency, despite some censorship.
 
 You will need a Google Gemini API key from https://ai.google.dev/ or from a project created on https://console.cloud.google.com/. You must ensure that Generative AI is enabled for the api key and project.
 
-Unfortunately Gemini will refuse to translate content that contains certain words or phrases, even with minimal safety settings. If you hit this you will need to use another provider or split the batch and manually translate the offending lines.
+Unfortunately Gemini will refuse to translate content that contains certain words or phrases, even with minimal safety settings. If you hit this you will need to use another provider for the batch.
 
 ### OpenAI
 https://openai.com/policies/privacy-policy
 
-You will need an OpenAI API key from https://platform.openai.com/account/api-keys to use OpenAI's GPT models. If the API key is associated with a free trial the translation speed will be *severely* restricted.
+You will need an OpenAI API key from https://platform.openai.com/account/api-keys to use OpenAI's GPT models.
 
 You can use the custom api_base parameter to access a custom OpenAI instance (or any other OpenAI-compatible endpoint, though the Custom Server option gives you more control).
 
@@ -57,9 +53,7 @@ https://platform.deepseek.com/downloads/DeepSeek%20Open%20Platform%20Terms%20of%
 
 You will need a DeepSeek API key from https://platform.deepseek.com/api_keys to use this provider.
 
-- **API Base**: You can optionally specify a custom URL, e.g. if you are hosting your own DeepSeek instance. If this is not set, the official DeepSeek API endpoint will be used.
-
-- **Model**: The default model is `deepseek-chat`, which is recommended for translation tasks. `deepseek-reasoner` may produce better results for source subtitles with OCR or transcription errors as it will spend longer trying to guess what the error is.
+- **API Base**: You can optionally specify a custom URL, e.g. if you are hosting your own DeepSeek instance.
 
 DeepSeek is quite simple to set up and offers reasonable performance at a very low price, though translation does not seem to be its strongest point.
 
@@ -76,22 +70,19 @@ https://mistral.ai/terms/
 You will need a Mistral API key from https://console.mistral.ai/api-keys/ to use this provider.
 
 - **Server URL**: If you are using a custom deployment of the Mistral API, you can specify the server URL using the `--server_url` argument.
-
 - **Model**: `mistral-large-latest` is recommended for translation. Smaller models tend to perform poorly and may not follow the system instructions well.
-
-Mistral AI is straightforward to set up, but its performance as a translator is not particularly good.
 
 ### Custom Server
 LLM-Subtrans can interface directly with any server that supports an OpenAI compatible API, including locally hosted models e.g. [LM Studio](https://lmstudio.ai/).
 
-This is mainly for research and you should not expect particularly good results from local models. LLMs derive much of their power from their size, so the small, quantized models you can run on a consumer GPU are likely to produce poor translations, fail to generate valid responses or get stuck in endless loops. If you find a model that reliably producess good results, please post about it in the Discussions area!
+You should not expect particularly good results from local models. LLMs derive much of their power from their size, so the small, quantized models you can run on a consumer GPU are likely to produce weak translations, or fail to generate valid responses.
 
-Chat and completion endpoints are supported - you should configure the settings and endpoint based on the model the server is running (e.g. instruction tuned models will probably produce better results using the completions endpoint rather than chat). The prompt template can be edited in the GUI if you are using a model that requires a particular format - make sure to include at least the {prompt} tag in the template, as this is where the subtitles that need translating in each batch will be filled in!
+Chat and completion endpoints are supported - configure the settings and endpoint based on the model the server is running. The prompt template can be edited if you are using a model that requires a particular format - make sure to include at least the {prompt} tag in the template, as this is where the subtitles that need translating in each batch will be inserted.
 
 ### Amazon Bedrock
 https://aws.amazon.com/service-terms/
 
-**Bedrock is not recommended for most users**: The setup process is complex, requiring AWS credentials, proper IAM permissions, and region configuration. Additionally, not all models on Bedrock support translation tasks or offer reliable results. Bedrock support will not be included in pre-packaged versions - if you can handle setting up AWS, you can handle installing llm-subtrans [from source](#installing-from-source).
+**Bedrock is not recommended for most users**: The setup process is complex, requiring AWS credentials, proper IAM permissions, and region configuration. Additionally, not all models on Bedrock support translation tasks or offer reliable results. Bedrock support will not be included in packaged releases - if you can handle setting up AWS, you can handle installing llm-subtrans [from source](#installing-from-source).
 
 To use Bedrock, you must:
   1. Create an **IAM user** or **role** with appropriate permissions (e.g., `bedrock:InvokeModel`, `bedrock:ListFoundationModels`).
