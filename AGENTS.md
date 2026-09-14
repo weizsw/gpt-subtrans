@@ -8,6 +8,10 @@ Secrets are stored in a .env file - the agent must NEVER read the contents of th
 
 If testable code covered by unit tests was changed, ensure that unit_tests has been run before wrapping up a task.
 
+## Commits
+- NEVER use `--no-verify` to bypass the pre-commit hook. The hook runs pyright type checking and errors must be fixed before committing.
+- If pyright is not installed, install it with `pip install pyright` in the virtual environment before committing.
+
 ## Project structure
 Before conducting exploratory searches of the code base, consult `docs/architecture.md` for information on the project architecture, structure and components to guide the search. Ensure the document is maintained after significant architectural changes.
 
