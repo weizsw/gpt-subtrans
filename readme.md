@@ -21,9 +21,6 @@ Packaged builds are (usually) provided for MacOS with Apple Silicon (**gui-subtr
 ### Linux
 Prebuilt Linux packages are not provided so you will need to [install from source](#installing-from-source).
 
-### LLM-Subtrans Web
-The Gemini-powered LLM-Subtrans Web has been retired as it was costing me money. You can create your own version in [Google AI Studio](https://aistudio.google.com/).
-
 ## Translation Providers
 
 ### OpenRouter
