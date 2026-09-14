@@ -106,10 +106,10 @@ LLM-Subtrans can transcribe audio and video files (mp4, mkv, mp3, wav, ...), whi
 From the GUI, click **Transcribe Audio** in the toolbar (Ctrl+R) to open a separate dialog for transcription. A successful result will be opened as a translation project upon completion.
 
 ### Cloud transcription services
-**OpenRouter**: Provides several speech-to-text models, e.g. the excellent MAI Transcribe 2, DeepGram and Grok.
-**Gemini**: `gemini-3.5-transcribe` with word timestamps and speaker diarization. Very good, but brutal rate limits.
-**Muse**: Meta `muse-voice-transcribe-1. Slow, and only provides approximate timings.
-**OpenAI**: `whisper-1` (word timestamps) and `gpt-4o-transcribe-diarize`. Experimental support.
+* **OpenRouter**: Provides several speech-to-text models, e.g. the excellent MAI Transcribe 2, DeepGram and Grok.
+* **Gemini**: `gemini-3.5-transcribe` with word timestamps and speaker diarization. Very good, but brutal rate limits.
+* **Muse**: Meta `muse-voice-transcribe-1. Slow, and only provides approximate timings.
+* **OpenAI**: `whisper-1` (word timestamps) and `gpt-4o-transcribe-diarize`. Experimental support.
 
 ### Local transcription
 **Qwen Local** runs Qwen3-ASR on your computer without sending audio to a transcription service.
