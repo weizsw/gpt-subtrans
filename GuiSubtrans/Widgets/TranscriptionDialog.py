@@ -697,19 +697,25 @@ class TranscriptionDialog(QDialog):
     def _on_progress(self, done : int, total : int, span : str) -> None:
         self.run_progress.OnProgress(done, total, span)
 
-        if total > 0:
-            self.progress_bar.setRange(0, total)
-            self.progress_bar.setValue(done)
-        else:
-            # Total unknown while the chunk plan streams in: busy indicator
+        if self.run_progress.audio_total <= 0.0:
+            # The streamed chunk plan has no stable total. Stay indeterminate
+            # only until the media duration arrives through audio progress.
             self.progress_bar.setRange(0, 0)
 
         self._update_run_status()
 
     @Slot(float, float)
     def _on_audio_progress(self, processed : float, total : float) -> None:
-        """Track source-audio progress for ETA when chunk count is unknown."""
+        """Update the progress bar and ETA from processed source-audio time."""
         self.run_progress.OnAudioProgress(processed, total)
+
+        if self.run_progress.audio_total > 0.0:
+            fraction = min(1.0, self.run_progress.audio_done / self.run_progress.audio_total)
+            self.progress_bar.setRange(0, 100)
+            self.progress_bar.setValue(int(round(fraction * 100)))
+        else:
+            self.progress_bar.setRange(0, 0)
+
         self._update_run_status()
 
     @Slot(object)

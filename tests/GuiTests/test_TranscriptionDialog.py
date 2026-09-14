@@ -164,7 +164,7 @@ class TestTranscriptionRunEvidence(LoggedTestCase):
             self.application.processEvents()
 
     def test_audio_progress_drives_eta_without_chunk_total(self) -> None:
-        """Audio progress restores ETA while the streamed chunk total is unknown."""
+        """Audio time drives both the determinate bar and ETA."""
         options = Options()
         with patch.object(TranscriptionDialog, '_refresh_providers'):
             dialog = TranscriptionDialog(options)
@@ -173,8 +173,15 @@ class TestTranscriptionRunEvidence(LoggedTestCase):
             dialog.run_progress.OnProgress(1, 0, '0.0s-10.0s')
             with patch('GuiSubtrans.Widgets.TranscriptionRunProgress.time.monotonic', return_value=160.0):
                 dialog._on_audio_progress(10.0, 100.0)
+                self.assertLoggedIn('audio-based eta', 'about 9:00 left', dialog.status_label.text())
 
-            self.assertLoggedIn('audio-based eta', 'about 9:00 left', dialog.status_label.text())
+            self.assertLoggedEqual('audio progress bar range', 100, dialog.progress_bar.maximum())
+            self.assertLoggedEqual('audio progress bar value', 10, dialog.progress_bar.value())
+
+            # Chunk callbacks continue to report the current span, but must
+            # not replace the time-based progress with a busy indicator.
+            dialog._on_progress(2, 0, '10.0s-20.0s')
+            self.assertLoggedEqual('chunk progress keeps determinate bar', 10, dialog.progress_bar.value())
         finally:
             dialog.deleteLater()
             self.application.processEvents()
