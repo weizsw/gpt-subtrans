@@ -9,11 +9,13 @@ from PySide6.QtWidgets import QApplication
 
 from GuiSubtrans.Widgets.TorchSetupDialog import (
     TorchSetupDialog,
-    _detect_hardware,
-    _select_cuda_build,
     _HardwareDetection,
 )
 from PySubtrans.Helpers.TestCases import LoggedTestCase
+from PySubtrans.Transcription.Torch.Hardware import (
+    DetectHardware,
+    SelectCudaBuild,
+)
 
 
 class TestTorchSetupSelection(LoggedTestCase):
@@ -28,7 +30,7 @@ class TestTorchSetupSelection(LoggedTestCase):
 
     def test_reported_cuda_capability_selects_available_build(self) -> None:
         """A newer driver report selects the newest available PyTorch build."""
-        selected = _select_cuda_build('616.56', '13.4', self._CUDA_BUILDS)
+        selected = SelectCudaBuild('616.56', '13.4', self._CUDA_BUILDS)
 
         self.assertLoggedEqual(
             'cu130 selected for CUDA 13.4 driver capability',
@@ -38,7 +40,7 @@ class TestTorchSetupSelection(LoggedTestCase):
 
     def test_reported_cuda_capability_limits_build_selection(self) -> None:
         """A driver capable of only CUDA 12.6 does not select a newer wheel."""
-        selected = _select_cuda_build('616.56', '12.6', self._CUDA_BUILDS)
+        selected = SelectCudaBuild('616.56', '12.6', self._CUDA_BUILDS)
 
         self.assertLoggedEqual(
             'cu126 selected for CUDA 12.6 driver capability',
@@ -48,14 +50,14 @@ class TestTorchSetupSelection(LoggedTestCase):
 
     def test_hardware_detection_reports_driver_cuda_capability(self) -> None:
         """The hardware description tells the user what the driver reported."""
-        with patch('GuiSubtrans.Widgets.TorchSetupDialog._detect_nvidia_driver', return_value='616.56'), \
-                patch('GuiSubtrans.Widgets.TorchSetupDialog._detect_nvidia_cuda_version', return_value='13.4'):
-            hardware = _detect_hardware()
+        with patch('PySubtrans.Transcription.Torch.Hardware.DetectNvidiaDriver', return_value='616.56'), \
+                patch('PySubtrans.Transcription.Torch.Hardware.DetectNvidiaCudaVersion', return_value='13.4'):
+            hardware = DetectHardware()
 
         self.assertLoggedIsNotNone('hardware detection result', hardware)
         if hardware is not None:
             self.assertLoggedEqual('cu130 wheel index', 'https://download.pytorch.org/whl/cu130', hardware.index_url)
-            self.assertLoggedIn('reported CUDA version', 'driver reports CUDA 13.4', hardware.description)
+            self.assertLoggedIn('reported CUDA version', 'CUDA 13.4', hardware.description)
 
     @classmethod
     def setUpClass(cls) -> None:
