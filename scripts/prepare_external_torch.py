@@ -7,24 +7,23 @@ from pathlib import Path
 import subprocess
 import sys
 
-from PySubtrans.Transcription.TorchValidation import (
+from PySubtrans.Transcription.Torch.Validation import (
     METADATA_FILENAME,
     OFFICIAL_PYTORCH_SELECTOR,
-    build_current_compatibility,
-    check_compatibility,
-    find_torch_site_packages,
-    get_python_abi,
-    read_compatibility_metadata,
+    BuildCurrentCompatibility,
+    CheckCompatibility,
+    FindTorchSitePackages,
+    FindVenvPython,
+    GetPythonAbi,
+    ProbeVenvCompatibility,
+    ReadCompatibilityMetadata,
 )
-
-
-PROBE_TIMEOUT_SECONDS = 15
 
 
 def BuildCompatibilityMetadata() -> dict[str, object]:
     """Return compatibility data derived from the active Python interpreter."""
-    compatibility = build_current_compatibility()
-    python_abi = get_python_abi()
+    compatibility = BuildCurrentCompatibility()
+    python_abi = GetPythonAbi()
     version = sys.version_info
 
     return {
@@ -67,10 +66,10 @@ def PrepareExternalTorch(
     """
     output_root = Path(output_directory).expanduser().resolve()
     frozen_metadata = ReadCompatibilityMetadata(frozen_metadata_path)
-    python_executable = _GetVenvPython(output_root)
-    actual = (_ProbePythonCompatibility(python_executable) if python_executable is not None
-              else build_current_compatibility())
-    check_compatibility(actual, _get_compatibility_section(frozen_metadata))
+    python_executable = FindVenvPython(output_root)
+    probed = ProbeVenvCompatibility(python_executable) if python_executable is not None else None
+    actual = probed if probed is not None else BuildCurrentCompatibility()
+    CheckCompatibility(actual, _get_compatibility_section(frozen_metadata))
     output_root.mkdir(parents=True, exist_ok=True)
     _GetSitePackagesDirectory(output_root, create=True)
 
@@ -95,14 +94,18 @@ def ValidateExternalTorch(installation_directory : str|Path, frozen_metadata_pat
             f"Install the complete hardware-appropriate environment selected at {OFFICIAL_PYTORCH_SELECTOR}."
         )
 
-    python_executable = _GetVenvPython(installation_root)
+    python_executable = FindVenvPython(installation_root)
     if python_executable is None:
         raise RuntimeError(
             "The external Torch location must be a complete venv root containing its Python executable."
         )
 
-    actual = _ProbePythonCompatibility(python_executable)
-    check_compatibility(actual, _get_compatibility_section(frozen_metadata))
+    actual = ProbeVenvCompatibility(python_executable)
+    if actual is None:
+        raise RuntimeError(
+            f"Unable to probe the Python interpreter at {python_executable}."
+        )
+    CheckCompatibility(actual, _get_compatibility_section(frozen_metadata))
 
     logging.info("Torch directory present; interpreter matches frozen metadata: %s", installation_root)
     logging.info("Torch import, native dependencies, and accelerator availability have not been tested.")
@@ -116,10 +119,6 @@ def _get_compatibility_section(metadata : dict[str, object]) -> dict[str, object
         raise ValueError("Missing compatibility section in metadata.")
     return compatibility
 
-
-def ReadCompatibilityMetadata(metadata_path : str|Path) -> dict[str, object]:
-    """Read the frozen build's required schema, rejecting incomplete targets."""
-    return read_compatibility_metadata(metadata_path)
 
 
 def WriteCompatibilityMetadata(metadata_path : str|Path) -> dict[str, object]:
@@ -197,7 +196,7 @@ def _GetSitePackagesDirectory(root : Path, create : bool) -> Path:
     versions.  For creation, picks the best directory layout to create.
     """
     # Try the standard candidates via the shared module
-    found = find_torch_site_packages(root)
+    found = FindTorchSitePackages(root)
     if found is not None:
         return found
 
@@ -219,38 +218,6 @@ def _GetSitePackagesDirectory(root : Path, create : bool) -> Path:
     destination.mkdir(parents=True, exist_ok=True)
     return destination
 
-
-def _GetVenvPython(root : Path) -> Path|None:
-    """Find a Windows or POSIX venv interpreter."""
-    candidates = (root / "Scripts" / "python.exe", root / "bin" / "python")
-    return next((candidate for candidate in candidates if candidate.is_file()), None)
-
-
-def _ProbePythonCompatibility(python_executable : Path) -> dict[str, object]:
-    """Read ABI and platform facts from the external venv's own interpreter."""
-    probe = (
-        "import json,platform,struct,sys,sysconfig;"
-        "v=sys.version_info;"
-        "abi=sys.implementation.cache_tag or sysconfig.get_config_var('SOABI') or "
-        "f'{sys.implementation.name}{v.major}{v.minor}';"
-        "print(json.dumps({'python_implementation': sys.implementation.name,"
-        "'python_abi': abi,"
-        "'python_version': f'{v.major}.{v.minor}',"
-        "'os': platform.system() or sys.platform,"
-        "'architecture': platform.machine() or 'unknown',"
-        "'pointer_bits': struct.calcsize('P') * 8}))"
-    )
-    result = subprocess.run(
-        [str(python_executable), "-I", "-S", "-c", probe],
-        capture_output=True,
-        text=True,
-        check=True,
-        timeout=PROBE_TIMEOUT_SECONDS,
-    )
-    parsed = json.loads(result.stdout)
-    if not isinstance(parsed, dict):
-        raise RuntimeError("The external venv returned invalid compatibility data.")
-    return parsed
 
 
 def _WriteMetadata(metadata_path : Path, metadata : dict[str, object]) -> None:

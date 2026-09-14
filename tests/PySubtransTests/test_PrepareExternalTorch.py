@@ -1,4 +1,3 @@
-import ast
 import contextlib
 import io
 import json
@@ -84,7 +83,7 @@ class TestPrepareExternalTorch(LoggedTestCase):
             frozen_metadata = Path(directory) / prepare_external_torch.METADATA_FILENAME
             prepare_external_torch.WriteCompatibilityMetadata(frozen_metadata)
 
-            with patch.object(prepare_external_torch, "_ProbePythonCompatibility", return_value=expected):
+            with patch.object(prepare_external_torch, "ProbeVenvCompatibility", return_value=expected):
                 validated = prepare_external_torch.ValidateExternalTorch(root, frozen_metadata)
 
             self.assertLoggedEqual("validated venv root", root.resolve(), validated)
@@ -106,7 +105,7 @@ class TestPrepareExternalTorch(LoggedTestCase):
             frozen_metadata = root / prepare_external_torch.METADATA_FILENAME
             frozen_metadata.write_text(json.dumps(metadata), encoding='utf-8')
 
-            with patch.object(prepare_external_torch, '_ProbePythonCompatibility', return_value=actual):
+            with patch.object(prepare_external_torch, 'ProbeVenvCompatibility', return_value=actual):
                 with self.assertRaisesRegex(RuntimeError, 'python_abi'):
                     prepare_external_torch.ValidateExternalTorch(root, frozen_metadata)
 
@@ -126,7 +125,7 @@ class TestPrepareExternalTorch(LoggedTestCase):
             executable.touch()
             frozen_metadata = root / prepare_external_torch.METADATA_FILENAME
             metadata = prepare_external_torch.WriteCompatibilityMetadata(frozen_metadata)
-            with patch.object(prepare_external_torch, '_ProbePythonCompatibility', return_value=metadata['compatibility']):
+            with patch.object(prepare_external_torch, 'ProbeVenvCompatibility', return_value=metadata['compatibility']):
                 validated = prepare_external_torch.ValidateExternalTorch(root, frozen_metadata)
             self.assertLoggedEqual('POSIX venv accepted', root.resolve(), validated)
             self.assertLoggedEqual('POSIX layout preserved', site_packages,
@@ -134,10 +133,12 @@ class TestPrepareExternalTorch(LoggedTestCase):
 
     def test_external_probe_disables_site_and_has_a_deadline(self) -> None:
         """An actual venv's .pth startup code cannot run during the probe."""
+        from PySubtrans.Transcription.Torch import Validation as TorchValidation
+
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory) / 'venv'
             venv.EnvBuilder(with_pip=False).create(root)
-            executable = prepare_external_torch._GetVenvPython(root)
+            executable = prepare_external_torch.FindVenvPython(root)
             assert executable is not None
             if os.name == 'nt':
                 site_packages = root / 'Lib' / 'site-packages'
@@ -146,8 +147,8 @@ class TestPrepareExternalTorch(LoggedTestCase):
             marker = Path(directory) / 'pth-executed'
             (site_packages / 'probe-test.pth').write_text(
                 f"import pathlib; pathlib.Path({str(marker)!r}).touch()\n", encoding='utf-8')
-            with patch.object(prepare_external_torch.subprocess, 'run', wraps=subprocess.run) as run:
-                actual = prepare_external_torch._ProbePythonCompatibility(executable)
+            with patch.object(TorchValidation.subprocess, 'run', wraps=subprocess.run) as run:
+                actual = prepare_external_torch.ProbeVenvCompatibility(executable)
             self.assertLoggedFalse('external .pth was not executed', marker.exists())
             self.assertLoggedEqual('actual interpreter facts',
                                    prepare_external_torch.BuildCompatibilityMetadata()['compatibility'], actual)
@@ -213,24 +214,36 @@ class TestPrepareExternalTorch(LoggedTestCase):
             self.assertLoggedEqual(f'{name} preserves failure', 23, result.returncode)
             self.assertLoggedNotIn(f'{name} skips metadata', 'METADATA_CALLED', result.stdout)
 
-    def test_installer_accelerator_probe_accepts_xpu_and_requires_cpu_consent(self) -> None:
-        """Both installers recognize XPU without promising automatic CPU use."""
+    def test_install_torch_recognises_xpu_and_installers_require_cpu_consent(self) -> None:
+        """install_torch.py treats XPU as a GPU backend; install scripts show CPU consent text."""
+        from scripts import install_torch
+
+        # Simulate torch with an XPU backend available
+        mock_torch = SimpleNamespace(
+            cuda=SimpleNamespace(is_available=lambda: False),
+            backends=SimpleNamespace(),
+            xpu=SimpleNamespace(is_available=lambda: True),
+        )
+        with patch.dict('sys.modules', {'torch': mock_torch}):
+            result = install_torch.main()
+        self.assertLoggedEqual("XPU detected exits 0", 0, result)
+
+        # Simulate torch with no GPU backend at all -> falls through to detect_hardware -> CPU install
+        mock_torch_cpu = SimpleNamespace(
+            cuda=SimpleNamespace(is_available=lambda: False),
+            backends=SimpleNamespace(),
+        )
+        mock_pip = SimpleNamespace(returncode=0)
+        with patch.dict('sys.modules', {'torch': mock_torch_cpu}), \
+             patch('PySubtrans.Transcription.Torch.Hardware.DetectHardware', return_value=None), \
+             patch('scripts.install_torch.subprocess.run', return_value=mock_pip):
+             result = install_torch.main()
+        self.assertLoggedEqual("No GPU exits 1", 1, result)
+
+        # Install scripts still carry the CPU consent guidance
         root = Path(__file__).resolve().parents[2]
         for name in ('install.bat', 'install.sh'):
             source = (root / name).read_text(encoding='utf-8')
-            line = next(line for line in source.splitlines() if "getattr(torch, 'xpu'" in line)
-            probe = line.split(' -c "', 1)[1].split('"', 1)[0]
-            tree = ast.parse(probe)
-            exit_call = tree.body[-1]
-            assert isinstance(exit_call, (ast.Raise, ast.Expr))
-            call = exit_call.exc if isinstance(exit_call, ast.Raise) else exit_call.value
-            assert isinstance(call, ast.Call)
-            expression = compile(ast.Expression(call.args[0]), '<installer-probe>', 'eval')
-            torch = SimpleNamespace(cuda=SimpleNamespace(is_available=lambda: False), backends=SimpleNamespace(),
-                                    xpu=SimpleNamespace(is_available=lambda: True))
-            self.assertLoggedEqual(f'{name} detects XPU', 0, eval(expression, {'torch': torch}))
-            torch.xpu.is_available = lambda: False
-            self.assertLoggedEqual(f'{name} detects missing acceleration', 1, eval(expression, {'torch': torch}))
             self.assertLoggedIn(f'{name} consent guidance', 'CPU inference is disabled by default', source)
             self.assertLoggedIn(f'{name} names persistent setting', 'allow_cpu_fallback', source)
 

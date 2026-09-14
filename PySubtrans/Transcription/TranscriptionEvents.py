@@ -9,6 +9,10 @@ class TranscriptionEvents:
     progress feedback from the coordinator.
 
     Signals:
+        status(sender, text : str):
+            Emitted when the coordinator enters a new phase (preparing
+            the runtime, scanning audio, etc.).
+
         progress(sender, done : int, total : int, span : str):
             Emitted before each chunk is transcribed. Total is 0 while the
             chunk plan is still streaming in.
@@ -20,11 +24,13 @@ class TranscriptionEvents:
         segment(sender, segment : TranscriptionSegment):
             Emitted for each timed subtitle line as it is produced.
     """
+    status : Signal
     progress : Signal
     audio_progress : Signal
     segment : Signal
 
     def __init__(self):
+        self.status = Signal("transcription-status")
         self.progress = Signal("transcription-progress")
         self.audio_progress = Signal("transcription-audio-progress")
         self.segment = Signal("transcription-segment")

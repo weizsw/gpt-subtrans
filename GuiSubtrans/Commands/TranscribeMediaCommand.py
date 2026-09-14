@@ -20,6 +20,7 @@ from PySubtrans.Transcription.TranscriptionSegment import TranscriptionSegment
 class TranscribeMediaCommand(Command):
     """Run a media transcription as a project-opening command."""
 
+    statusChanged = Signal(str)
     progressed = Signal(int, int, str)
     audioProgressed = Signal(float, float)
     segmented = Signal(object)
@@ -113,6 +114,7 @@ class TranscribeMediaCommand(Command):
 
     def _run_transcription(self, coordinator : TranscriptionCoordinator) -> None:
         """Transcribe the media, streaming progress and segments to the UI."""
+        coordinator.events.status.connect(self._on_status)
         coordinator.events.progress.connect(self._on_progress)
         coordinator.events.audio_progress.connect(self._on_audio_progress)
         coordinator.events.segment.connect(self._on_segment)
@@ -125,6 +127,9 @@ class TranscribeMediaCommand(Command):
         self.transcribed_lines = outcome.transcribed_lines
         if outcome.error is not None:
             self.error = str(outcome.error)
+
+    def _on_status(self, sender, text : str) -> None:
+        self.statusChanged.emit(text)
 
     def _on_progress(self, sender, done : int, total : int, span : str) -> None:
         self.progressed.emit(done, total, span)

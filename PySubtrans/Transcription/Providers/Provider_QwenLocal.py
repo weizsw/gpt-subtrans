@@ -1,12 +1,13 @@
 import logging
 import os
+import sys
 
 from PySubtrans.Helpers.Languages import LanguageName
 from PySubtrans.Helpers.Localization import _
 from PySubtrans.Options import env_float, env_int
 from PySubtrans.SettingsType import GuiSettingsType, SettingsType
 from PySubtrans.SubtitleError import SubtitleError
-from PySubtrans.Transcription.TorchRuntime import TorchConfigOption
+from PySubtrans.Transcription.Torch.Runtime import TorchConfigOption
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 
@@ -113,8 +114,15 @@ try:
             return options
 
         def ValidateSettings(self) -> bool:
-            """Torch installation directory is required for local transcription."""
-            return bool(self.settings.get_str('torch_installation_directory'))
+            """Torch installation directory is required for frozen builds.
+
+            When running from source (not frozen) the active venv already
+            contains torch, so a separate installation directory is not needed.
+            """
+            if bool(self.settings.get_str('torch_installation_directory')):
+                return True
+
+            return not getattr(sys, 'frozen', False)
 
         def ResolveLanguageCode(self, language : str|None, display_language : str|None = None) -> str|None:
             """qwen-asr takes English language names ("Chinese", "English"), or None to auto-detect."""

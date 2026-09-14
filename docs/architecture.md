@@ -101,27 +101,39 @@ interpreter and checks directory presence and compatibility, not Torch import or
 native dependency readiness. PyInstaller failure stops every distro script before
 metadata generation.
 
-#### TorchValidation (Shared Module)
+#### Torch Subpackage (`PySubtrans/Transcription/Torch/`)
 
-`PySubtrans/Transcription/TorchValidation.py` is the single source of truth for
-Torch installation discovery and ABI compatibility checking. It lives outside
-`Providers/` so the `ProviderImportGuard` is irrelevant, and has no Torch or Qt
-imports — only stdlib and `PySubtrans.Helpers`.
+Three modules that handle external Torch installations live in their own
+subpackage. None import Torch or Qt — only stdlib and `PySubtrans.Helpers`.
 
-Three consumers import from it:
+| Module | Responsibility |
+|--------|----------------|
+| `Hardware.py` | GPU detection (NVIDIA/AMD/Intel/Apple Silicon), CUDA driver version matching, PyTorch index URL selection |
+| `Validation.py` | ABI compatibility metadata — stamping, reading, and checking frozen-build compatibility |
+| `Runtime.py` | Loads an external Torch venv at runtime (`sys.path` + DLL registration), validates compatibility first |
 
-| Consumer | Uses |
-|----------|------|
-| `TorchRuntime.py` | Validates frozen metadata at startup before putting the external venv on `sys.path` |
-| `prepare_external_torch.py` | Stamps metadata at build time, validates external venvs via CLI |
-| `TorchSetupDialog.py` | Validates ABI compatibility in the GUI wizard before accepting a user-selected venv |
+Consumers:
 
-Key functions:
+| Consumer | Imports from |
+|----------|-------------|
+| `TorchSetupDialog.py` (GUI wizard) | `Hardware` (detection, index URLs), `Validation` (ABI checking) |
+| `prepare_external_torch.py` (build tool) | `Validation` (metadata stamping and venv probing) |
+| `install_torch.py` (installer) | `Hardware` (detection for pre-install torch variant selection) |
+| `Provider_QwenLocal.py` / `QwenLocalClient.py` | `Runtime` (config option sentinel, runtime loader) |
+| `SettingsDialog.py` | `Runtime` (`TorchConfigOption` sentinel) |
+
+Key `Validation` functions:
 - **`normalise_architecture()`** — merged alias table covering both x86 and ARM variants
 - **`candidate_site_packages_paths()` / `find_torch_site_packages()`** — canonical site-packages resolution for all layout variants
 - **`build_current_compatibility()`** — builds the 6-field compatibility dict from the running interpreter
 - **`find_compatibility_metadata()`** — locates the metadata file via `GetResourcePath`
 - **`read_compatibility_metadata()` / `check_compatibility()`** — reads and validates metadata, with an `error_type` parameter so each consumer raises its own exception type
+
+Key `Hardware` functions:
+- **`DetectHardware()`** — main entry point: returns a `HardwareDetection` with description, index URL, and GPU flag
+- **`SelectCudaBuild()`** — matches a driver version against the CUDA toolkit table
+- **`DetectNvidiaDriver()` / `DetectNvidiaCudaVersion()`** — nvidia-smi queries
+- **`DetectGpuHardware()`** — vendor scan via wmic/lspci when no driver toolkit is available
 
 The CLI entry point is `scripts/transcribe.py`; the GUI runs the same coordinator through `TranscribeMediaCommand`.
 

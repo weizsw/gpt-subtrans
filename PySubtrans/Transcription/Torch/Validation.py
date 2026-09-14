@@ -6,8 +6,10 @@ imports, no Qt imports, no sys.path manipulation.
 """
 
 import json
+import logging
 import platform
 import struct
+import subprocess
 import sys
 import sysconfig
 from pathlib import Path
@@ -40,13 +42,16 @@ _ARCHITECTURE_ALIASES : dict[str, str] = {
 }
 
 
-def normalise_architecture(value : object) -> str:
+PROBE_TIMEOUT_SECONDS = 15
+
+
+def NormaliseArchitecture(value : object) -> str:
     """Normalize common architecture spellings for comparison."""
     normalized = str(value or "").casefold().replace("-", "").replace("_", "")
     return _ARCHITECTURE_ALIASES.get(normalized, normalized)
 
 
-def candidate_site_packages_paths(root : Path) -> list[Path]:
+def CandidateSitePackagesPaths(root : Path) -> list[Path]:
     """Return standard venv site-packages directories to probe for packages."""
     python_version = f"python{sys.version_info.major}.{sys.version_info.minor}"
     return [
@@ -57,20 +62,20 @@ def candidate_site_packages_paths(root : Path) -> list[Path]:
     ]
 
 
-def find_torch_site_packages(root : Path) -> Path|None:
+def FindTorchSitePackages(root : Path) -> Path|None:
     """Return the first candidate path containing a ``torch`` package, or None."""
-    for candidate in candidate_site_packages_paths(root):
+    for candidate in CandidateSitePackagesPaths(root):
         if candidate.is_dir() and (candidate / "torch").is_dir():
             return candidate.resolve()
     return None
 
 
-def has_torch_package(root : Path) -> bool:
+def HasTorchPackage(root : Path) -> bool:
     """Whether any standard venv layout under *root* contains a torch package."""
-    return find_torch_site_packages(root) is not None
+    return FindTorchSitePackages(root) is not None
 
 
-def get_python_abi() -> str:
+def GetPythonAbi() -> str:
     """Return the interpreter ABI tag used by compatible extension wheels."""
     cache_tag = sys.implementation.cache_tag
     if cache_tag:
@@ -83,12 +88,12 @@ def get_python_abi() -> str:
     return f"{sys.implementation.name}{sys.version_info.major}{sys.version_info.minor}"
 
 
-def build_current_compatibility() -> dict[str, object]:
+def BuildCurrentCompatibility() -> dict[str, object]:
     """Build the 6-field compatibility dict from the running interpreter."""
     version = sys.version_info
     return {
         "python_implementation": sys.implementation.name,
-        "python_abi": get_python_abi(),
+        "python_abi": GetPythonAbi(),
         "python_version": f"{version.major}.{version.minor}",
         "os": platform.system() or sys.platform,
         "architecture": platform.machine() or "unknown",
@@ -96,7 +101,7 @@ def build_current_compatibility() -> dict[str, object]:
     }
 
 
-def find_compatibility_metadata() -> Path|None:
+def FindCompatibilityMetadata() -> Path|None:
     """Locate the frozen application's compatibility metadata file.
 
     Uses ``GetResourcePath`` so the file is found via ``sys._MEIPASS`` in
@@ -107,7 +112,7 @@ def find_compatibility_metadata() -> Path|None:
     return metadata_path if metadata_path.is_file() else None
 
 
-def read_compatibility_metadata(
+def ReadCompatibilityMetadata(
     metadata_path : str|Path,
     *,
     error_type : type[Exception] = ValueError,
@@ -153,7 +158,7 @@ def read_compatibility_metadata(
     return loaded
 
 
-def check_compatibility(
+def CheckCompatibility(
     actual : dict[str, object],
     expected : dict[str, object],
     *,
@@ -167,7 +172,7 @@ def check_compatibility(
         required = expected.get(key)
 
         if key == "architecture":
-            matches = normalise_architecture(observed) == normalise_architecture(required)
+            matches = NormaliseArchitecture(observed) == NormaliseArchitecture(required)
         else:
             matches = observed == required
 
@@ -180,3 +185,44 @@ def check_compatibility(
               "Install a complete Torch environment matching the application's Python ABI, "
               "OS, architecture, and pointer width, then restart.").format("; ".join(mismatches))
         )
+
+
+def FindVenvPython(root : Path) -> Path|None:
+    """Find a Windows or POSIX venv interpreter under *root*."""
+    candidates = (root / "Scripts" / "python.exe", root / "bin" / "python")
+    return next((candidate for candidate in candidates if candidate.is_file()), None)
+
+
+def ProbeVenvCompatibility(python_executable : Path) -> dict[str, object]|None:
+    """Read ABI and platform facts from a venv's own interpreter.
+
+    Returns the compatibility dict on success, or None when the
+    interpreter cannot be probed (missing, broken, timeout).
+    """
+    probe = (
+        "import json,platform,struct,sys,sysconfig;"
+        "v=sys.version_info;"
+        "abi=sys.implementation.cache_tag or sysconfig.get_config_var('SOABI') or "
+        "f'{sys.implementation.name}{v.major}{v.minor}';"
+        "print(json.dumps({'python_implementation': sys.implementation.name,"
+        "'python_abi': abi,"
+        "'python_version': f'{v.major}.{v.minor}',"
+        "'os': platform.system() or sys.platform,"
+        "'architecture': platform.machine() or 'unknown',"
+        "'pointer_bits': struct.calcsize('P') * 8}))"
+    )
+    try:
+        result = subprocess.run(
+            [str(python_executable), "-I", "-S", "-c", probe],
+            capture_output=True,
+            text=True,
+            check=True,
+            timeout=PROBE_TIMEOUT_SECONDS,
+        )
+        parsed = json.loads(result.stdout)
+        if isinstance(parsed, dict):
+            return parsed
+    except (subprocess.SubprocessError, OSError, ValueError) as e:
+        logging.debug("Failed to probe venv Python at %s: %s", python_executable, e)
+
+    return None

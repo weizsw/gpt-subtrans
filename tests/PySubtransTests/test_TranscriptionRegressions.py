@@ -9,6 +9,7 @@ from PySubtrans.Transcription.WordTiming import WordTiming
 from PySubtrans.Transcription.TranscriptionCoordinator import TranscriptionCoordinator, TranscriptionStatus
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionResult, TranscriptionSegment
 from PySubtrans.Transcription.TranscriptionRun import TranscriptionRun
+from PySubtrans.SubtitleError import SubtitleError
 from tests.PySubtransTests.test_Transcription import FakeTranscriptionClient, FakeTranscriptionProvider, FailingTranscriptionClient, _subtitles_of, stub_media
 
 
@@ -41,10 +42,9 @@ class TestTranscriptionRegressions(LoggedTestCase):
         client = FakeTranscriptionClient()
         chunk = AudioChunk(timedelta(), timedelta(seconds=2))
         run = TranscriptionRun(None)
-        with patch.object(self.coordinator.extractor, 'ReadChunkBytes', return_value=b'audio'), \
-                patch.object(self.coordinator.extractor, 'IsSilent', return_value=False), \
+        with patch.object(self.coordinator.extractor, 'IsSilent', return_value=False), \
                 patch.object(client, 'TranscribeChunk', return_value=TranscriptionResult(text='', cost=0.125)):
-            result, provider_responded = self.coordinator._transcribe_chunk(run, client, 'readme.md', chunk)
+            result, provider_responded = self.coordinator._transcribe_audio(run, client, chunk, b'audio')
         self.assertLoggedEqual('no subtitle from empty text', None, result)
         self.assertLoggedTrue('provider response recorded', provider_responded)
         self.assertLoggedEqual('billed usage retained', 0.125, run.total_cost)
@@ -78,6 +78,27 @@ class TestTranscriptionRegressions(LoggedTestCase):
         self.assertLoggedEqual('one merged subtitle', 1, len(originals))
         self.assertLoggedEqual('dialogue retained', '- I say!\n- Of course!\n- Indeed!', originals[0].text)
         self.assertLoggedEqual('no single speaker attribution', None, originals[0].metadata.get('speaker'))
+
+    def test_extraction_failure_stops_run(self) -> None:
+        """An ffmpeg extraction failure stops the run — no unfillable gaps."""
+        chunks = [
+            AudioChunk(timedelta(seconds=index * 2), timedelta(seconds=(index + 1) * 2))
+            for index in range(4)]
+
+        client = FakeTranscriptionClient()
+        patch.object(self.coordinator.chunker, "PlanChunksStream",
+                     side_effect=lambda *a, **kw: (c for c in chunks)).start()
+        patch.object(self.coordinator.extractor, "ReadChunkBytes",
+                     side_effect=SubtitleError("ffmpeg read failed")).start()
+        self.addCleanup(patch.stopall)
+
+        with patch.object(self.provider, 'GetTranscriptionClient', return_value=client):
+            outcome = self.coordinator.CreateTranscription('readme.md', Options())
+
+        # Extraction is local and free — skipping a chunk would leave a
+        # gap the user has no way to fill, so the run fails cleanly.
+        self.assertLoggedEqual('clean failure', TranscriptionStatus.FAILED, outcome.status)
+        self.assertLoggedEqual('nothing charged', 0, client.calls)
 
     def test_leading_sliver_merges_into_existing_dialogue(self) -> None:
         """A mixed right-hand neighbour retains all markers without duplication."""

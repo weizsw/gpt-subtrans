@@ -99,16 +99,8 @@ function install_bedrock() {
 }
 
 function install_qwen_local() {
-    echo "Qwen Local runs on-device transcription (Qwen3-ASR with word timestamps)."
-    echo "Install a hardware-appropriate PyTorch build before Qwen dependencies."
-    echo "Use the official selector: https://pytorch.org/get-started/locally/"
-    if ! python -c "import torch" 2>/dev/null; then
-        echo "Torch is not installed in this environment. Install it first, then re-run this installer."
-        exit 1
-    fi
-    echo
-
-    extras+=("qwen-asr")
+    # qwen-asr is installed separately after GPU torch detection -- do not add to extras
+    :
 }
 
 if [ ! -d "scripts" ]; then
@@ -145,9 +137,6 @@ if [ -d "envsubtrans" ]; then
         exit 1
     fi
 fi
-
-python3 -m venv envsubtrans
-source envsubtrans/bin/activate
 
 extras=()
 scripts_to_generate=("llm-subtrans" "batch-translate" "transcribe")
@@ -258,6 +247,14 @@ case $install_transcription in
         ;;
 esac
 
+if [ ! -d "envsubtrans" ]; then
+    echo
+    echo "Creating virtual environment..."
+    python3 -m venv envsubtrans
+fi
+
+source envsubtrans/bin/activate
+
 install_target="."
 if [ ${#extras[@]} -gt 0 ]; then
     IFS=','; extra_str="${extras[*]}"; unset IFS
@@ -276,27 +273,29 @@ qt_fonts_dir=$(python3 -c "import PySide6, os; print(os.path.join(os.path.dirnam
 
 if [ "$install_transcription" = "y" ] || [ "$install_transcription" = "Y" ]; then
     echo
-    echo "Checking torch for Qwen Local transcription..."
-    if ! python -c "import torch" 2>/dev/null; then
-        echo "torch is not installed, so Qwen Local cannot run. Rolling back the Qwen install:"
-        pip uninstall -y qwen-asr 2>/dev/null || true
-        filtered_extras=()
-        for extra in "${extras[@]}"; do
-            [ "$extra" != "qwen-asr" ] && filtered_extras+=("$extra")
-        done
-        extras=("${filtered_extras[@]}")
+    echo "Detecting GPU hardware and installing torch..."
+    ./envsubtrans/bin/python scripts/install_torch.py
+    torch_exit=$?
+
+    if [ $torch_exit -eq 2 ]; then
         echo
-        echo "Install a hardware-appropriate Torch build from the official selector:"
-        echo "  https://pytorch.org/get-started/locally/"
-        echo "then re-run the installer and choose Qwen Local again."
-        echo "The transcribe command is still installed for cloud providers."
-    elif ! ./envsubtrans/bin/python -c "import torch; raise SystemExit(0 if any(getattr(backend, 'is_available', lambda: False)() for backend in (torch.cuda, getattr(torch.backends, 'mps', None), getattr(torch, 'xpu', None))) else 1)" 2>/dev/null; then
-        echo "No supported accelerator was detected. CPU inference is disabled by default."
-        echo "Enable allow_cpu_fallback in Qwen Local advanced settings to consent to slow CPU inference."
-        echo "For acceleration, choose a hardware-appropriate Torch build:"
-        echo "  https://pytorch.org/get-started/locally/"
+        echo "Warning: torch installation encountered an error."
+        echo "Skipping local transcription; cloud transcription remains available."
     else
-        echo "torch with GPU support detected - Qwen Local transcription is ready."
+        echo
+        echo "Installing local transcription package..."
+        pip install --upgrade -e ".[qwen-asr]"
+
+        if [ $torch_exit -eq 1 ]; then
+            echo
+            echo "No GPU-accelerated torch variant was detected."
+            echo "CPU inference is disabled by default. Enable allow_cpu_fallback in Qwen Local advanced settings to consent to slow CPU inference."
+            echo "For GPU acceleration, install the hardware-appropriate PyTorch build from:"
+            echo "  https://pytorch.org/get-started/locally/"
+        else
+            echo
+            echo "Local transcription installed successfully with GPU support."
+        fi
     fi
     echo
 fi

@@ -12,7 +12,7 @@ from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionResult
-from PySubtrans.Transcription.TorchRuntime import PrepareTorchRuntime
+from PySubtrans.Transcription.Torch.Runtime import PrepareTorchRuntime
 from PySubtrans.Transcription.Providers.Provider_QwenLocal import (
     _ALIGNER_CHECKPOINT,
     _QWEN_CHECKPOINTS,

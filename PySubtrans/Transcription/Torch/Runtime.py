@@ -9,13 +9,13 @@ from pathlib import Path
 
 from PySubtrans.Helpers.Localization import _
 from PySubtrans.Options import ConfigActionOption
-from PySubtrans.Transcription.TorchValidation import (
+from PySubtrans.Transcription.Torch.Validation import (
     METADATA_FILENAME,
-    build_current_compatibility,
-    check_compatibility,
-    find_compatibility_metadata,
-    find_torch_site_packages,
-    read_compatibility_metadata,
+    BuildCurrentCompatibility,
+    CheckCompatibility,
+    FindCompatibilityMetadata,
+    FindTorchSitePackages,
+    ReadCompatibilityMetadata,
 )
 
 class TorchConfigOption(ConfigActionOption):
@@ -34,7 +34,7 @@ _dll_directories: list[object] = []
 def _select_installation_path(installation_directory : str) -> Path:
     """Validate and resolve the configured site-packages directory."""
     root = Path(installation_directory).expanduser()
-    result = find_torch_site_packages(root)
+    result = FindTorchSitePackages(root)
     if result is not None:
         return result
 
@@ -58,7 +58,7 @@ def _validate_process_compatibility(installation_path : Path) -> None:
 
 def _validate_frozen_compatibility() -> None:
     """Validate the frozen Python target before loading external Torch."""
-    metadata_path = find_compatibility_metadata()
+    metadata_path = FindCompatibilityMetadata()
 
     if metadata_path is None:
         if bool(getattr(sys, "frozen", False)):
@@ -68,15 +68,15 @@ def _validate_frozen_compatibility() -> None:
             ).format(METADATA_FILENAME))
         return
 
-    metadata = read_compatibility_metadata(metadata_path, error_type=TorchRuntimeError)
+    metadata = ReadCompatibilityMetadata(metadata_path, error_type=TorchRuntimeError)
 
-    # read_compatibility_metadata validates that compatibility is a well-formed dict
+    # ReadCompatibilityMetadata validates that compatibility is a well-formed dict
     compatibility = metadata["compatibility"]
     if not isinstance(compatibility, dict):
         return
 
-    actual = build_current_compatibility()
-    check_compatibility(actual, compatibility, error_type=TorchRuntimeError)
+    actual = BuildCurrentCompatibility()
+    CheckCompatibility(actual, compatibility, error_type=TorchRuntimeError)
 
 
 def _register_native_libraries(installation_path : Path) -> None:

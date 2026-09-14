@@ -11,7 +11,7 @@ from PySubtrans.Options import ConfigActionOption, Options
 from GuiSubtrans.Widgets.TorchSetupDialog import TorchSetupDialog
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.Substitutions import Substitutions
-from PySubtrans.Transcription.TorchRuntime import TorchConfigOption
+from PySubtrans.Transcription.Torch.Runtime import TorchConfigOption
 from PySubtrans.TranslationProvider import TranslationProvider
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Helpers.Localization import LocaleDisplayItem, _, get_locale_display_items

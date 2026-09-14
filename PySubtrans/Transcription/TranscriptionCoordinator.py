@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import logging
 import os
-from collections.abc import Generator
+from collections.abc import Callable, Generator
+from concurrent.futures import ThreadPoolExecutor
 from datetime import timedelta
 
 from PySubtrans.Helpers.Localization import _
@@ -20,10 +21,6 @@ from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionOutcome, 
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionRun import TranscriptionRun
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionSegment
-
-# Consecutive chunk failures before an empty run is treated as blocked
-_MAX_INITIAL_FAILURES = 2
-
 
 class TranscriptionCoordinator:
     """
@@ -100,6 +97,8 @@ class TranscriptionCoordinator:
         """
         if not media_path or not os.path.isfile(media_path):
             return self._failed(SubtitleError(_("Media file not found: {}").format(media_path)))
+
+        self.events.status.send(self, text=_("Preparing {} transcription...").format(self.provider.name))
 
         try:
             client = self._start_client()
@@ -182,6 +181,10 @@ class TranscriptionCoordinator:
         """
         Transcribe each planned chunk in turn, honouring abort, resume and
         the failure policy. Partial results stay in run.lines.
+
+        Audio extraction for the next chunk is submitted to a background
+        thread while the current chunk is being transcribed, so ffmpeg I/O
+        overlaps with GPU (or network) inference.
         """
         def report_progress(done : int, chunk : AudioChunk) -> None:
             # Total is unknown while the plan streams in (0 signals that)
@@ -191,46 +194,128 @@ class TranscriptionCoordinator:
             if run.audio_total_seconds > 0.0:
                 self.events.audio_progress.send(self, processed=run.AudioPosition(chunk), total=run.audio_total_seconds)
 
-        for done, chunk in enumerate(chunks):
-            if self.aborted or client.aborted:
-                # Keep everything transcribed so far: abandoning billed
-                # work would be worse than partial results.
-                logging.warning(_("Transcription cancelled after {done} chunks").format(done=done))
-                run.had_failures = True
-                break
+        # Manual pool management so we can shutdown(wait=False) on abort
+        # instead of blocking until a running ffmpeg extraction finishes.
+        pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix='audio-prefetch')
 
-            report_progress(done, chunk)
+        try:
+            # One-chunk lookahead: as each chunk arrives from the
+            # generator we immediately submit its audio extraction to a
+            # background thread. While that runs we transcribe the
+            # *previous* chunk whose audio is already available. The
+            # first chunk has no predecessor, so its extraction cannot
+            # overlap — but from chunk 2 onward ffmpeg runs in parallel
+            # with inference.
+            prev_chunk : AudioChunk|None = None
+            prev_audio : bytes|None = None
+            prev_done : int = -1
+            done = 0
 
-            if run.AlreadyDone(chunk):
-                run.chunks_done += 1
-                report_audio(chunk)
-                continue
+            while True:
+                # Advance the chunk plan, catching generator errors so
+                # the buffered previous chunk can still be processed.
+                chunk : AudioChunk|None = None
+                plan_error : SubtitleError|None = None
 
-            try:
-                segment, provider_responded = self._transcribe_chunk(run, client, media_path, chunk)
+                if done == 0:
+                    self.events.status.send(self, text=_("Detecting audio..."))
 
-            except SubtitleError as e:
-                if self._handle_chunk_failure(run, chunk, e):
+                try:
+                    chunk = next(chunks)
+                except StopIteration:
+                    pass
+                except SubtitleError as e:
+                    plan_error = e
+
+                if chunk is not None:
+                    # Submit extraction for this chunk right away
+                    future = pool.submit(self._extract_audio, media_path, chunk)
+                else:
+                    future = None
+
+                # Process the previous chunk while extraction runs
+                if prev_chunk is not None and prev_audio is not None:
+                    stop = self._process_chunk(
+                        run, client, prev_chunk, prev_audio, prev_done,
+                        report_progress, report_audio)
+                    if stop:
+                        if future is not None:
+                            future.cancel()
+                        break
+
+                # Re-raise plan errors after the buffered chunk is processed
+                if plan_error is not None:
+                    raise plan_error
+
+                # No more chunks
+                if chunk is None:
                     break
 
-            else:
-                self._accept_chunk(run, segment, provider_responded)
+                # Abort / skip checks for the current chunk
+                assert future is not None
+                if self.aborted or client.aborted:
+                    logging.warning(_("Transcription cancelled after {done} chunks").format(done=done))
+                    run.had_failures = True
+                    future.cancel()
+                    break
 
-            finally:
-                report_audio(chunk)
+                if run.AlreadyDone(chunk):
+                    assert future is not None
+                    future.cancel()
+                    run.chunks_done += 1
+                    report_progress(done, chunk)
+                    report_audio(chunk)
+                    prev_chunk = None
+                    prev_audio = None
+                    done += 1
+                    continue
+
+                # Collect the extracted audio (blocks until ffmpeg finishes).
+                # Extraction errors propagate: ffmpeg is local and free, so
+                # there is no reason to skip a chunk and leave an unfillable
+                # gap. TranscribeMedia preserves any already-transcribed
+                # lines when the error surfaces there.
+                assert future is not None
+                prev_chunk = chunk
+                prev_audio = future.result()
+                prev_done = done
+                done += 1
+
+        finally:
+            pool.shutdown(wait=False, cancel_futures=True)
+
+    def _process_chunk(self, run : TranscriptionRun, client : TranscriptionClient,
+                       chunk : AudioChunk, audio_bytes : bytes, done : int,
+                       report_progress : Callable[[int, AudioChunk], None],
+                       report_audio : Callable[[AudioChunk], None]) -> bool:
+        """Transcribe one chunk with pre-extracted audio. Returns True to stop the run."""
+        report_progress(done, chunk)
+
+        try:
+            segment, provider_responded = self._transcribe_audio(run, client, chunk, audio_bytes)
+
+        except SubtitleError as e:
+            report_audio(chunk)
+            return self._handle_chunk_failure(run, chunk, e)
+
+        else:
+            self._accept_chunk(run, segment, provider_responded)
+
+        report_audio(chunk)
+        return False
 
     def _handle_chunk_failure(self, run : TranscriptionRun, chunk : AudioChunk, error : SubtitleError) -> bool:
         """
-        Record a chunk failure and decide whether the run must stop.
+        Record a chunk failure and stop the run.
 
-        Before anything has been transcribed, repeated failures indicate a
-        systemic problem (credentials, model, endpoint) and the run fails
-        fast with the real error. Once lines exist, any failure would leave
-        an unfillable gap (resume appends after the last line, it cannot
-        backfill), so the run stops there for the user to resume later.
+        Skipping a failed chunk is never correct: resume appends after the
+        last line, so a gap can never be filled — the user would be left
+        paying for a transcription they cannot complete.  When lines already
+        exist the run stops as INCOMPLETE so the user can resume from where
+        it left off; when nothing has been transcribed the error propagates
+        and the run is FAILED.
         """
         run.had_failures = True
-        run.consecutive_failures += 1
 
         if run.transcribed > 0:
             run.error = SubtitleError(
@@ -239,26 +324,14 @@ class TranscriptionCoordinator:
             logging.error(str(run.error))
             return True
 
-        if run.consecutive_failures >= _MAX_INITIAL_FAILURES:
-            raise SubtitleError(
-                _("Transcription blocked after {count} consecutive chunk failures: {error}").format(
-                    count=run.consecutive_failures, error=error),
-                error=error)
-
-        run.error = error
-        logging.warning(_("Skipping chunk {}: {}").format(SpanLabel(chunk), error))
-        return False
+        raise SubtitleError(
+            _("Transcription failed at {span}: {error}").format(span=SpanLabel(chunk), error=error),
+            error=error)
 
     def _accept_chunk(self, run : TranscriptionRun, segment : TranscriptionSegment|None,
                       provider_responded : bool) -> None:
         """Fold a successfully processed chunk into the run."""
         run.chunks_done += 1
-
-        if provider_responded:
-            # An empty provider response was successful and may follow a
-            # transient backend failure. Silent chunks are skipped before a
-            # request and must not reset the failure count.
-            run.consecutive_failures = 0
 
         if segment is None:
             return
@@ -302,15 +375,16 @@ class TranscriptionCoordinator:
 
         subtitles.originals = lines
 
-    def _transcribe_chunk(self, run : TranscriptionRun, client : TranscriptionClient, media_path : str,
-                          chunk : AudioChunk) -> tuple[TranscriptionSegment|None, bool]:
-        """
-        Read and transcribe one chunk. Returns the segment (None for silent
-        or empty chunks) and whether the provider was actually asked.
-        Backend and read errors propagate to the run loop's failure policy.
-        """
-        audio_bytes = self.extractor.ReadChunkBytes(media_path, chunk.start, chunk.end, self.track_index)
+    def _extract_audio(self, media_path : str, chunk : AudioChunk) -> bytes:
+        """Extract a chunk's audio via ffmpeg. Safe to call from a background thread."""
+        return self.extractor.ReadChunkBytes(media_path, chunk.start, chunk.end, self.track_index)
 
+    def _transcribe_audio(self, run : TranscriptionRun, client : TranscriptionClient,
+                          chunk : AudioChunk, audio_bytes : bytes) -> tuple[TranscriptionSegment|None, bool]:
+        """
+        Transcribe pre-extracted audio. Returns the segment (None for silent
+        or empty chunks) and whether the provider was actually asked.
+        """
         if self.extractor.IsSilent(audio_bytes, self.silence_skip_db):
             logging.debug(_("Skipping silent chunk {} before requesting").format(SpanLabel(chunk)))
             return None, False

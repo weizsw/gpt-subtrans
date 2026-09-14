@@ -5,10 +5,7 @@ from __future__ import annotations
 import importlib.util
 import logging
 import os
-import platform
-import regex
 import shutil
-import subprocess
 import sys
 from pathlib import Path
 
@@ -36,35 +33,21 @@ from PySide6.QtWidgets import (
 
 from PySubtrans.Helpers.Localization import _
 from PySubtrans.Helpers.Resources import GetAppDir
-from PySubtrans.Transcription.TorchValidation import (
-    build_current_compatibility,
-    check_compatibility,
-    find_compatibility_metadata,
-    has_torch_package,
-    read_compatibility_metadata,
+from PySubtrans.Transcription.Torch.Hardware import (
+    CPU_INDEX_URL,
+    DetectHardware,
+    HardwareDetection,
+    ROCM_INDEX_URL,  # pyright: ignore[reportUnusedImport] — used on line 74; false positive on Windows
+)
+from PySubtrans.Transcription.Torch.Validation import (
+    CheckCompatibility,
+    FindCompatibilityMetadata,
+    FindVenvPython,
+    HasTorchPackage,
+    ProbeVenvCompatibility,
+    ReadCompatibilityMetadata,
 )
 
-
-# Minimum NVIDIA driver versions for each CUDA toolkit (Windows).
-# Source: https://docs.nvidia.com/cuda/cuda-toolkit-release-notes/
-_CUDA_MIN_DRIVER_WINDOWS : list[tuple[str, str, str]] = [
-    ('13.0', '580.65', 'https://download.pytorch.org/whl/cu130'),
-    ('12.6', '560.70', 'https://download.pytorch.org/whl/cu126'),
-    ('12.4', '551.61', 'https://download.pytorch.org/whl/cu124'),
-    ('12.1', '527.41', 'https://download.pytorch.org/whl/cu121'),
-    ('11.8', '520.06', 'https://download.pytorch.org/whl/cu118'),
-]
-
-_CUDA_MIN_DRIVER_LINUX : list[tuple[str, str, str]] = [
-    ('13.0', '580.65.06', 'https://download.pytorch.org/whl/cu130'),
-    ('12.6', '560.28.03', 'https://download.pytorch.org/whl/cu126'),
-    ('12.4', '550.54.14', 'https://download.pytorch.org/whl/cu124'),
-    ('12.1', '525.60.13', 'https://download.pytorch.org/whl/cu121'),
-    ('11.8', '520.61.05', 'https://download.pytorch.org/whl/cu118'),
-]
-
-_ROCM_INDEX_URL = 'https://download.pytorch.org/whl/rocm6.2.4'
-_CPU_INDEX_URL = 'https://download.pytorch.org/whl/cpu'
 
 _DEFAULT_TORCH_DIR_NAME = 'torch-env'
 
@@ -73,276 +56,39 @@ _ESTIMATED_SIZE_CUDA = _("~5 GB")
 _ESTIMATED_SIZE_ROCM = _("~3.5 GB")
 _ESTIMATED_SIZE_CPU = _("~350 MB")
 _ESTIMATED_SIZE_MPS = _("~450 MB")
-_NVIDIA_CUDA_VERSION_PATTERN = regex.compile(
-    r'CUDA\s+(?:UMD\s+)?Version:\s*([0-9]+(?:\.[0-9]+)?)',
-    regex.IGNORECASE,
-)
-
-
-class _HardwareDetection:
-    """Result of automatic hardware detection."""
-
-    def __init__(
-        self,
-        description : str,
-        index_url : str,
-        is_gpu : bool,
-        guidance : str = '',
-        hardware_detected : bool = False,
-        estimated_size : str = '',
-    ):
-        self.description = description
-        self.index_url = index_url
-        self.is_gpu = is_gpu
-        self.guidance = guidance
-        self.hardware_detected = hardware_detected
-        self.estimated_size = estimated_size
-
-
-def _parse_driver_version(version_str : str) -> tuple[int, ...]:
-    """Parse a dotted driver version string into a comparable tuple."""
-    parts : list[int] = []
-    for segment in version_str.strip().split('.'):
-        try:
-            parts.append(int(segment))
-        except ValueError:
-            break
-    return tuple(parts)
-
-
-def _detect_nvidia_driver() -> str|None:
-    """Query the NVIDIA driver version via nvidia-smi, or return None."""
-    nvidia_smi = shutil.which('nvidia-smi')
-    if not nvidia_smi:
-        return None
-
-    try:
-        result = subprocess.run(
-            [nvidia_smi, '--query-gpu=driver_version', '--format=csv,noheader,nounits'],
-            capture_output=True, text=True, timeout=10,
-        )
-        if result.returncode == 0 and result.stdout.strip():
-            # Multi-GPU: take the first line
-            return result.stdout.strip().splitlines()[0].strip()
-    except (OSError, subprocess.TimeoutExpired):
-        pass
-
-    return None
-
-
-def _detect_nvidia_cuda_version() -> str|None:
-    """Read the maximum CUDA API version reported by the NVIDIA driver."""
-    nvidia_smi = shutil.which('nvidia-smi')
-    if not nvidia_smi:
-        return None
-
-    try:
-        result = subprocess.run(
-            [nvidia_smi], capture_output=True, text=True, timeout=10,
-        )
-        if result.returncode == 0:
-            match = _NVIDIA_CUDA_VERSION_PATTERN.search(result.stdout)
-            if match:
-                return match.group(1)
-    except (OSError, subprocess.TimeoutExpired):
-        pass
-
-    return None
-
-
-def _select_cuda_build(
-    driver_version : str,
-    reported_cuda_version : str|None,
-    table : list[tuple[str, str, str]],
-) -> tuple[str, str]|None:
-    """Select the newest available PyTorch build supported by the driver."""
-    driver_tuple = _parse_driver_version(driver_version)
-    reported_cuda_tuple = _parse_driver_version(reported_cuda_version) if reported_cuda_version else None
-
-    for cuda_version, min_driver, index_url in table:
-        if driver_tuple < _parse_driver_version(min_driver):
-            continue
-        if reported_cuda_tuple is not None and _parse_driver_version(cuda_version) > reported_cuda_tuple:
-            continue
-        return cuda_version, index_url
-
-    return None
-
-
-def _detect_gpu_hardware() -> str|None:
-    """Scan for GPU hardware by vendor name, without relying on driver toolkits.
-
-    Returns 'nvidia', 'amd', 'intel', or None.
-    """
-    gpu_names : list[str] = []
-
-    if sys.platform == 'win32':
-        try:
-            result = subprocess.run(
-                ['wmic', 'path', 'win32_VideoController', 'get', 'Name'],
-                capture_output=True, text=True, timeout=10,
-            )
-            if result.returncode == 0:
-                gpu_names = result.stdout.strip().splitlines()
-        except (OSError, subprocess.TimeoutExpired):
-            pass
-
-    elif sys.platform == 'linux':
-        lspci = shutil.which('lspci')
-        if lspci:
-            try:
-                result = subprocess.run(
-                    [lspci], capture_output=True, text=True, timeout=10,
-                )
-                if result.returncode == 0:
-                    gpu_names = [
-                        line for line in result.stdout.splitlines()
-                        if any(tag in line.lower() for tag in ('vga', '3d', 'display'))
-                    ]
-            except (OSError, subprocess.TimeoutExpired):
-                pass
-
-    combined = ' '.join(gpu_names).lower()
-    if 'nvidia' in combined or 'geforce' in combined or 'quadro' in combined or 'tesla' in combined:
-        return 'nvidia'
-    if 'amd' in combined or 'radeon' in combined:
-        return 'amd'
-    if 'intel' in combined and ('arc' in combined or 'iris' in combined or 'xe' in combined):
-        return 'intel'
-
-    return None
-
-
-def _detect_hardware() -> _HardwareDetection|None:
-    """Detect the best available hardware for Torch and return install parameters."""
-
-    # macOS Apple Silicon: MPS is in the default PyPI torch wheel
-    if sys.platform == 'darwin' and platform.machine() == 'arm64':
-        return _HardwareDetection(
-            description=_("Apple Silicon detected -- Torch will use Metal Performance Shaders (MPS)"),
-            index_url='',  # default PyPI wheel includes MPS
-            is_gpu=True,
-            estimated_size=_ESTIMATED_SIZE_MPS,
-        )
-
-    # Try NVIDIA via driver query
-    driver_version = _detect_nvidia_driver()
-    if driver_version:
-        table = _CUDA_MIN_DRIVER_LINUX if sys.platform == 'linux' else _CUDA_MIN_DRIVER_WINDOWS
-        reported_cuda_version = _detect_nvidia_cuda_version()
-        selected_build = _select_cuda_build(driver_version, reported_cuda_version, table)
-
-        if selected_build:
-            cuda_version, index_url = selected_build
-            reported_text = (
-                _('; driver reports CUDA {cuda}').format(cuda=reported_cuda_version)
-                if reported_cuda_version else ''
-            )
-            return _HardwareDetection(
-                description=_("NVIDIA GPU detected (driver {driver}{reported}) -- will install Torch with CUDA {cuda}").format(
-                    driver=driver_version, reported=reported_text, cuda=cuda_version),
-                index_url=index_url,
-                is_gpu=True,
-                estimated_size=_ESTIMATED_SIZE_CUDA,
-            )
-
-        # Driver found but too old for any known CUDA
-        return _HardwareDetection(
-            description=_("NVIDIA GPU detected but driver {driver} is too old for CUDA. "
-                          "Update your driver from nvidia.com, then try again.").format(driver=driver_version),
-            index_url=_CPU_INDEX_URL,
-            is_gpu=False,
-            hardware_detected=True,
-            estimated_size=_ESTIMATED_SIZE_CPU,
-        )
-
-    # Try AMD ROCm (Linux only — PyTorch does not ship ROCm wheels for Windows)
-    if sys.platform == 'linux' and shutil.which('rocminfo'):
-        return _HardwareDetection(
-            description=_("AMD GPU detected (ROCm) -- will install Torch with ROCm support"),
-            index_url=_ROCM_INDEX_URL,
-            is_gpu=True,
-            estimated_size=_ESTIMATED_SIZE_ROCM,
-        )
-
-    # No NVIDIA driver detected — scan for GPU hardware and give specific guidance
-    gpu_vendor = _detect_gpu_hardware()
-
-    if gpu_vendor == 'nvidia':
-        return _HardwareDetection(
-            description=_("NVIDIA GPU detected, but its driver is unavailable"),
-            index_url=_CPU_INDEX_URL,
-            is_gpu=False,
-            guidance=_("Install the latest NVIDIA driver for this GPU from nvidia.com, "
-                       "restart the computer, and choose Set up Torch again."),
-            hardware_detected=True,
-            estimated_size=_ESTIMATED_SIZE_CPU,
-        )
-
-    if gpu_vendor == 'amd':
-        if sys.platform == 'linux':
-            return _HardwareDetection(
-                description=_("AMD GPU found but ROCm is not installed"),
-                index_url=_CPU_INDEX_URL,
-                is_gpu=False,
-                guidance=_("Install ROCm from AMD's documentation, restart, and try again."),
-                hardware_detected=True,
-                estimated_size=_ESTIMATED_SIZE_CPU,
-            )
-        return _HardwareDetection(
-            description=_("AMD GPU found"),
-            index_url=_CPU_INDEX_URL,
-            is_gpu=False,
-            guidance=_("PyTorch GPU support for AMD requires Linux with ROCm."),
-            hardware_detected=True,
-            estimated_size=_ESTIMATED_SIZE_CPU,
-        )
-
-    if gpu_vendor == 'intel':
-        return _HardwareDetection(
-            description=_("Intel GPU found"),
-            index_url=_CPU_INDEX_URL,
-            is_gpu=False,
-            guidance=_("PyTorch XPU support requires the Intel oneAPI toolkit (intel.com/oneapi)."),
-            hardware_detected=True,
-            estimated_size=_ESTIMATED_SIZE_CPU,
-        )
-
-    # No GPU detected at all — return None-like result; dialog will ask the user
-    return None
 
 
 # Answers for the "what GPU do you have?" fallback question
-_GPU_VENDOR_OPTIONS : dict[str, _HardwareDetection] = {
-    _("NVIDIA"): _HardwareDetection(
+_GPU_VENDOR_OPTIONS : dict[str, HardwareDetection] = {
+    _("NVIDIA"): HardwareDetection(
         description=_("NVIDIA selected -- install the NVIDIA driver before setting up Torch"),
-        index_url=_CPU_INDEX_URL,
+        index_url=CPU_INDEX_URL,
         is_gpu=False,
         guidance=_("Install the latest NVIDIA driver for this GPU from nvidia.com, "
                    "restart the computer, and choose Set up Torch again."),
         hardware_detected=True,
         estimated_size=_ESTIMATED_SIZE_CPU,
     ),
-    _("AMD"): _HardwareDetection(
+    _("AMD"): HardwareDetection(
         description=_("AMD selected"),
-        index_url=_ROCM_INDEX_URL if sys.platform == 'linux' else _CPU_INDEX_URL,
+        index_url=ROCM_INDEX_URL if sys.platform == 'linux' else CPU_INDEX_URL,
         is_gpu=sys.platform == 'linux',
         guidance='' if sys.platform == 'linux'
                  else _("PyTorch GPU support for AMD requires Linux with ROCm."),
         hardware_detected=sys.platform != 'linux',
         estimated_size=_ESTIMATED_SIZE_ROCM if sys.platform == 'linux' else _ESTIMATED_SIZE_CPU,
     ),
-    _("Intel"): _HardwareDetection(
+    _("Intel"): HardwareDetection(
         description=_("Intel selected"),
-        index_url=_CPU_INDEX_URL,
+        index_url=CPU_INDEX_URL,
         is_gpu=False,
         guidance=_("PyTorch XPU support requires the Intel oneAPI toolkit (intel.com/oneapi)."),
         hardware_detected=True,
         estimated_size=_ESTIMATED_SIZE_CPU,
     ),
-    _("No GPU / CPU only"): _HardwareDetection(
+    _("No GPU / CPU only"): HardwareDetection(
         description=_("CPU selected -- transcription will work but will be significantly slower than with a GPU"),
-        index_url=_CPU_INDEX_URL,
+        index_url=CPU_INDEX_URL,
         is_gpu=False,
         estimated_size=_ESTIMATED_SIZE_CPU,
     ),
@@ -358,7 +104,7 @@ def _find_existing_torch() -> str|None:
     """
     # Check the default install path beside the application
     default_path = os.path.join(GetAppDir(), _DEFAULT_TORCH_DIR_NAME)
-    if has_torch_package(Path(default_path)):
+    if HasTorchPackage(Path(default_path)):
         return default_path
 
     # Fall back to whatever is already on sys.path
@@ -385,7 +131,7 @@ class TorchSetupDialog(QDialog):
 
         self.chosen_path : str = ''
         self._process : QProcess|None = None
-        self._hardware : _HardwareDetection|None = _detect_hardware()
+        self._hardware : HardwareDetection|None = DetectHardware()
         self._existing_path : str|None = None
         self._cpu_fallback_checkbox : QCheckBox|None = None
         self._current_page : int = 0
@@ -789,25 +535,13 @@ class TorchSetupDialog(QDialog):
         """
         root = Path(directory).expanduser()
 
-        if has_torch_package(root):
+        if HasTorchPackage(root):
             self._log(_("Validated Torch installation at {path}.").format(path=directory))
         else:
             self._log(_("Warning: could not detect a torch package in {path}.").format(path=directory))
             self._log(_("The directory may still be valid. You can accept it or try installing again."))
 
-        # Check ABI compatibility when frozen metadata is available
-        metadata_path = find_compatibility_metadata()
-        if metadata_path is not None:
-            try:
-                metadata = read_compatibility_metadata(metadata_path)
-                compatibility = metadata["compatibility"]
-                if isinstance(compatibility, dict):
-                    actual = build_current_compatibility()
-                    check_compatibility(actual, compatibility)
-                self._log(_("ABI compatibility check passed."))
-            except (ValueError, RuntimeError) as error:
-                self._log(_("Warning: {error}").format(error=error))
-                self._log(_("The installation may not work with this application."))
+        self._check_venv_abi_compatibility(root)
 
         self.chosen_path = directory
 
@@ -818,6 +552,36 @@ class TorchSetupDialog(QDialog):
               "The application needs to be restarted for the change to take effect.").format(path=directory),
         )
         self.accept()
+
+    def _check_venv_abi_compatibility(self, root : Path) -> None:
+        """Probe the selected venv's interpreter against the frozen build's ABI metadata."""
+        metadata_path = FindCompatibilityMetadata()
+        if metadata_path is None:
+            return
+
+        try:
+            metadata = ReadCompatibilityMetadata(metadata_path)
+            compatibility = metadata["compatibility"]
+            if not isinstance(compatibility, dict):
+                self._log(_("ABI compatibility check passed."))
+                return
+
+            venv_python = FindVenvPython(root)
+            if venv_python is None:
+                self._log(_("Warning: no Python interpreter found in the selected environment."))
+                return
+
+            actual = ProbeVenvCompatibility(venv_python)
+            if actual is None:
+                self._log(_("Warning: could not probe the venv's Python interpreter."))
+                return
+
+            CheckCompatibility(actual, compatibility)
+            self._log(_("ABI compatibility check passed."))
+
+        except (ValueError, RuntimeError) as error:
+            self._log(_("Warning: {error}").format(error=error))
+            self._log(_("The installation may not work with this application."))
 
     def reject(self) -> None:
         """Stop an active installer before closing the dialog."""
