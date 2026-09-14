@@ -5,6 +5,9 @@ All notable changes to PySubtrans will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-09-14
+Added transcription from audio/video files using cloud or local transcription services. Requires external `ffmpeg` install, and `torch` for local transcription.
+
 ## [1.6.0] - 2026-04-26
 Added opt-in terminology map: accumulates `original::translation` pairs across batches and injects them into subsequent prompt contexts for consistent translations throughout a file.
 
@@ -35,3 +38,4 @@ Fixed connection of standard logger to TranslationEvents
 - Support for multiple subtitle formats (SRT, ASS, SSA, VTT)
 - Subtitle preprocessing and batching capabilities
 - Persistent project support
+
