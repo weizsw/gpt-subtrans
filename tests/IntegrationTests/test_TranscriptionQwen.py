@@ -1,4 +1,5 @@
 import importlib.util
+import sys
 import tempfile
 import unittest
 from datetime import timedelta
@@ -84,10 +85,11 @@ class TestQwenLocalProvider(LoggedTestCase):
 
         self.assertLoggedIn('CPU fallback refresh trigger', 'allow_cpu_fallback', provider.refresh_when_changed)
 
-    def test_validate_requires_torch_directory(self):
-        """ValidateSettings returns False when torch_installation_directory is empty."""
+    def test_validate_requires_torch_directory_in_frozen_build(self):
+        """Frozen builds reject Qwen when no external Torch directory is configured."""
         provider = QwenLocalProvider(SettingsType())
-        self.assertLoggedEqual("invalid without torch", False, provider.ValidateSettings())
+        with patch.object(sys, 'frozen', True, create=True):
+            self.assertLoggedEqual("frozen build without Torch", False, provider.ValidateSettings())
 
     def test_validate_passes_with_torch_directory(self):
         """ValidateSettings returns True when torch_installation_directory is set."""
