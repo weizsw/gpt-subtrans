@@ -103,29 +103,7 @@ LLM-Subtrans can transcribe audio and video files (mp4, mkv, mp3, wav, ...), whi
 
 **Note**: Transcription requires `ffmpeg`/`ffprobe` to be installed and accessible.
 
-### Local transcription
-**Qwen Local**: runs  `qwen-asr` in-process on your machine. 
-
-A separate torch install is required to take advantage of GPU acceleration (see https://pytorch.org/get-started/locally/).
-For packaged builds, Torch is intentionally external: install a compatible Torch build
-with the same Python version and architecture as the application, then select its
-installation directory in the Qwen Local advanced provider settings. `ffmpeg` and
-`ffprobe` are also external programs and must be available on PATH (or configured).
-The frozen build contains compatibility metadata but no Torch payload. Create or
-use a complete venv made with the same compatible Python, then prepare its
-external location with `python scripts/prepare_external_torch.py
---prepare-external-dir PATH --frozen-metadata APP/frozen-python-compatibility.json`.
-The helper checks the selected interpreter against the frozen application's JSON
-before creating the supported directory
-layout and metadata; it never copies or installs packages. Install the complete
-hardware-specific Torch environment using the official
-[PyTorch installation selector](https://pytorch.org/get-started/locally/), then
-validate it with `python scripts/prepare_external_torch.py
---validate-external-dir PATH --frozen-metadata APP/frozen-python-compatibility.json`
-and select the venv root in Qwen Local settings. Windows venvs use
-`Lib/site-packages`; POSIX venvs use `lib/pythonX.Y/site-packages`.
-Validation checks the Torch directory's presence and the external interpreter's
-compatibility only. It does not test Torch imports, native dependencies, or GPU availability.
+From the GUI, click **Transcribe Audio** in the toolbar (Ctrl+R) to open a separate dialog for transcription. A successful result will be opened as a translation project upon completion.
 
 ### Cloud transcription services
 **OpenRouter**: Provides several speech-to-text models, e.g. the excellent MAI Transcribe 2, DeepGram and Grok.
@@ -133,7 +111,10 @@ compatibility only. It does not test Torch imports, native dependencies, or GPU 
 **Muse**: Meta `muse-voice-transcribe-1. Slow, and only provides approximate timings.
 **OpenAI**: `whisper-1` (word timestamps) and `gpt-4o-transcribe-diarize`. Experimental support.
 
-From the GUI, click **Transcribe Audio** in the toolbar (Ctrl+R) to open a separate dialog for transcription. A successful result will be opened as a translation project upon completion.
+### Local transcription
+**Qwen Local** runs Qwen3-ASR on your computer without sending audio to a transcription service.
+
+It requires a separate [PyTorch](https://pytorch.org/get-started/locally/); install suitable for your hardware. The first run downloads about 6 GB of model weights. For packaged builds, use **Set up Torch...** in Qwen Local's settings. For source installs the install script will manage the dependencies.
 
 ## Installing from source
 If you want to use the command line tools or modify the program, you will need to have Python 3.10+ and pip installed on your system, then follow these steps.
