@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: LLM-Subtrans\n"
-"POT-Creation-Date: 2026-09-13 06:50+0000\n"
+"POT-Creation-Date: 2026-09-14 21:05+0000\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "MIME-Version: 1.0\n"
@@ -13,12 +13,12 @@ msgstr ""
 msgid "\n            <p>To use this provider you need a <a href=\"https://aistudio.google.com/app/apikey\">Google AI Studio API key</a>.</p>\n            "
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:64
-msgid "\n            <p>Transcribe audio on your local machine with Qwen3-ASR.</p>\n            "
-msgstr ""
-
 #: PySubtrans/Transcription/Providers/Provider_Gemini.py:54
 msgid "\n            <p>Transcribe with Gemini 3.5 Transcribe (word timestamps, speaker diarization).</p>\n            <p>Gemini Transcribe has strict rate limits and daily caps, so large chunks are recommended.</p>\n            "
+msgstr ""
+
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:37
+msgid "\n        <p>Transcribe audio on your local machine with Qwen3-ASR.</p>\n        <p>The first transcription downloads model weights (~6 GB) to the\n        Hugging Face cache. Subsequent runs reuse the cached files.</p>\n        "
 msgstr ""
 
 #: PySubtrans/Transcription/Providers/Provider_OpenRouter.py:24
@@ -61,11 +61,11 @@ msgstr ""
 msgid " of {}"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:170
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:171
 msgid " s"
 msgstr ""
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:172
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:171
 msgid "'{}' cannot provide subtitle timings (no word or segment timestamps). Transcription without timings has no value here, so nothing was requested and no credits were spent."
 msgstr ""
 
@@ -81,16 +81,32 @@ msgstr ""
 msgid "1 line"
 msgstr ""
 
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:139
+msgid "<p><b>Torch setup required:</b> Qwen3-ASR needs a separate PyTorch installation. The correct build depends on your operating system and hardware.</p>"
+msgstr ""
+
 #: PySubtrans/Transcription/TranscriptionProvider.py:132
 msgid "<p>Audio extraction needs <a href=\"https://ffmpeg.org/download.html\">ffmpeg</a> installed."
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:72
-msgid "<p>Needs a working torch install (<a href=\"https://pytorch.org/get-started/locally/\">pytorch.org</a>); "
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:149
+msgid "<p>CPU inference is disabled. Enable it if you accept the performance implications.</p>"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:74
-msgid "<p>Running on CPU: transcription will work but much slower than on a GPU.</p>"
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:140
+msgid "<p>Click <b>Set up Torch...</b> to detect available hardware and install a suitable Torch build.</p>"
+msgstr ""
+
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:147
+msgid "<p>Running on CPU: transcription will work but likely much slower than on a GPU.</p>"
+msgstr ""
+
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:144
+msgid "<p>The first transcription will download model weights (~6 GB) to the Hugging Face cache.</p>"
+msgstr ""
+
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:143
+msgid "<p>Torch is configured but has not been verified by a transcription yet.</p>"
 msgstr ""
 
 #: PySubtrans/Providers/Provider_DeepSeek.py:62
@@ -117,11 +133,31 @@ msgstr ""
 msgid "A Requesty API key is required to use this provider (https://app.requesty.ai/api-keys)"
 msgstr ""
 
+#: PySubtrans/Transcription/Torch/Runtime.py:128
+msgid "A different external Torch installation was already selected. Restart the application after changing Torch installation settings."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:219
+msgid "A new Python virtual environment will be created here."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:566 GuiSubtrans/Widgets/TorchSetupDialog.py:580
+msgid "ABI compatibility check passed."
+msgstr ""
+
 #: GuiSubtrans/NewProjectSettings.py:32 PySubtrans/Providers/Provider_DeepSeek.py:70 PySubtrans/Providers/Provider_OpenAI.py:110 PySubtrans/Providers/Provider_OpenRouter.py:140 PySubtrans/Providers/Provider_Requesty.py:135
 msgid "AI model to use as the translator"
 msgstr ""
 
-#: PySubtrans/Providers/Provider_Azure.py:86 PySubtrans/Providers/Provider_DeepSeek.py:128 PySubtrans/Providers/Provider_Gemini.py:115 PySubtrans/Providers/Provider_Mistral.py:126 PySubtrans/Providers/Provider_OpenAI.py:179 PySubtrans/Providers/Provider_OpenRouter.py:197 PySubtrans/Providers/Provider_Requesty.py:192 PySubtrans/Transcription/Providers/Provider_Gemini.py:125 PySubtrans/Transcription/Providers/Provider_Muse.py:88 PySubtrans/Transcription/Providers/Provider_OpenAI.py:91 PySubtrans/Transcription/Providers/Provider_OpenRouter.py:110
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:72
+msgid "AMD"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:73
+msgid "AMD selected"
+msgstr ""
+
+#: PySubtrans/Providers/Provider_Azure.py:86 PySubtrans/Providers/Provider_DeepSeek.py:128 PySubtrans/Providers/Provider_Gemini.py:115 PySubtrans/Providers/Provider_Mistral.py:126 PySubtrans/Providers/Provider_OpenAI.py:179 PySubtrans/Providers/Provider_OpenRouter.py:197 PySubtrans/Providers/Provider_Requesty.py:192 PySubtrans/Transcription/Providers/Provider_Gemini.py:125 PySubtrans/Transcription/Providers/Provider_Muse.py:88 PySubtrans/Transcription/Providers/Provider_OpenAI.py:91 PySubtrans/Transcription/Providers/Provider_OpenRouter.py:109
 msgid "API Key is required"
 msgstr ""
 
@@ -165,19 +201,15 @@ msgstr ""
 msgid "API version must be set in .env or provided as an argument"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:123
-msgid "ASR checkpoint to run locally"
-msgstr ""
-
 #: PySubtrans/Providers/Clients/BedrockClient.py:63
 msgid "AWS region must be set in .env or provided as an argument"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:209
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:210
 msgid "Abort"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:742
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:781
 msgid "Aborted - partial results ({} lines)."
 msgstr ""
 
@@ -189,7 +221,7 @@ msgstr ""
 msgid "Aborted {type}"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:662
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:690
 msgid "Aborting..."
 msgstr ""
 
@@ -217,27 +249,31 @@ msgstr ""
 msgid "Add RTL Markers"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:40
+#: GuiSubtrans/SettingsDialog.py:43
 msgid "Add RTL markers around translated lines that contain primarily right-to-left script on save"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:80
+#: GuiSubtrans/SettingsDialog.py:83
 msgid "Add line breaks to long single lines (post-process)"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:75
+#: GuiSubtrans/SettingsDialog.py:78
 msgid "Add line breaks to text with dialog markers"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:106
+#: GuiSubtrans/SettingsDialog.py:109
 msgid "Advanced"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:183
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:108
+msgid "Aligner model for word timestamps"
+msgstr ""
+
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:220
 msgid "Alignment failed, timestamps will be approximate"
 msgstr ""
 
-#: GuiSubtrans/ProjectActions.py:134 GuiSubtrans/ProjectActions.py:168 GuiSubtrans/ProjectActions.py:170 GuiSubtrans/Widgets/TranscriptionDialog.py:468
+#: GuiSubtrans/ProjectActions.py:134 GuiSubtrans/ProjectActions.py:168 GuiSubtrans/ProjectActions.py:170 GuiSubtrans/Widgets/TranscriptionDialog.py:490
 msgid "All Files"
 msgstr ""
 
@@ -247,6 +283,10 @@ msgstr ""
 
 #: GuiSubtrans/Commands/StartTranslationCommand.py:32
 msgid "All scenes are fully translated"
+msgstr ""
+
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:111
+msgid "Allow emergency CPU fallback (may be slow)"
 msgstr ""
 
 #: PySubtrans/Providers/Provider_Custom.py:108
@@ -297,7 +337,7 @@ msgstr ""
 msgid "An OpenAI API key is required to use this provider (https://platform.openai.com/account/api-keys)"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Provider_OpenRouter.py:89
+#: PySubtrans/Transcription/Providers/Provider_OpenRouter.py:88
 msgid "An OpenRouter API key (shared with translation)"
 msgstr ""
 
@@ -333,7 +373,7 @@ msgstr ""
 msgid "Audio extraction failed: {}"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:148
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:149
 msgid "Audio track"
 msgstr ""
 
@@ -345,7 +385,7 @@ msgstr ""
 msgid "Auto-Split Batch"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:508
+#: GuiSubtrans/SettingsDialog.py:511
 msgid "Auto-selected model {model} for {provider} to ensure valid configuration"
 msgstr ""
 
@@ -353,15 +393,19 @@ msgstr ""
 msgid "Auto-splitting batch {scene} batch {batch}"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:45
+#: GuiSubtrans/SettingsDialog.py:48
 msgid "Automatically save the project/translation after each scene is translated"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:88
+#: GuiSubtrans/SettingsDialog.py:91
 msgid "Avoid creating a new batch smaller than this"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:210
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:154
+msgid "Back"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:211
 msgid "Back to Settings"
 msgstr ""
 
@@ -377,7 +421,7 @@ msgstr ""
 msgid "Batch {num}"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:144
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:221 GuiSubtrans/Widgets/TranscriptionDialog.py:145
 msgid "Browse..."
 msgstr ""
 
@@ -385,8 +429,16 @@ msgstr ""
 msgid "Build Terminology Map"
 msgstr ""
 
-#: GuiSubtrans/NewProjectSettings.py:37 GuiSubtrans/SettingsDialog.py:38
+#: GuiSubtrans/NewProjectSettings.py:37 GuiSubtrans/SettingsDialog.py:41
 msgid "Build a terminology map during translation to keep terminology consistent"
+msgstr ""
+
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:138
+msgid "CPU inference is disabled. Enable 'allow_cpu_fallback' in Qwen Local advanced settings to give consent for this emergency fallback."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:90
+msgid "CPU selected -- transcription will work but will be significantly slower than with a GPU"
 msgstr ""
 
 #: GuiSubtrans/ProjectActions.py:404
@@ -477,11 +529,27 @@ msgstr ""
 msgid "CheckProviderSettings: {error}"
 msgstr ""
 
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:211
+msgid "Choose a folder for the new environment. Hardware detection selects the Torch build automatically."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:439
+msgid "Choose an installation folder before continuing."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:333
+msgid "Choose installation options"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:174
+msgid "Choose one option, then click Continue. You will not need to complete both."
+msgstr ""
+
 #: PySubtrans/Transcription/TranscriptionLines.py:233
 msgid "Chunk {}: low-confidence segment ({:.0%} no-speech probability): '{}'"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:57
+#: GuiSubtrans/SettingsDialog.py:60
 msgid "Clean transcribed lines with the same normalizations used for loaded subtitles (dashes, filler words, line breaks)"
 msgstr ""
 
@@ -493,19 +561,23 @@ msgstr ""
 msgid "Client is not initialized"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:84
+#: GuiSubtrans/SettingsDialog.py:87
 msgid "Comma-separated list of filler_words to remove"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:125
-msgid "Compute device for local inference (auto prefers CUDA, then MPS, then XPU)"
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:107
+msgid "Compute device for local inference"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:152
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:101
+msgid "Configure the Torch environment for local transcription"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:153
 msgid "Configure..."
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:90
+#: GuiSubtrans/SettingsDialog.py:93
 msgid "Consider a new scene to have started after this many seconds without subtitles"
 msgstr ""
 
@@ -537,11 +609,15 @@ msgstr ""
 msgid "Context"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:77
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:155
+msgid "Continue"
+msgstr ""
+
+#: GuiSubtrans/SettingsDialog.py:80
 msgid "Convert blocks of whitespace and Chinese Commas to newlines"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:79
+#: GuiSubtrans/SettingsDialog.py:82
 msgid "Convert wide dashes (emdash) to standard dashes"
 msgstr ""
 
@@ -553,8 +629,16 @@ msgstr ""
 msgid "Could not detect subtitle format for file: {}"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:43
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:188
+msgid "Create a new environment and install Torch"
+msgstr ""
+
+#: GuiSubtrans/SettingsDialog.py:46
 msgid "Create a project file to allow resuming or revising translation"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:454
+msgid "Creating virtual environment at {path}..."
 msgstr ""
 
 #: PySubtrans/Providers/Provider_LiteLLM.py:73
@@ -593,7 +677,11 @@ msgstr ""
 msgid "Detailed instructions for the translator"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:175
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:231
+msgid "Detected hardware"
+msgstr ""
+
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:212
 msgid "Detected language unsupported by aligner, retrying with English"
 msgstr ""
 
@@ -609,6 +697,10 @@ msgstr ""
 msgid "Detected subtitle format '{format}' is not supported."
 msgstr ""
 
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:221
+msgid "Detecting audio..."
+msgstr ""
+
 #: GuiSubtrans/AboutDialog.py:54
 msgid "Developed by: MachineWrapped<br>Contact: machinewrapped@gmail.com<br><a href=\"https://github.com/machinewrapped/llm-subtrans\">GitHub Repository</a><br>Thanks to all contributors and those who have reported issues."
 msgstr ""
@@ -617,15 +709,15 @@ msgstr ""
 msgid "Diarization is not mapped for model '{}', requesting without it"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:799
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:839
 msgid "Discard the {} transcribed lines? They have not been opened as a project."
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:798
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:838
 msgid "Discard transcription?"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:89
+#: GuiSubtrans/SettingsDialog.py:92
 msgid "Divide any batches larger than this into multiple batches"
 msgstr ""
 
@@ -645,7 +737,7 @@ msgstr ""
 msgid "Editing line {line}"
 msgstr ""
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:325
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:399
 msgid "Empty transcription for chunk {}"
 msgstr ""
 
@@ -661,11 +753,11 @@ msgstr ""
 msgid "Enable thinking mode for translations"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:76
+#: GuiSubtrans/SettingsDialog.py:79
 msgid "Ensure dialog markers match in multi-line subtitles"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:78
+#: GuiSubtrans/SettingsDialog.py:81
 msgid "Ensure full-width punctuation is used in Asian languages"
 msgstr ""
 
@@ -701,7 +793,7 @@ msgstr ""
 msgid "Error in {command}: {message}"
 msgstr ""
 
-#: PySubtrans/Options.py:241
+#: PySubtrans/Options.py:245
 msgid "Error loading settings from {}"
 msgstr ""
 
@@ -721,7 +813,7 @@ msgstr ""
 msgid "Error reparsing scene {scene} batch {batch}: {error}"
 msgstr ""
 
-#: PySubtrans/Options.py:270
+#: PySubtrans/Options.py:274
 msgid "Error saving settings to {}"
 msgstr ""
 
@@ -735,6 +827,14 @@ msgstr ""
 
 #: GuiSubtrans/ProjectActions.py:103
 msgid "Error undoing the last command: {error}"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:519
+msgid "Error: Torch installation failed (exit code {code}). Check the output above for details."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:483
+msgid "Error: Virtual environment creation failed (exit code {code})."
 msgstr ""
 
 #: GuiSubtrans/NewProjectSettings.py:260
@@ -751,6 +851,10 @@ msgstr ""
 
 #: GuiSubtrans/Commands/TranslateSceneCommand.py:84
 msgid "Errors: {errors}"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:268 GuiSubtrans/Widgets/TorchSetupDialog.py:394
+msgid "Estimated disk usage: {size}"
 msgstr ""
 
 #: GuiSubtrans/Commands/LoadSubtitleFile.py:21
@@ -773,7 +877,7 @@ msgstr ""
 msgid "Expected a patch dictionary"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:66
+#: GuiSubtrans/SettingsDialog.py:69
 msgid "Extend short subtitles to a minimum reading duration when saving"
 msgstr ""
 
@@ -877,12 +981,12 @@ msgstr ""
 msgid "First Run Options"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:126
-msgid "Forced-aligner checkpoint for word timestamps"
-msgstr ""
-
 #: PySubtrans/SubtitleFormatRegistry.py:63
 msgid "Format cannot be deduced from filename or extension '{name}'. Available formats: {formats}"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:405
+msgid "Found an existing Torch installation at: {path}"
 msgstr ""
 
 #: PySubtrans/TranslationParser.py:195
@@ -893,15 +997,23 @@ msgstr ""
 msgid "Found unclosed tag {tag} in translation"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:485
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:507
 msgid "Found {} audio track(s)."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:245
+msgid "GPU acceleration is strongly recommended. See <a href=\"https://pytorch.org/get-started/locally/\">pytorch.org</a> for hardware-specific instructions."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:253
+msgid "GPU detection was inconclusive. Choose the closest option:"
 msgstr ""
 
 #: GuiSubtrans/MainWindow.py:33 GuiSubtrans/MainWindow.py:211
 msgid "GUI-Subtrans"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:145
+#: GuiSubtrans/SettingsDialog.py:148
 msgid "GUI-Subtrans Settings"
 msgstr ""
 
@@ -977,11 +1089,11 @@ msgstr ""
 msgid "Gemini transcription runtime is not installed"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:102
+#: GuiSubtrans/SettingsDialog.py:105
 msgid "General"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:127
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:109
 msgid "Generation budget per chunk (long chunks need headroom)"
 msgstr ""
 
@@ -1021,11 +1133,11 @@ msgstr ""
 msgid "Identify speakers (up to 8, experimental past 3)"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:46
+#: GuiSubtrans/SettingsDialog.py:49
 msgid "If a batch fails validation, split it in half and retry each half separately"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:47
+#: GuiSubtrans/SettingsDialog.py:50
 msgid "If true, translations that fail validation will be retried with a note about the error"
 msgstr ""
 
@@ -1037,12 +1149,48 @@ msgstr ""
 msgid "Include Original Text"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:39
+#: GuiSubtrans/SettingsDialog.py:42
 msgid "Include original text in translated subtitles"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:58
+#: GuiSubtrans/SettingsDialog.py:61
 msgid "Information about the selected transcription provider"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:321 GuiSubtrans/Widgets/TorchSetupDialog.py:378
+msgid "Install CPU-only Torch"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:273
+msgid "Install CPU-only Torch anyway (transcription will be slower)"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:321 GuiSubtrans/Widgets/TorchSetupDialog.py:378
+msgid "Install Torch"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:186
+msgid "Install automatically"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:434
+msgid "Install or update the GPU driver, then run setup again, or select Install CPU-only Torch anyway."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:67
+msgid "Install the latest NVIDIA driver for this GPU from nvidia.com, restart the computer, and choose Set up Torch again."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:526
+msgid "Installation finished. Verifying the Torch environment..."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:213
+msgid "Installation folder"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:491
+msgid "Installing Torch (this may take several minutes)..."
 msgstr ""
 
 #: GuiSubtrans/EditInstructionsDialog.py:42
@@ -1053,7 +1201,7 @@ msgstr ""
 msgid "Instructions for building a terminology list"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:41
+#: GuiSubtrans/SettingsDialog.py:44
 msgid "Instructions for the translation provider to follow"
 msgstr ""
 
@@ -1067,6 +1215,14 @@ msgstr ""
 
 #: GuiSubtrans/NewProjectSettings.py:133
 msgid "Instructions: {text}"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:81
+msgid "Intel"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:82
+msgid "Intel selected"
 msgstr ""
 
 #: PySubtrans/Formats/VttFileHandler.py:58
@@ -1085,7 +1241,7 @@ msgstr ""
 msgid "Invalid message role: {role}. Must be one of 'user', 'system', 'developer', or 'assistant'."
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:548
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:570
 msgid "Invalid provider settings"
 msgstr ""
 
@@ -1113,7 +1269,7 @@ msgstr ""
 msgid "Invalid translation provider"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:68
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:97
 msgid "Language '{}' is not in qwen-asr's supported list, using auto-detection"
 msgstr ""
 
@@ -1125,7 +1281,7 @@ msgstr ""
 msgid "Latest Google AI SDK (google-genai) is not installed. Gemini provider will not be available. Run installer or `pip install google-genai` to fix."
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:61
+#: GuiSubtrans/SettingsDialog.py:64
 msgid "Leave blank to use ffmpeg and ffprobe from the system PATH"
 msgstr ""
 
@@ -1133,7 +1289,7 @@ msgstr ""
 msgid "Length: {duration}"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:92
+#: GuiSubtrans/SettingsDialog.py:95
 msgid "Limits the number of scene/batch summaries to include as context with each translation batch"
 msgstr ""
 
@@ -1189,7 +1345,7 @@ msgstr ""
 msgid "Load project/translation (reload subtitles)"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:220
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:257
 msgid "Loading Qwen model {} on {}"
 msgstr ""
 
@@ -1201,7 +1357,7 @@ msgstr ""
 msgid "Loading transcription providers"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:109
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:110
 msgid "Loading transcription providers..."
 msgstr ""
 
@@ -1233,7 +1389,7 @@ msgstr ""
 msgid "Max batch size is less than min batch size"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:164
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:165
 msgid "Max chunk length"
 msgstr ""
 
@@ -1241,7 +1397,7 @@ msgstr ""
 msgid "Maximum API requests per minute"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Provider_Gemini.py:118 PySubtrans/Transcription/Providers/Provider_Muse.py:81 PySubtrans/Transcription/Providers/Provider_OpenAI.py:79 PySubtrans/Transcription/Providers/Provider_OpenRouter.py:98
+#: PySubtrans/Transcription/Providers/Provider_Gemini.py:118 PySubtrans/Transcription/Providers/Provider_Muse.py:81 PySubtrans/Transcription/Providers/Provider_OpenAI.py:79 PySubtrans/Transcription/Providers/Provider_OpenRouter.py:97
 msgid "Maximum API requests per minute (0 for unlimited)"
 msgstr ""
 
@@ -1253,15 +1409,15 @@ msgstr ""
 msgid "Maximum OpenAI API requests per minute. Mainly useful if you are on the restricted free plan"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:69
+#: GuiSubtrans/SettingsDialog.py:72
 msgid "Maximum duration of a single line of subtitles"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:81
+#: GuiSubtrans/SettingsDialog.py:84
 msgid "Maximum length of a single line of subtitles"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:93
+#: GuiSubtrans/SettingsDialog.py:96
 msgid "Maximum length of the context summary to include with each translation batch"
 msgstr ""
 
@@ -1273,19 +1429,19 @@ msgstr ""
 msgid "Maximum number of output tokens to return in the response."
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:87
+#: GuiSubtrans/SettingsDialog.py:90
 msgid "Maximum number of simultaneous translation threads for fast translation"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:128
-msgid "Maximum requests per minute (0 for unlimited; local inference is unmetered)"
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:110
+msgid "Maximum requests per minute (0 for unlimited)"
 msgstr ""
 
 #: PySubtrans/Providers/Provider_OpenAI.py:116
 msgid "Maximum tokens a completion can contain (only applicable for -instruct models)"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:145
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:146
 msgid "Media file"
 msgstr ""
 
@@ -1293,11 +1449,11 @@ msgstr ""
 msgid "Media file has no playable duration"
 msgstr ""
 
-#: PySubtrans/Transcription/AudioExtractor.py:232 PySubtrans/Transcription/SilenceStream.py:51 PySubtrans/Transcription/TranscriptionCoordinator.py:102
+#: PySubtrans/Transcription/AudioExtractor.py:232 PySubtrans/Transcription/SilenceStream.py:51 PySubtrans/Transcription/TranscriptionCoordinator.py:99
 msgid "Media file not found: {}"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:468
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:490
 msgid "Media files"
 msgstr ""
 
@@ -1313,7 +1469,7 @@ msgstr ""
 msgid "Merge Scenes"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:73
+#: GuiSubtrans/SettingsDialog.py:76
 msgid "Merge lines with a duration less than this with the previous line"
 msgstr ""
 
@@ -1329,7 +1485,7 @@ msgstr ""
 msgid "Messages"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:163
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:164
 msgid "Min chunk length"
 msgstr ""
 
@@ -1337,19 +1493,19 @@ msgstr ""
 msgid "Minimum chunk length cannot exceed maximum chunk length"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:70
+#: GuiSubtrans/SettingsDialog.py:73
 msgid "Minimum duration of a single line of subtitles"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:72
+#: GuiSubtrans/SettingsDialog.py:75
 msgid "Minimum gap between consecutive subtitles, in seconds, used when preprocess_subtitles, extend_short_subtitles, or prevent_overlapping_times is enabled"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:82
+#: GuiSubtrans/SettingsDialog.py:85
 msgid "Minimum length of a single line of subtitles"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:74
+#: GuiSubtrans/SettingsDialog.py:77
 msgid "Minimum number of characters to split a line at"
 msgstr ""
 
@@ -1357,7 +1513,7 @@ msgstr ""
 msgid "Minimum probability threshold for token sampling (0.0 to disable)"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:71
+#: GuiSubtrans/SettingsDialog.py:74
 msgid "Minimum reading time per visible character in seconds"
 msgstr ""
 
@@ -1401,12 +1557,24 @@ msgstr ""
 msgid "Movie Name"
 msgstr ""
 
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:63
+msgid "NVIDIA"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:64
+msgid "NVIDIA selected -- install the NVIDIA driver before setting up Torch"
+msgstr ""
+
 #: GuiSubtrans/Widgets/ProjectSettings.py:144
 msgid "Names"
 msgstr ""
 
 #: PySubtrans/Providers/Clients/CustomClient.py:151
 msgid "Network error communicating with server: {error}"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:89
+msgid "No GPU / CPU only"
 msgstr ""
 
 #: PySubtrans/Transcription/TranscriptionClient.py:75
@@ -1439,6 +1607,10 @@ msgstr ""
 
 #: GuiSubtrans/Commands/DeleteLinesCommand.py:58
 msgid "No deletions to undo"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:412
+msgid "No existing Torch installation found on this system."
 msgstr ""
 
 #: PySubtrans/Subtitles.py:276
@@ -1481,7 +1653,7 @@ msgstr ""
 msgid "No models available"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:501
+#: GuiSubtrans/SettingsDialog.py:504
 msgid "No models available for {provider}"
 msgstr ""
 
@@ -1497,7 +1669,7 @@ msgstr ""
 msgid "No output returned in the response"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:611
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:633
 msgid "No partial results to resume from."
 msgstr ""
 
@@ -1561,6 +1733,10 @@ msgstr ""
 msgid "No subtitles translated"
 msgstr ""
 
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:156
+msgid "No supported hardware accelerator is available. Enable 'allow_cpu_fallback' in Qwen Local advanced settings to permit CPU inference."
+msgstr ""
+
 #: PySubtrans/Providers/Clients/BedrockClient.py:69
 msgid "No system prompt provided"
 msgstr ""
@@ -1573,7 +1749,7 @@ msgstr ""
 msgid "No text returned in the response"
 msgstr ""
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:273
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:346
 msgid "No timed subtitles could be produced from {}"
 msgstr ""
 
@@ -1661,7 +1837,7 @@ msgstr ""
 msgid "Number of seconds gap to consider it a new scene"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:96
+#: GuiSubtrans/SettingsDialog.py:99
 msgid "Number of times to retry a failed translation before giving up"
 msgstr ""
 
@@ -1677,11 +1853,11 @@ msgstr ""
 msgid "Open File"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:216
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:217
 msgid "Open as Project"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:153
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:154
 msgid "Open transcription settings for this provider"
 msgstr ""
 
@@ -1709,7 +1885,7 @@ msgstr ""
 msgid "OpenAI streaming ended without a completed response"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:59
+#: GuiSubtrans/SettingsDialog.py:62
 msgid "Optional path to the ffmpeg executable. Leave blank to use ffmpeg and ffprobe from the system PATH"
 msgstr ""
 
@@ -1729,7 +1905,7 @@ msgstr ""
 msgid "Penalise token repetition — values > 1.0 reduce repetitive output (0.0 to disable)"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Provider_Muse.py:80 PySubtrans/Transcription/Providers/Provider_OpenAI.py:78 PySubtrans/Transcription/Providers/Provider_OpenRouter.py:97
+#: PySubtrans/Transcription/Providers/Provider_Muse.py:80 PySubtrans/Transcription/Providers/Provider_OpenAI.py:78 PySubtrans/Transcription/Providers/Provider_OpenRouter.py:96
 msgid "Per-chunk request timeout in seconds"
 msgstr ""
 
@@ -1757,23 +1933,31 @@ msgstr ""
 msgid "Please select a single split point"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:65
+#: GuiSubtrans/SettingsDialog.py:68
 msgid "Postprocess subtitles after translation"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:293
+msgid "Preparing installation..."
+msgstr ""
+
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:101
+msgid "Preparing {} transcription..."
 msgstr ""
 
 #: GuiSubtrans/NewProjectSettings.py:36
 msgid "Preprocess subtitles before batching"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:64
+#: GuiSubtrans/SettingsDialog.py:67
 msgid "Preprocess subtitles when they are loaded"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:67
+#: GuiSubtrans/SettingsDialog.py:70
 msgid "Prevent overlapping subtitle display times"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:105
+#: GuiSubtrans/SettingsDialog.py:108
 msgid "Processing"
 msgstr ""
 
@@ -1821,11 +2005,11 @@ msgstr ""
 msgid "Prompt: {text}"
 msgstr ""
 
-#: GuiSubtrans/Widgets/ProjectSettings.py:157 GuiSubtrans/Widgets/TranscriptionDialog.py:155
+#: GuiSubtrans/Widgets/ProjectSettings.py:157 GuiSubtrans/Widgets/TranscriptionDialog.py:156
 msgid "Provider"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:103
+#: GuiSubtrans/SettingsDialog.py:106
 msgid "Provider Settings"
 msgstr ""
 
@@ -1833,11 +2017,11 @@ msgstr ""
 msgid "Provider error: {error}"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:483
+#: GuiSubtrans/SettingsDialog.py:486
 msgid "Provider information"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:676
+#: GuiSubtrans/SettingsDialog.py:702
 msgid "Provider is not set"
 msgstr ""
 
@@ -1865,11 +2049,35 @@ msgstr ""
 msgid "Provider-recommended default;"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:191
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:77
+msgid "PyTorch GPU support for AMD requires Linux with ROCm."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:85
+msgid "PyTorch XPU support requires the Intel oneAPI toolkit (intel.com/oneapi)."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:450
+msgid "Python 3.10 or newer is required. Install Python, then try again."
+msgstr ""
+
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:156
+msgid "Qwen Local provider could not be registered: {}"
+msgstr ""
+
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:228
 msgid "Qwen transcription failed: {}"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:115
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:85
+msgid "Qwen transcription runtime could not be loaded. Check that the configured external Torch installation is compatible with this application, then restart after changing the Torch installation setting. Details: {}"
+msgstr ""
+
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:51
+msgid "Qwen transcription runtime could not be loaded: {}. Restart after changing the Torch installation setting."
+msgstr ""
+
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:87
 msgid "Qwen transcription runtime is not installed"
 msgstr ""
 
@@ -1913,7 +2121,7 @@ msgstr ""
 msgid "Redo {command}"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:244
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:283
 msgid "Releasing previously loaded Qwen model {}"
 msgstr ""
 
@@ -1921,7 +2129,7 @@ msgstr ""
 msgid "Reloading subtitles from the source file"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:83
+#: GuiSubtrans/SettingsDialog.py:86
 msgid "Remove filler_words and filler words from subtitles"
 msgstr ""
 
@@ -1945,7 +2153,7 @@ msgstr ""
 msgid "Reparsing scene {scene} batch {batch} with {count} lines..."
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Provider_OpenRouter.py:96
+#: PySubtrans/Transcription/Providers/Provider_OpenRouter.py:95
 msgid "Request speaker diarization (only supported by some models)"
 msgstr ""
 
@@ -1965,11 +2173,15 @@ msgstr ""
 msgid "Response"
 msgstr ""
 
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:550
+msgid "Restart Required"
+msgstr ""
+
 #: GuiSubtrans/Commands/DeleteLinesCommand.py:63
 msgid "Restoring deleted lines"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:208
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:209
 msgid "Resume"
 msgstr ""
 
@@ -1977,11 +2189,11 @@ msgstr ""
 msgid "Resuming"
 msgstr ""
 
-#: PySubtrans/Transcription/TranscriptionRun.py:33
+#: PySubtrans/Transcription/TranscriptionRun.py:32
 msgid "Resuming transcription after {}"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:626
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:648
 msgid "Resuming transcription..."
 msgstr ""
 
@@ -2025,11 +2237,11 @@ msgstr ""
 msgid "Save Translation"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:44
+#: GuiSubtrans/SettingsDialog.py:47
 msgid "Save a backup copy of the project when opening it"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:68
+#: GuiSubtrans/SettingsDialog.py:71
 msgid "Save preprocessed subtitles to a separate file"
 msgstr ""
 
@@ -2041,7 +2253,7 @@ msgstr ""
 msgid "Save project/translation as..."
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:175
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:176
 msgid "Save transcribed subtitles"
 msgstr ""
 
@@ -2081,7 +2293,11 @@ msgstr ""
 msgid "Scene {scene}, batch {batch}"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:97
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:181
+msgid "Searching for an existing Torch installation..."
+msgstr ""
+
+#: GuiSubtrans/SettingsDialog.py:100
 msgid "Seconds to wait before retrying a failed translation"
 msgstr ""
 
@@ -2089,19 +2305,23 @@ msgstr ""
 msgid "Secret access key must be set in .env or provided as an argument"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:470
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:492
 msgid "Select Media File"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:199 GuiSubtrans/Widgets/TranscriptionDialog.py:316
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:425
+msgid "Select Torch Installation Directory"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:200 GuiSubtrans/Widgets/TranscriptionDialog.py:323
 msgid "Select a media file to begin."
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:497
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:519
 msgid "Select a valid media file first."
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:142
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:143
 msgid "Select a video or audio file..."
 msgstr ""
 
@@ -2119,6 +2339,14 @@ msgstr ""
 
 #: PySubtrans/Providers/Clients/CustomClient.py:199 PySubtrans/Providers/Clients/CustomClient.py:230
 msgid "Server error: {status_code} {text}"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:128
+msgid "Set up Torch for Local Transcription"
+msgstr ""
+
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:112 PySubtrans/Transcription/Torch/Runtime.py:23
+msgid "Set up Torch..."
 msgstr ""
 
 #: GuiSubtrans/ProjectDataModel.py:126
@@ -2141,11 +2369,7 @@ msgstr ""
 msgid "Silence stream was used outside a with block"
 msgstr ""
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:249
-msgid "Skipping chunk {}: {}"
-msgstr ""
-
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:315
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:389
 msgid "Skipping silent chunk {} before requesting"
 msgstr ""
 
@@ -2153,7 +2377,7 @@ msgstr ""
 msgid "Speakers"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Provider_Gemini.py:114 PySubtrans/Transcription/Providers/Provider_OpenRouter.py:94
+#: PySubtrans/Transcription/Providers/Provider_Gemini.py:114 PySubtrans/Transcription/Providers/Provider_OpenRouter.py:93
 msgid "Speech-to-text model"
 msgstr ""
 
@@ -2193,11 +2417,11 @@ msgstr ""
 msgid "Splitting scene {scene} batch: {batch} at line {line}"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:124
-msgid "Spoken language hint, e.g. Chinese or English (optional, auto-detected when empty)"
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:106
+msgid "Spoken language hint (optional, auto-detected when empty)"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Provider_OpenAI.py:77 PySubtrans/Transcription/Providers/Provider_OpenRouter.py:95
+#: PySubtrans/Transcription/Providers/Provider_OpenAI.py:77 PySubtrans/Transcription/Providers/Provider_OpenRouter.py:94
 msgid "Spoken language hint, e.g. Chinese or en (optional, auto-detected when empty)"
 msgstr ""
 
@@ -2229,7 +2453,35 @@ msgstr ""
 msgid "Starting"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:48
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:485
+msgid "Step 1 could not be completed. Check the log and try again."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:444
+msgid "Step 1 of 2: Creating the private Python environment..."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:171
+msgid "Step 1 of 3 - Choose how to provide Torch"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:521
+msgid "Step 2 could not be completed. Check the log and try again."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:490
+msgid "Step 2 of 2: Installing the Torch build for your hardware..."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:208
+msgid "Step 2 of 3 - Choose the installation options"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:290
+msgid "Step 3 of 3 - Installing Torch"
+msgstr ""
+
+#: GuiSubtrans/SettingsDialog.py:51
 msgid "Stop translating if an error is encountered"
 msgstr ""
 
@@ -2337,11 +2589,11 @@ msgstr ""
 msgid "Text Files (*.txt);;All Files (*))"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:42
+#: GuiSubtrans/SettingsDialog.py:45
 msgid "The (brief) instruction for each batch of subtitles. Some [tags] are automatically filled in"
 msgstr ""
 
-#: GuiSubtrans/NewProjectSettings.py:31 GuiSubtrans/SettingsDialog.py:51
+#: GuiSubtrans/NewProjectSettings.py:31 GuiSubtrans/SettingsDialog.py:54
 msgid "The AI translation service to use"
 msgstr ""
 
@@ -2377,19 +2629,51 @@ msgstr ""
 msgid "The base URL to use for requests - leave as default unless you know you need something else"
 msgstr ""
 
+#: PySubtrans/Transcription/Torch/Runtime.py:41
+msgid "The configured Torch installation directory is invalid. Select the external site-packages directory containing the 'torch' package."
+msgstr ""
+
 #: PySubtrans/Transcription/AudioExtractor.py:254
 msgid "The configured ffmpeg executable was not found: {}"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:37
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:147
+msgid "The configured {} accelerator is unavailable. Enable 'allow_cpu_fallback' in Qwen Local advanced settings to permit CPU fallback, or choose an available accelerator."
+msgstr ""
+
+#: GuiSubtrans/SettingsDialog.py:40
 msgid "The default language to translate the subtitles to"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:542
+msgid "The directory may still be valid. You can accept it or try installing again."
+msgstr ""
+
+#: PySubtrans/Transcription/Torch/Runtime.py:56
+msgid "The external Torch installation cannot be inspected by this Python interpreter."
+msgstr ""
+
+#: PySubtrans/Transcription/Torch/Validation.py:184
+msgid "The external Torch installation is incompatible with this application: {}. Install a complete Torch environment matching the application's Python ABI, OS, architecture, and pointer width, then restart."
+msgstr ""
+
+#: PySubtrans/Transcription/Torch/Runtime.py:89
+msgid "The external Torch installation is missing its native library directory: {}."
+msgstr ""
+
+#: PySubtrans/Transcription/Torch/Runtime.py:109
+msgid "The external Torch installation setting was cleared after Torch runtime setup. Restart the application to apply that change."
 msgstr ""
 
 #: PySubtrans/Transcription/AudioExtractor.py:263
 msgid "The ffprobe executable paired with ffmpeg was not found: {}"
 msgstr ""
 
-#: GuiSubtrans/FirstRunOptions.py:17 GuiSubtrans/SettingsDialog.py:35
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:584
+msgid "The installation may not work with this application."
+msgstr ""
+
+#: GuiSubtrans/FirstRunOptions.py:17 GuiSubtrans/SettingsDialog.py:38
 msgid "The language of the application interface"
 msgstr ""
 
@@ -2425,16 +2709,24 @@ msgstr ""
 msgid "The model to use for translations"
 msgstr ""
 
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:191
+msgid "The next page will ask where to create it and show the detected hardware."
+msgstr ""
+
 #: PySubtrans/Providers/Provider_Claude.py:120
 msgid "The rate limit to use for translations (default 60.0)"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:55
+#: GuiSubtrans/SettingsDialog.py:58
 msgid "The transcription service to use"
 msgstr ""
 
 #: GuiSubtrans/FirstRunOptions.py:19
 msgid "The translation provider to use"
+msgstr ""
+
+#: PySubtrans/Transcription/Torch/Runtime.py:65
+msgid "This frozen application is missing '{}'. Repair or reinstall the distribution before configuring an external Torch installation."
 msgstr ""
 
 #: PySubtrans/Providers/Provider_Custom.py:109
@@ -2449,7 +2741,39 @@ msgstr ""
 msgid "Too many tokens in translation"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:207
+#: PySubtrans/Transcription/Torch/Validation.py:131
+msgid "Torch compatibility metadata could not be read from '{}': {}"
+msgstr ""
+
+#: PySubtrans/Transcription/Torch/Validation.py:136
+msgid "Torch compatibility metadata has an invalid format: {}"
+msgstr ""
+
+#: PySubtrans/Transcription/Torch/Validation.py:141
+msgid "Torch compatibility metadata has an unknown kind: {}"
+msgstr ""
+
+#: PySubtrans/Transcription/Torch/Validation.py:155
+msgid "Torch compatibility metadata has missing or invalid compatibility fields: {}"
+msgstr ""
+
+#: PySubtrans/Transcription/Torch/Validation.py:146
+msgid "Torch compatibility metadata schema is unsupported: {}"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:551
+msgid "Torch environment selected at:\n{path}\n\nThe application needs to be restarted for the change to take effect."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:525
+msgid "Torch installed successfully."
+msgstr ""
+
+#: PySubtrans/Transcription/Torch/Runtime.py:123
+msgid "Torch is already loaded from '{}'. Changing the Torch installation requires restarting the application."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:208
 msgid "Transcribe"
 msgstr ""
 
@@ -2461,19 +2785,19 @@ msgstr ""
 msgid "Transcribe audio/video to subtitles"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:185
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:186
 msgid "Transcribed lines will appear here..."
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:753
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:792
 msgid "Transcribed {} lines (saving to {})."
 msgstr ""
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:275
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:348
 msgid "Transcribed {} lines from {} chunks"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:755
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:794
 msgid "Transcribed {} lines."
 msgstr ""
 
@@ -2485,15 +2809,15 @@ msgstr ""
 msgid "Transcribing chunk {current}/{total}"
 msgstr ""
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:118
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:117
 msgid "Transcribing {} with {}"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:602
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:624
 msgid "Transcribing..."
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:104
+#: GuiSubtrans/SettingsDialog.py:107
 msgid "Transcription Settings"
 msgstr ""
 
@@ -2501,15 +2825,11 @@ msgstr ""
 msgid "Transcription aborted"
 msgstr ""
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:244
-msgid "Transcription blocked after {count} consecutive chunk failures: {error}"
-msgstr ""
-
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:198
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:257
 msgid "Transcription cancelled after {done} chunks"
 msgstr ""
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:278
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:351
 msgid "Transcription cost: ${:.4f}"
 msgstr ""
 
@@ -2517,27 +2837,35 @@ msgstr ""
 msgid "Transcription failed ({}): non-JSON response: {}"
 msgstr ""
 
-#: GuiSubtrans/Commands/TranscribeMediaCommand.py:162 GuiSubtrans/Widgets/TranscriptionDialog.py:747
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:328
+msgid "Transcription failed at {span}: {error}"
+msgstr ""
+
+#: GuiSubtrans/Commands/TranscribeMediaCommand.py:167 GuiSubtrans/Widgets/TranscriptionDialog.py:786
 msgid "Transcription failed: {error}"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:746
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:785
 msgid "Transcription failed; partial results ({} lines) are available."
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:750
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:789
 msgid "Transcription incomplete - partial results ({} lines)."
+msgstr ""
+
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:105
+msgid "Transcription model to run"
 msgstr ""
 
 #: GuiSubtrans/GuiInterface.py:323
 msgid "Transcription produced no subtitles"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:694
+#: GuiSubtrans/SettingsDialog.py:720
 msgid "Transcription provider is not set"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:540
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:562
 msgid "Transcription providers are still loading..."
 msgstr ""
 
@@ -2549,7 +2877,7 @@ msgstr ""
 msgid "Transcription request failed: {}"
 msgstr ""
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:237
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:322
 msgid "Transcription stopped at {span}: {error}"
 msgstr ""
 
@@ -2657,7 +2985,7 @@ msgstr ""
 msgid "Unable to create provider client: {error}"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:345
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:352
 msgid "Unable to create transcription provider: {error}"
 msgstr ""
 
@@ -2671,6 +2999,10 @@ msgstr ""
 
 #: PySubtrans/Transcription/Providers/Clients/GeminiTranscriptionClient.py:173
 msgid "Unable to delete uploaded audio: {}"
+msgstr ""
+
+#: PySubtrans/Transcription/Torch/Runtime.py:50
+msgid "Unable to determine the Python process architecture for the external Torch installation."
 msgstr ""
 
 #: GuiSubtrans/Commands/EditBatchCommand.py:28 GuiSubtrans/Commands/EditLineCommand.py:29
@@ -2689,7 +3021,7 @@ msgstr ""
 msgid "Unable to list audio tracks: {}"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:233
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:272
 msgid "Unable to load Qwen model: {}"
 msgstr ""
 
@@ -2697,7 +3029,7 @@ msgstr ""
 msgid "Unable to load instructions from {file}: {error}"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:416
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:439
 msgid "Unable to load provider options: {error}"
 msgstr ""
 
@@ -2705,15 +3037,15 @@ msgstr ""
 msgid "Unable to load subtitles from {file}"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:632
+#: GuiSubtrans/SettingsDialog.py:635
 msgid "Unable to load transcription provider options: {error}"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:322
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:329
 msgid "Unable to load transcription providers."
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:574 GuiSubtrans/Widgets/TranscriptionDialog.py:321
+#: GuiSubtrans/SettingsDialog.py:577 GuiSubtrans/Widgets/TranscriptionDialog.py:328
 msgid "Unable to load transcription providers: {error}"
 msgstr ""
 
@@ -2749,7 +3081,7 @@ msgstr ""
 msgid "Unable to probe media duration: {}"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:490
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:512
 msgid "Unable to read media: {error}"
 msgstr ""
 
@@ -2757,8 +3089,12 @@ msgstr ""
 msgid "Unable to read project file, starting afresh"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:520
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:542
 msgid "Unable to record dependency evidence: {error}"
+msgstr ""
+
+#: PySubtrans/Transcription/Torch/Runtime.py:94
+msgid "Unable to register Torch native libraries from '{}': {}."
 msgstr ""
 
 #: PySubtrans/Providers/Provider_Claude.py:153
@@ -2849,7 +3185,7 @@ msgstr ""
 msgid "Unexpected transcription response shape"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:103
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:133
 msgid "Unknown device '{}', using automatic selection"
 msgstr ""
 
@@ -2885,12 +3221,28 @@ msgstr ""
 msgid "Uploading audio chunk for Gemini transcription"
 msgstr ""
 
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:225
+msgid "Use a new or empty folder; existing files will not be overwritten."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:176
+msgid "Use an existing installation"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:330
+msgid "Use existing installation"
+msgstr ""
+
 #: PySubtrans/Providers/Provider_Custom.py:112
 msgid "Use parallel threads for translation requests (may be faster but may not work with the server)"
 msgstr ""
 
 #: PySubtrans/Providers/Provider_OpenRouter.py:116 PySubtrans/Providers/Provider_Requesty.py:114
 msgid "Use the default model and hide advanced model options"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:178
+msgid "Use the detected Torch environment"
 msgstr ""
 
 #: PySubtrans/Providers/Provider_OpenAI.py:104
@@ -2909,23 +3261,47 @@ msgstr ""
 msgid "Using proxy: {proxy}"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:160
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:161
 msgid "VTT and ASS preserve speaker labels; SRT has no speaker field"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:94
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:539
+msgid "Validated Torch installation at {path}."
+msgstr ""
+
+#: GuiSubtrans/SettingsDialog.py:97
 msgid "Validator: Maximum number of characters to allow in a single translated line"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:95
+#: GuiSubtrans/SettingsDialog.py:98
 msgid "Validator: Maximum number of newlines to allow in a single translated line"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:379 PySubtrans/Transcription/TranscriptionProvider.py:140
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:489
+msgid "Virtual environment created successfully."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:402 PySubtrans/Transcription/TranscriptionProvider.py:140
 msgid "Warning"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:91
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:541
+msgid "Warning: could not detect a torch package in {path}."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:576
+msgid "Warning: could not probe the venv's Python interpreter."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:571
+msgid "Warning: no Python interpreter found in the selected environment."
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:583
+msgid "Warning: {error}"
+msgstr ""
+
+#: GuiSubtrans/SettingsDialog.py:94
 msgid "Whether to substitute whole words or partial matches, or choose automatically based on input language"
 msgstr ""
 
@@ -2941,12 +3317,16 @@ msgstr ""
 msgid "access_key"
 msgstr ""
 
-#: PySubtrans/Options.py:57
+#: PySubtrans/Options.py:61
 msgid "add_right_to_left_markers"
 msgstr ""
 
 #: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:0
 msgid "aligner_model"
+msgstr ""
+
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:0
+msgid "allow_cpu_fallback"
 msgstr ""
 
 #: PySubtrans/Providers/Provider_Azure.py:0 PySubtrans/Providers/Provider_DeepSeek.py:0 PySubtrans/Providers/Provider_LiteLLM.py:0 PySubtrans/Providers/Provider_OpenAI.py:0
@@ -2965,11 +3345,11 @@ msgstr ""
 msgid "audio over the 10-minute cap, or a malformed request"
 msgstr ""
 
-#: PySubtrans/Options.py:96
+#: PySubtrans/Options.py:100
 msgid "autosave"
 msgstr ""
 
-#: PySubtrans/Options.py:89
+#: PySubtrans/Options.py:93
 msgid "autosplit_on_error"
 msgstr ""
 
@@ -2977,7 +3357,7 @@ msgstr ""
 msgid "aws_region"
 msgstr ""
 
-#: PySubtrans/Options.py:94
+#: PySubtrans/Options.py:98
 msgid "backoff_time"
 msgstr ""
 
@@ -2985,19 +3365,19 @@ msgstr ""
 msgid "body over 32 MB"
 msgstr ""
 
-#: PySubtrans/Options.py:73
+#: PySubtrans/Options.py:77
 msgid "break_dialog_on_one_line"
 msgstr ""
 
-#: PySubtrans/Options.py:72
+#: PySubtrans/Options.py:76
 msgid "break_long_lines"
 msgstr ""
 
-#: PySubtrans/Options.py:87
+#: PySubtrans/Options.py:91
 msgid "build_terminology_map"
 msgstr ""
 
-#: PySubtrans/Options.py:86
+#: PySubtrans/Options.py:90
 msgid "convert_wide_dashes"
 msgstr ""
 
@@ -3037,7 +3417,7 @@ msgstr ""
 msgid "endpoint not found"
 msgstr ""
 
-#: PySubtrans/Options.py:67
+#: PySubtrans/Options.py:71
 msgid "extend_short_subtitles"
 msgstr ""
 
@@ -3045,7 +3425,7 @@ msgstr ""
 msgid "ffmpeg and ffprobe are required for transcription but were not found on PATH"
 msgstr ""
 
-#: PySubtrans/Options.py:102
+#: PySubtrans/Options.py:106
 msgid "ffmpeg_path"
 msgstr ""
 
@@ -3053,11 +3433,11 @@ msgstr ""
 msgid "ffprobe was not found alongside the configured ffmpeg executable or on PATH"
 msgstr ""
 
-#: PySubtrans/Options.py:82
+#: PySubtrans/Options.py:86
 msgid "filler_words"
 msgstr ""
 
-#: PySubtrans/Options.py:109
+#: PySubtrans/Options.py:113
 msgid "firstrun"
 msgstr ""
 
@@ -3065,7 +3445,7 @@ msgstr ""
 msgid "free_plan"
 msgstr ""
 
-#: PySubtrans/Options.py:85
+#: PySubtrans/Options.py:89
 msgid "full_width_punctuation"
 msgstr ""
 
@@ -3073,11 +3453,11 @@ msgstr ""
 msgid "google-genai dependencies missing, Gemini transcription unavailable ({})"
 msgstr ""
 
-#: PySubtrans/Options.py:56
+#: PySubtrans/Options.py:60
 msgid "include_original"
 msgstr ""
 
-#: PySubtrans/Options.py:54
+#: PySubtrans/Options.py:58
 msgid "instruction_file"
 msgstr ""
 
@@ -3085,15 +3465,15 @@ msgstr ""
 msgid "language"
 msgstr ""
 
-#: PySubtrans/Options.py:101
+#: PySubtrans/Options.py:105
 msgid "last_used_path"
 msgstr ""
 
-#: PySubtrans/Options.py:60
+#: PySubtrans/Options.py:64
 msgid "max_batch_size"
 msgstr ""
 
-#: PySubtrans/Options.py:62
+#: PySubtrans/Options.py:66
 msgid "max_characters"
 msgstr ""
 
@@ -3101,7 +3481,7 @@ msgstr ""
 msgid "max_completion_tokens"
 msgstr ""
 
-#: PySubtrans/Options.py:61
+#: PySubtrans/Options.py:65
 msgid "max_context_summaries"
 msgstr ""
 
@@ -3109,11 +3489,11 @@ msgstr ""
 msgid "max_instruct_tokens"
 msgstr ""
 
-#: PySubtrans/Options.py:74
+#: PySubtrans/Options.py:78
 msgid "max_line_duration"
 msgstr ""
 
-#: PySubtrans/Options.py:90
+#: PySubtrans/Options.py:94
 msgid "max_lines"
 msgstr ""
 
@@ -3121,19 +3501,19 @@ msgstr ""
 msgid "max_new_tokens"
 msgstr ""
 
-#: PySubtrans/Options.py:63
+#: PySubtrans/Options.py:67
 msgid "max_newlines"
 msgstr ""
 
-#: PySubtrans/Options.py:92 PySubtrans/Transcription/Providers/Provider_Gemini.py:0
+#: PySubtrans/Options.py:96 PySubtrans/Transcription/Providers/Provider_Gemini.py:0
 msgid "max_retries"
 msgstr ""
 
-#: PySubtrans/Options.py:64
+#: PySubtrans/Options.py:68
 msgid "max_single_line_length"
 msgstr ""
 
-#: PySubtrans/Options.py:93
+#: PySubtrans/Options.py:97
 msgid "max_summary_length"
 msgstr ""
 
@@ -3141,7 +3521,7 @@ msgstr ""
 msgid "max_thinking_tokens"
 msgstr ""
 
-#: PySubtrans/Options.py:91
+#: PySubtrans/Options.py:95
 msgid "max_threads"
 msgstr ""
 
@@ -3149,19 +3529,19 @@ msgstr ""
 msgid "max_tokens"
 msgstr ""
 
-#: PySubtrans/Options.py:78
+#: PySubtrans/Options.py:82
 msgid "merge_line_duration"
 msgstr ""
 
-#: PySubtrans/Options.py:59
+#: PySubtrans/Options.py:63
 msgid "min_batch_size"
 msgstr ""
 
-#: PySubtrans/Options.py:77
+#: PySubtrans/Options.py:81
 msgid "min_gap"
 msgstr ""
 
-#: PySubtrans/Options.py:75
+#: PySubtrans/Options.py:79
 msgid "min_line_duration"
 msgstr ""
 
@@ -3169,11 +3549,11 @@ msgstr ""
 msgid "min_p"
 msgstr ""
 
-#: PySubtrans/Options.py:65
+#: PySubtrans/Options.py:69
 msgid "min_single_line_length"
 msgstr ""
 
-#: PySubtrans/Options.py:79
+#: PySubtrans/Options.py:83
 msgid "min_split_chars"
 msgstr ""
 
@@ -3193,7 +3573,7 @@ msgstr ""
 msgid "non-JSON response (check the Server address): {}"
 msgstr ""
 
-#: PySubtrans/Options.py:80
+#: PySubtrans/Options.py:84
 msgid "normalise_dialog_tags"
 msgstr ""
 
@@ -3201,31 +3581,31 @@ msgstr ""
 msgid "only_translation_models"
 msgstr ""
 
-#: PySubtrans/Options.py:69
+#: PySubtrans/Options.py:73
 msgid "postprocess_transcription"
 msgstr ""
 
-#: PySubtrans/Options.py:68
+#: PySubtrans/Options.py:72
 msgid "postprocess_translation"
 msgstr ""
 
-#: PySubtrans/Options.py:70
+#: PySubtrans/Options.py:74
 msgid "preprocess_subtitles"
 msgstr ""
 
-#: PySubtrans/Options.py:66
+#: PySubtrans/Options.py:70
 msgid "prevent_overlapping_times"
 msgstr ""
 
-#: PySubtrans/Options.py:97
+#: PySubtrans/Options.py:101
 msgid "preview"
 msgstr ""
 
-#: PySubtrans/Options.py:95
+#: PySubtrans/Options.py:99
 msgid "project_file"
 msgstr ""
 
-#: PySubtrans/Options.py:53
+#: PySubtrans/Options.py:57
 msgid "prompt"
 msgstr ""
 
@@ -3233,28 +3613,16 @@ msgstr ""
 msgid "prompt_template"
 msgstr ""
 
-#: PySubtrans/Options.py:50
+#: PySubtrans/Options.py:54
 msgid "provider"
 msgstr ""
 
-#: PySubtrans/Options.py:52
+#: PySubtrans/Options.py:56
 msgid "provider_settings"
 msgstr ""
 
 #: PySubtrans/Providers/Provider_Azure.py:0 PySubtrans/Providers/Provider_Bedrock.py:0 PySubtrans/Providers/Provider_Claude.py:0 PySubtrans/Providers/Provider_Custom.py:0 PySubtrans/Providers/Provider_DeepSeek.py:0 PySubtrans/Providers/Provider_Gemini.py:0 PySubtrans/Providers/Provider_Mistral.py:0 PySubtrans/Providers/Provider_OpenAI.py:0 PySubtrans/Providers/Provider_OpenRouter.py:0 PySubtrans/Providers/Provider_Requesty.py:0 PySubtrans/Transcription/Providers/Provider_Muse.py:0 PySubtrans/Transcription/Providers/Provider_OpenAI.py:0 PySubtrans/Transcription/Providers/Provider_OpenRouter.py:0
 msgid "proxy"
-msgstr ""
-
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:263 PySubtrans/Transcription/Providers/Provider_QwenLocal.py:137
-msgid "qwen-asr dependencies missing, Qwen Local provider unavailable ({})"
-msgstr ""
-
-#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:53
-msgid "qwen-asr package is not installed. Qwen Local provider will not be available"
-msgstr ""
-
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:27
-msgid "qwen-asr package is not installed. Qwen local transcription will not be available"
 msgstr ""
 
 #: PySubtrans/Transcription/Providers/Clients/MuseTranscriptionClient.py:115
@@ -3269,15 +3637,15 @@ msgstr ""
 msgid "reasoning_effort"
 msgstr ""
 
-#: PySubtrans/Options.py:100
+#: PySubtrans/Options.py:104
 msgid "reload"
 msgstr ""
 
-#: PySubtrans/Options.py:81
+#: PySubtrans/Options.py:85
 msgid "remove_filler_words"
 msgstr ""
 
-#: PySubtrans/Options.py:99
+#: PySubtrans/Options.py:103
 msgid "reparse"
 msgstr ""
 
@@ -3289,11 +3657,11 @@ msgstr ""
 msgid "request_timeout"
 msgstr ""
 
-#: PySubtrans/Options.py:98
+#: PySubtrans/Options.py:102
 msgid "retranslate"
 msgstr ""
 
-#: PySubtrans/Options.py:88
+#: PySubtrans/Options.py:92
 msgid "retry_on_error"
 msgstr ""
 
@@ -3301,15 +3669,15 @@ msgstr ""
 msgid "reuse_client"
 msgstr ""
 
-#: PySubtrans/Options.py:71
+#: PySubtrans/Options.py:75
 msgid "save_preprocessed_subtitles"
 msgstr ""
 
-#: PySubtrans/Options.py:58
+#: PySubtrans/Options.py:62
 msgid "scene_threshold"
 msgstr ""
 
-#: PySubtrans/Options.py:76
+#: PySubtrans/Options.py:80
 msgid "seconds_per_character"
 msgstr ""
 
@@ -3329,7 +3697,7 @@ msgstr ""
 msgid "single threaded"
 msgstr ""
 
-#: PySubtrans/Options.py:105
+#: PySubtrans/Options.py:109
 msgid "stop_on_error"
 msgstr ""
 
@@ -3337,7 +3705,7 @@ msgstr ""
 msgid "stream_responses"
 msgstr ""
 
-#: PySubtrans/Options.py:83
+#: PySubtrans/Options.py:87
 msgid "substitution_mode"
 msgstr ""
 
@@ -3353,7 +3721,7 @@ msgstr ""
 msgid "supports_system_messages"
 msgstr ""
 
-#: PySubtrans/Options.py:55
+#: PySubtrans/Options.py:59
 msgid "target_language"
 msgstr ""
 
@@ -3365,7 +3733,7 @@ msgstr ""
 msgid "the credential was not accepted"
 msgstr ""
 
-#: PySubtrans/Options.py:107
+#: PySubtrans/Options.py:111
 msgid "theme"
 msgstr ""
 
@@ -3381,19 +3749,23 @@ msgstr ""
 msgid "timeout"
 msgstr ""
 
-#: PySubtrans/Options.py:103
+#: PySubtrans/Transcription/Providers/Provider_QwenLocal.py:0
+msgid "torch_installation_directory"
+msgstr ""
+
+#: PySubtrans/Options.py:107
 msgid "transcription_ffmpeg_available"
 msgstr ""
 
-#: PySubtrans/Options.py:51
+#: PySubtrans/Options.py:55
 msgid "transcription_provider"
 msgstr ""
 
-#: PySubtrans/Options.py:104
+#: PySubtrans/Options.py:108
 msgid "transcription_torch_device"
 msgstr ""
 
-#: PySubtrans/Options.py:108
+#: PySubtrans/Options.py:112
 msgid "ui_language"
 msgstr ""
 
@@ -3409,15 +3781,15 @@ msgstr ""
 msgid "use_httpx"
 msgstr ""
 
-#: PySubtrans/Options.py:49
+#: PySubtrans/Options.py:53
 msgid "version"
 msgstr ""
 
-#: PySubtrans/Options.py:84
+#: PySubtrans/Options.py:88
 msgid "whitespaces_to_newline"
 msgstr ""
 
-#: PySubtrans/Options.py:106
+#: PySubtrans/Options.py:110
 msgid "write_backup"
 msgstr ""
 
@@ -3489,6 +3861,18 @@ msgstr ""
 msgid "{} lines were invalid and were not written to the output file"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:113
-msgid "{} unavailable, running Qwen transcription on CPU (slow)"
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:56
+msgid "~3.5 GB"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:57
+msgid "~350 MB"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:58
+msgid "~450 MB"
+msgstr ""
+
+#: GuiSubtrans/Widgets/TorchSetupDialog.py:55
+msgid "~5 GB"
 msgstr ""
