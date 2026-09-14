@@ -7,13 +7,11 @@ if sys.platform != 'win32':
 
 from PySide6.QtWidgets import QApplication
 
-from GuiSubtrans.Widgets.TorchSetupDialog import (
-    TorchSetupDialog,
-    _HardwareDetection,
-)
+from GuiSubtrans.Widgets.TorchSetupDialog import TorchSetupDialog
 from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.Transcription.Torch.Hardware import (
     DetectHardware,
+    HardwareDetection,
     SelectCudaBuild,
 )
 
@@ -68,14 +66,14 @@ class TestTorchSetupSelection(LoggedTestCase):
 
     def test_cpu_fallback_requires_explicit_confirmation(self) -> None:
         """A detected GPU without a driver cannot silently install CPU Torch."""
-        hardware = _HardwareDetection(
+        hardware = HardwareDetection(
             'NVIDIA GPU detected, but its driver is unavailable',
             'https://download.pytorch.org/whl/cpu',
             False,
             'Install the latest NVIDIA driver, restart, and try again.',
             hardware_detected=True,
         )
-        with patch('GuiSubtrans.Widgets.TorchSetupDialog._detect_hardware', return_value=hardware), \
+        with patch('GuiSubtrans.Widgets.TorchSetupDialog.DetectHardware', return_value=hardware), \
                 patch('GuiSubtrans.Widgets.TorchSetupDialog._find_existing_torch', return_value=None):
             dialog = TorchSetupDialog()
 

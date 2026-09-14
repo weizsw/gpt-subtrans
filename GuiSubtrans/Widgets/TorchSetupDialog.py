@@ -34,10 +34,10 @@ from PySide6.QtWidgets import (
 from PySubtrans.Helpers.Localization import _
 from PySubtrans.Helpers.Resources import GetAppDir
 from PySubtrans.Transcription.Torch.Hardware import (
-    CPU_INDEX_URL as _CPU_INDEX_URL,
-    HardwareDetection as _HardwareDetection,
-    ROCM_INDEX_URL as _ROCM_INDEX_URL,
-    DetectHardware as _detect_hardware,
+    CPU_INDEX_URL,
+    DetectHardware,
+    HardwareDetection,
+    ROCM_INDEX_URL,  # pyright: ignore[reportUnusedImport] — used on line 74; false positive on Windows
 )
 from PySubtrans.Transcription.Torch.Validation import (
     CheckCompatibility,
@@ -59,36 +59,36 @@ _ESTIMATED_SIZE_MPS = _("~450 MB")
 
 
 # Answers for the "what GPU do you have?" fallback question
-_GPU_VENDOR_OPTIONS : dict[str, _HardwareDetection] = {
-    _("NVIDIA"): _HardwareDetection(
+_GPU_VENDOR_OPTIONS : dict[str, HardwareDetection] = {
+    _("NVIDIA"): HardwareDetection(
         description=_("NVIDIA selected -- install the NVIDIA driver before setting up Torch"),
-        index_url=_CPU_INDEX_URL,
+        index_url=CPU_INDEX_URL,
         is_gpu=False,
         guidance=_("Install the latest NVIDIA driver for this GPU from nvidia.com, "
                    "restart the computer, and choose Set up Torch again."),
         hardware_detected=True,
         estimated_size=_ESTIMATED_SIZE_CPU,
     ),
-    _("AMD"): _HardwareDetection(
+    _("AMD"): HardwareDetection(
         description=_("AMD selected"),
-        index_url=_ROCM_INDEX_URL if sys.platform == 'linux' else _CPU_INDEX_URL,
+        index_url=ROCM_INDEX_URL if sys.platform == 'linux' else CPU_INDEX_URL,
         is_gpu=sys.platform == 'linux',
         guidance='' if sys.platform == 'linux'
                  else _("PyTorch GPU support for AMD requires Linux with ROCm."),
         hardware_detected=sys.platform != 'linux',
         estimated_size=_ESTIMATED_SIZE_ROCM if sys.platform == 'linux' else _ESTIMATED_SIZE_CPU,
     ),
-    _("Intel"): _HardwareDetection(
+    _("Intel"): HardwareDetection(
         description=_("Intel selected"),
-        index_url=_CPU_INDEX_URL,
+        index_url=CPU_INDEX_URL,
         is_gpu=False,
         guidance=_("PyTorch XPU support requires the Intel oneAPI toolkit (intel.com/oneapi)."),
         hardware_detected=True,
         estimated_size=_ESTIMATED_SIZE_CPU,
     ),
-    _("No GPU / CPU only"): _HardwareDetection(
+    _("No GPU / CPU only"): HardwareDetection(
         description=_("CPU selected -- transcription will work but will be significantly slower than with a GPU"),
-        index_url=_CPU_INDEX_URL,
+        index_url=CPU_INDEX_URL,
         is_gpu=False,
         estimated_size=_ESTIMATED_SIZE_CPU,
     ),
@@ -131,7 +131,7 @@ class TorchSetupDialog(QDialog):
 
         self.chosen_path : str = ''
         self._process : QProcess|None = None
-        self._hardware : _HardwareDetection|None = _detect_hardware()
+        self._hardware : HardwareDetection|None = DetectHardware()
         self._existing_path : str|None = None
         self._cpu_fallback_checkbox : QCheckBox|None = None
         self._current_page : int = 0
