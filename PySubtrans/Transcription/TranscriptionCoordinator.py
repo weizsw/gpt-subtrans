@@ -198,7 +198,11 @@ class TranscriptionCoordinator:
             if run.audio_total_seconds > 0.0:
                 self.events.audio_progress.send(self, processed=run.AudioPosition(chunk), total=run.audio_total_seconds)
 
-        with ThreadPoolExecutor(max_workers=1, thread_name_prefix='audio-prefetch') as pool:
+        # Manual pool management so we can shutdown(wait=False) on abort
+        # instead of blocking until a running ffmpeg extraction finishes.
+        pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix='audio-prefetch')
+
+        try:
             # One-chunk lookahead: as each chunk arrives from the
             # generator we immediately submit its audio extraction to a
             # background thread. While that runs we transcribe the
@@ -270,12 +274,27 @@ class TranscriptionCoordinator:
                     done += 1
                     continue
 
-                # Collect the extracted audio (blocks until ffmpeg finishes)
+                # Collect the extracted audio (blocks until ffmpeg finishes).
+                # Route extraction errors through the failure policy so a
+                # transient ffmpeg failure is handled like a transcription
+                # error rather than killing the entire run.
                 assert future is not None
+                try:
+                    prev_audio = future.result()
+                except SubtitleError as e:
+                    if self._handle_chunk_failure(run, chunk, e):
+                        break
+                    prev_chunk = None
+                    prev_audio = None
+                    done += 1
+                    continue
+
                 prev_chunk = chunk
-                prev_audio = future.result()
                 prev_done = done
                 done += 1
+
+        finally:
+            pool.shutdown(wait=False, cancel_futures=True)
 
     def _process_chunk(self, run : TranscriptionRun, client : TranscriptionClient,
                        chunk : AudioChunk, audio_bytes : bytes, done : int,
