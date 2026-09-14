@@ -275,21 +275,13 @@ class TranscriptionCoordinator:
                     continue
 
                 # Collect the extracted audio (blocks until ffmpeg finishes).
-                # Route extraction errors through the failure policy so a
-                # transient ffmpeg failure is handled like a transcription
-                # error rather than killing the entire run.
+                # Extraction errors propagate: ffmpeg is local and free, so
+                # there is no reason to skip a chunk and leave an unfillable
+                # gap. TranscribeMedia preserves any already-transcribed
+                # lines when the error surfaces there.
                 assert future is not None
-                try:
-                    prev_audio = future.result()
-                except SubtitleError as e:
-                    if self._handle_chunk_failure(run, chunk, e):
-                        break
-                    prev_chunk = None
-                    prev_audio = None
-                    done += 1
-                    continue
-
                 prev_chunk = chunk
+                prev_audio = future.result()
                 prev_done = done
                 done += 1
 

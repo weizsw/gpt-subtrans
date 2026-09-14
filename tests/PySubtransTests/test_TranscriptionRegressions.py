@@ -79,35 +79,26 @@ class TestTranscriptionRegressions(LoggedTestCase):
         self.assertLoggedEqual('dialogue retained', '- I say!\n- Of course!\n- Indeed!', originals[0].text)
         self.assertLoggedEqual('no single speaker attribution', None, originals[0].metadata.get('speaker'))
 
-    def test_extraction_failure_uses_chunk_failure_policy(self) -> None:
-        """A transient ffmpeg extraction error is handled like a transcription error."""
+    def test_extraction_failure_stops_run(self) -> None:
+        """An ffmpeg extraction failure stops the run — no unfillable gaps."""
         chunks = [
             AudioChunk(timedelta(seconds=index * 2), timedelta(seconds=(index + 1) * 2))
             for index in range(4)]
-        call_count = 0
-
-        def failing_read(*args, **kwargs) -> bytes:
-            nonlocal call_count
-            call_count += 1
-            if call_count == 1:
-                raise SubtitleError("ffmpeg read failed")
-            return b"fake"
 
         client = FakeTranscriptionClient()
         patch.object(self.coordinator.chunker, "PlanChunksStream",
                      side_effect=lambda *a, **kw: (c for c in chunks)).start()
         patch.object(self.coordinator.extractor, "ReadChunkBytes",
-                     side_effect=failing_read).start()
+                     side_effect=SubtitleError("ffmpeg read failed")).start()
         self.addCleanup(patch.stopall)
 
         with patch.object(self.provider, 'GetTranscriptionClient', return_value=client):
             outcome = self.coordinator.CreateTranscription('readme.md', Options())
 
-        # The first extraction fails but the failure policy allows one
-        # initial failure, so the run continues with the remaining chunks.
-        # The run is INCOMPLETE (not FAILED) because chunks were produced.
-        self.assertLoggedEqual('partial result', TranscriptionStatus.INCOMPLETE, outcome.status)
-        self.assertLoggedEqual('remaining chunks transcribed', 3, client.calls)
+        # Extraction is local and free — skipping a chunk would leave a
+        # gap the user has no way to fill, so the run fails cleanly.
+        self.assertLoggedEqual('clean failure', TranscriptionStatus.FAILED, outcome.status)
+        self.assertLoggedEqual('nothing charged', 0, client.calls)
 
     def test_leading_sliver_merges_into_existing_dialogue(self) -> None:
         """A mixed right-hand neighbour retains all markers without duplication."""
