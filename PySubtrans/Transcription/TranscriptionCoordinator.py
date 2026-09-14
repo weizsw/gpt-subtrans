@@ -22,10 +22,6 @@ from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionRun import TranscriptionRun
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionSegment
 
-# Consecutive chunk failures before an empty run is treated as blocked
-_MAX_INITIAL_FAILURES = 2
-
-
 class TranscriptionCoordinator:
     """
     End-to-end media to subtitles transcription.
@@ -310,16 +306,16 @@ class TranscriptionCoordinator:
 
     def _handle_chunk_failure(self, run : TranscriptionRun, chunk : AudioChunk, error : SubtitleError) -> bool:
         """
-        Record a chunk failure and decide whether the run must stop.
+        Record a chunk failure and stop the run.
 
-        Before anything has been transcribed, repeated failures indicate a
-        systemic problem (credentials, model, endpoint) and the run fails
-        fast with the real error. Once lines exist, any failure would leave
-        an unfillable gap (resume appends after the last line, it cannot
-        backfill), so the run stops there for the user to resume later.
+        Skipping a failed chunk is never correct: resume appends after the
+        last line, so a gap can never be filled — the user would be left
+        paying for a transcription they cannot complete.  When lines already
+        exist the run stops as INCOMPLETE so the user can resume from where
+        it left off; when nothing has been transcribed the error propagates
+        and the run is FAILED.
         """
         run.had_failures = True
-        run.consecutive_failures += 1
 
         if run.transcribed > 0:
             run.error = SubtitleError(
@@ -328,26 +324,14 @@ class TranscriptionCoordinator:
             logging.error(str(run.error))
             return True
 
-        if run.consecutive_failures >= _MAX_INITIAL_FAILURES:
-            raise SubtitleError(
-                _("Transcription blocked after {count} consecutive chunk failures: {error}").format(
-                    count=run.consecutive_failures, error=error),
-                error=error)
-
-        run.error = error
-        logging.warning(_("Skipping chunk {}: {}").format(SpanLabel(chunk), error))
-        return False
+        raise SubtitleError(
+            _("Transcription failed at {span}: {error}").format(span=SpanLabel(chunk), error=error),
+            error=error)
 
     def _accept_chunk(self, run : TranscriptionRun, segment : TranscriptionSegment|None,
                       provider_responded : bool) -> None:
         """Fold a successfully processed chunk into the run."""
         run.chunks_done += 1
-
-        if provider_responded:
-            # An empty provider response was successful and may follow a
-            # transient backend failure. Silent chunks are skipped before a
-            # request and must not reset the failure count.
-            run.consecutive_failures = 0
 
         if segment is None:
             return

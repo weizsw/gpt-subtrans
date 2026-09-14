@@ -19,7 +19,6 @@ class TranscriptionRun:
         self.resume_after : timedelta|None = None
         self.transcribed : int = 0
         self.chunks_done : int = 0
-        self.consecutive_failures : int = 0
         self.had_failures : bool = False
         self.error : SubtitleError|None = None
         self.total_cost : float = 0.0

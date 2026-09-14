@@ -940,29 +940,16 @@ class TestTranscriptionCoordinator(LoggedTestCase):
         self.assertLoggedEqual("partial line count", 1, subtitles.linecount)
         self.assertLoggedEqual("incomplete status", TranscriptionStatus.INCOMPLETE, outcome.status)
 
-    def test_two_initial_failures_abort_run(self):
-        """Two failures before anything works aborts instead of grinding chunks."""
-        coordinator, failing = self._failing_coordinator({1, 2}, chunks=4)
+    def test_initial_failure_stops_run(self):
+        """A failure before any transcription stops immediately — no skipping."""
+        coordinator, failing = self._failing_coordinator({1}, chunks=3)
 
         with tempfile.NamedTemporaryFile(suffix=".mkv") as media:
             outcome = coordinator.TranscribeMedia(media.name)
 
         self.assertLoggedEqual("failed status", TranscriptionStatus.FAILED, outcome.status)
-        assert outcome.error is not None  # Type narrowing for PyLance
-        # Note: str() prefers the wrapped error, the message carries ours
-        self.assertLoggedIn("blocked message", "consecutive", outcome.error.message)
-        self.assertLoggedEqual("stopped early", 2, failing.calls)
-
-    def test_initial_failure_tolerated_when_next_succeeds(self):
-        """A single failure before any transcription is tolerated."""
-        coordinator, failing = self._failing_coordinator({1}, chunks=3)
-
-        with tempfile.NamedTemporaryFile(suffix=".mkv") as media:
-            outcome = coordinator.TranscribeMedia(media.name)
-            subtitles = _subtitles_of(outcome)
-
-        self.assertLoggedEqual("line count", 2, subtitles.linecount)
-        self.assertLoggedEqual("all chunks attempted", 3, failing.calls)
+        self.assertLoggedIsNotNone("error recorded", outcome.error)
+        self.assertLoggedEqual("stopped at failure", 1, failing.calls)
 
     def test_mid_run_failure_aborts_immediately(self):
         """A failure after transcription started aborts to prevent unfillable gaps."""
