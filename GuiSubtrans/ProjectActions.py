@@ -15,6 +15,7 @@ from GuiSubtrans.Commands.EditSceneCommand import EditSceneCommand
 from GuiSubtrans.Commands.MergeBatchesCommand import MergeBatchesCommand
 from GuiSubtrans.Commands.MergeLinesCommand import MergeLinesCommand
 from GuiSubtrans.Commands.MergeScenesCommand import MergeScenesCommand
+from GuiSubtrans.Commands.PostprocessTranslationsCommand import PostprocessTranslationsCommand
 from GuiSubtrans.Commands.ReparseTranslationsCommand import ReparseTranslationsCommand
 from GuiSubtrans.Commands.StartTranslationCommand import StartTranslationCommand
 from GuiSubtrans.Commands.SplitBatchCommand import SplitBatchCommand
@@ -288,6 +289,17 @@ class ProjectActions(QObject):
         line_numbers = [ line.number for line in selection.selected_lines ]
         command = ReparseTranslationsCommand(batch_numbers, line_numbers)
         self.QueueCommand(command)
+
+    def PostprocessSelection(self, selection : ProjectSelection):
+        """
+        Post-process the translations in selected batches.
+        """
+        if not selection.AllLinesTranslated():
+            raise ActionError(_("Please select translated lines to post-process"))
+
+        self._validate_datamodel()
+
+        self.QueueCommand(PostprocessTranslationsCommand(selection.line_numbers))
 
     def UpdateScene(self, scene_number : int, update : dict):
         """

@@ -47,11 +47,12 @@ class SelectionBatch:
 class SelectionLine:
     Key : TypeAlias = int
 
-    def __init__(self, scene: int, batch: int, number: int, selected : bool) -> None:
+    def __init__(self, scene: int, batch: int, number: int, selected : bool, translated : bool = False) -> None:
         self.scene = scene
         self.batch = batch
         self.number = number
         self.selected = selected
+        self.translated = translated
 
     @property
     def key(self):
@@ -167,6 +168,12 @@ class ProjectSelection():
         """
         return all(batch.translated for batch in self.selected_batches)
 
+    def AllLinesTranslated(self) -> bool:
+        """
+        Are all lines included in the selection translated?
+        """
+        return bool(self.lines) and all(line.translated for line in self.lines.values())
+
     def IsFirstInBatchSelected(self) -> bool:
         """
         Check whether the first line of any batch is selected
@@ -258,8 +265,14 @@ class ProjectSelection():
                 if not self.scenes.get(item.scene):
                     self.AppendItem(model, model.parent(index), False)
 
-                for line in item.lines:
-                    self.lines[line] = SelectionLine(batch.scene, batch.number, line, False)
+                for line_number, line_item in item.lines.items():
+                    self.lines[line_number] = SelectionLine(
+                        batch.scene,
+                        batch.number,
+                        line_number,
+                        False,
+                        translated=line_item.translation is not None,
+                    )
 
     def AddSelectedLines(self, selected_lines : list[SelectionLine]):
         """
