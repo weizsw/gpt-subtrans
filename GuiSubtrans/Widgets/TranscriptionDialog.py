@@ -34,6 +34,7 @@ from GuiSubtrans.Widgets.OptionsWidgets import (
 )
 from GuiSubtrans.Widgets.TranscriptionProviderLoader import TranscriptionProviderLoader
 from GuiSubtrans.Widgets.TranscriptionRunProgress import TranscriptionRunProgress
+from PySubtrans.Helpers.Languages import LanguageName, ResolveLanguage
 from PySubtrans.Helpers.Localization import _
 from PySubtrans.Helpers.Time import TimedeltaToText
 from PySubtrans.Options import Options
@@ -42,7 +43,7 @@ from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.SubtitleFormatRegistry import SubtitleFormatRegistry
 from PySubtrans.Subtitles import Subtitles
 from PySubtrans.Transcription.AudioChunker import AudioChunker
-from PySubtrans.Transcription.AudioExtractor import SUPPORTED_MEDIA_EXTENSIONS, CheckFfmpegAvailable
+from PySubtrans.Transcription.AudioExtractor import AudioTrack, SUPPORTED_MEDIA_EXTENSIONS, CheckFfmpegAvailable
 from PySubtrans.Transcription.TranscriptionCoordinator import TranscriptionCoordinator
 from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionStatus
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
@@ -92,6 +93,7 @@ class TranscriptionDialog(QDialog):
         self.loader_thread : QThread|None = None
         self.subtitles : Subtitles|None = None
         self.media_path : str|None = None
+        self._audio_tracks : list[AudioTrack] = []
         self.provider : TranscriptionProvider|None = None
         self.provider_fields : dict[str, OptionWidget] = {}
         self._provider_row_count : int = 0
@@ -104,6 +106,8 @@ class TranscriptionDialog(QDialog):
         self.active_command : TranscribeMediaCommand|None = None
         self._completion_slot : Callable[[TranscribeMediaCommand], None]|None = None
         self._pending_accept : bool = False
+        self._language_auto : bool = True
+        self._setting_auto_language : bool = False
 
         self._build_form()
         self.setAcceptDrops(True)
@@ -146,6 +150,7 @@ class TranscriptionDialog(QDialog):
         self.form.addRow(_("Media file"), _widget_row(self.file_edit, browse_button))
 
         self.track_combo = QComboBox(self)
+        self.track_combo.currentIndexChanged.connect(self._on_track_changed)
         self.form.addRow(_("Audio track"), self.track_combo)
 
         self.provider_combo = QComboBox(self)
@@ -354,6 +359,8 @@ class TranscriptionDialog(QDialog):
 
     def _on_provider_changed(self, name : str) -> None:
         self.provider = self._current_provider()
+        language = self.provider.settings.get_str('language') if self.provider is not None else None
+        self._language_auto = not language or not language.strip()
         self._rebuild_provider_form()
 
         if self.provider is not None:
@@ -453,12 +460,22 @@ class TranscriptionDialog(QDialog):
             self.form.insertRow(self.PROVIDER_ROW_START + self._provider_row_count, field.name, field)
             self._provider_row_count += 1
 
+            if key == 'language':
+                text_field = getattr(field, 'text_field', None)
+                if text_field is not None:
+                    text_field.textChanged.connect(self._on_language_text_changed)
+
+        self._sync_auto_language()
+
     def _on_provider_field_committed(self, key : str) -> None:
         """
         Refresh the per-run form when a refresh-triggering field commits
         (e.g. a key unlocking the progressive options), then update the
         Configure link as usual.
         """
+        if key == 'language' and not self._setting_auto_language:
+            self._language_auto = False
+
         if self.provider is not None and key in self.provider.refresh_when_changed:
             self.provider.settings[key] = self.provider_fields[key].GetValue()
             self._rebuild_provider_form()
@@ -470,6 +487,7 @@ class TranscriptionDialog(QDialog):
 
     def _on_file_changed(self, path : str) -> None:
         self.media_path = path.strip() or None
+        self._audio_tracks = []
         self.track_combo.clear()
         self.subtitles = None
 
@@ -500,16 +518,60 @@ class TranscriptionDialog(QDialog):
         try:
             coordinator = TranscriptionCoordinator(self.provider, self._ffmpeg_settings())
             tracks = coordinator.CheckRequirements(self.media_path)
+            self._audio_tracks = tracks
 
             for track in tracks:
                 self.track_combo.addItem(str(track), track.index)
 
             self.status_label.setText(_("Found {} audio track(s).").format(len(tracks)))
+            self._sync_auto_language()
             self._record_dependency_evidence(ffmpeg_available=True)
 
         except Exception as e:
             self._record_ffmpeg_if_missing(e)
             self.status_label.setText(_("Unable to read media: {error}").format(error=str(e)))
+
+    @Slot(int)
+    def _on_track_changed(self, _index : int) -> None:
+        """Follow the selected track while language remains auto-filled."""
+        if self._language_auto:
+            self._sync_auto_language()
+
+    def _on_language_text_changed(self, _value : str) -> None:
+        """Stop following the track when the user changes the language hint."""
+        if not self._setting_auto_language:
+            self._language_auto = False
+
+    def _sync_auto_language(self) -> None:
+        """Fill the language hint from the selected track when it is automatic."""
+        if not self._language_auto:
+            return
+
+        language_field = self.provider_fields.get('language')
+        if language_field is None:
+            return
+
+        track_index = self.track_combo.currentIndex()
+        track = self._audio_tracks[track_index] if 0 <= track_index < len(self._audio_tracks) else None
+        language = self._track_language_name(track)
+
+        self._setting_auto_language = True
+        try:
+            language_field.SetValue(language)
+        finally:
+            self._setting_auto_language = False
+
+    @staticmethod
+    def _track_language_name(track : AudioTrack|None) -> str:
+        """Return a canonical English language name for an audio metadata tag."""
+        if track is None or not track.language:
+            return ""
+
+        locale = ResolveLanguage(track.language)
+        if locale is None or locale.language == 'und':
+            return ""
+
+        return LanguageName(locale) or ""
 
     def _have_valid_media(self) -> bool:
         """Whether a readable media file is selected, reporting otherwise."""

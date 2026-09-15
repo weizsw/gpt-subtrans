@@ -22,6 +22,7 @@ from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.Helpers.Tests import skip_if_debugger_attached
 from PySubtrans.Options import Options
 from PySubtrans.SettingsType import SettingsType
+from PySubtrans.Transcription.AudioExtractor import AudioTrack
 from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionStatus
 from tests.PySubtransTests.test_Transcription import FakeTranscriptionProvider
 
@@ -257,6 +258,43 @@ class TestTranscriptionDialogLayout(LoggedTestCase):
             dialog._rebuild_provider_form()
             self.assertLoggedEqual('row count restored to initial', initial_row_count, dialog.form.rowCount())
             self.assertLoggedEqual('provider row count zeroed', 0, dialog._provider_row_count)
+        finally:
+            dialog.deleteLater()
+            self.application.processEvents()
+
+    def test_language_follows_audio_track_until_user_edits_it(self) -> None:
+        """An empty language hint follows track metadata until overridden."""
+        options = Options()
+        with patch.object(TranscriptionDialog, '_refresh_providers'):
+            dialog = TranscriptionDialog(options)
+        try:
+            dialog.provider = FakeTranscriptionProvider(SettingsType({'language': ''}))
+            dialog._rebuild_provider_form()
+            dialog._audio_tracks = [
+                AudioTrack(index=0, language='chi'),
+                AudioTrack(index=1, language='eng'),
+            ]
+            dialog.track_combo.addItem('Track 0', 0)
+            dialog.track_combo.addItem('Track 1', 1)
+
+            self.assertLoggedEqual(
+                'first track language',
+                'Chinese',
+                dialog.provider_fields['language'].GetValue())
+
+            dialog.track_combo.setCurrentIndex(1)
+            self.assertLoggedEqual(
+                'selected track language',
+                'English',
+                dialog.provider_fields['language'].GetValue())
+
+            dialog.provider_fields['language'].SetValue('German')
+            dialog.track_combo.setCurrentIndex(0)
+            self.assertLoggedEqual(
+                'manual language is preserved',
+                'German',
+                dialog.provider_fields['language'].GetValue())
+            self.assertLoggedFalse('manual language disables auto-follow', dialog._language_auto)
         finally:
             dialog.deleteLater()
             self.application.processEvents()
