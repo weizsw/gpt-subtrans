@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: LLM-Subtrans\n"
-"POT-Creation-Date: 2026-09-14 21:05+0000\n"
+"POT-Creation-Date: 2026-09-15 18:40+0000\n"
 "PO-Revision-Date: 2025-08-09 21:00+0000\n"
 "Last-Translator: AI Assistant\n"
 "Language-Team: Czech\n"
@@ -79,7 +79,7 @@ msgstr " (délka zdroje {})"
 msgid " of {}"
 msgstr " z {}"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:171
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:176
 msgid " s"
 msgstr " s"
 
@@ -241,11 +241,11 @@ msgstr "Verze API musí být nastavena v .env nebo poskytnuta jako argument"
 msgid "AWS region must be set in .env or provided as an argument"
 msgstr "Region AWS musí být nastaven v .env nebo poskytnut jako argument"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:210
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:215
 msgid "Abort"
 msgstr "Přerušit"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:781
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:843
 msgid "Aborted - partial results ({} lines)."
 msgstr "Přerušeno – částečné výsledky ({} řádků)."
 
@@ -257,7 +257,7 @@ msgstr "Překlad scény {scene} byl přerušen"
 msgid "Aborted {type}"
 msgstr "Přerušeno {type}"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:690
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:752
 msgid "Aborting..."
 msgstr "Přerušování…"
 
@@ -312,7 +312,7 @@ msgstr "Zarovnání selhalo, časové údaje budou přibližné"
 
 #: GuiSubtrans/ProjectActions.py:134 GuiSubtrans/ProjectActions.py:168
 #: GuiSubtrans/ProjectActions.py:170
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:490
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:508
 msgid "All Files"
 msgstr "Všechny soubory"
 
@@ -406,7 +406,7 @@ msgstr "Anthropic SDK není nainstalováno. Poskytovatel Claude nebude k dispozi
 msgid "Anthropic account quota reached, please upgrade your plan or wait until it renews"
 msgstr "Kvóta účtu Anthropic byla dosažena, prosím, upgradujte si plán nebo počkejte na jeho obnovení"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:80
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:81
 msgid "Apply the same post-processing used for translations (dashes, filler words, line breaks, etc.)"
 msgstr "Použít stejné následné zpracování jako u překladů (pomlčky, výplňová slova, zalomení řádků apod.)"
 
@@ -418,7 +418,7 @@ msgstr "Pokusit se komunikovat s koncovým bodem pomocí formátu chatu"
 msgid "Audio extraction failed: {}"
 msgstr "Extrakce zvuku se nezdařila: {}"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:149
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:154
 msgid "Audio track"
 msgstr "Zvuková stopa"
 
@@ -450,7 +450,7 @@ msgstr "Vyhnout se vytváření nové dávky menší než tato"
 msgid "Back"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:211
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:216
 msgid "Back to Settings"
 msgstr "Zpět do Nastavení"
 
@@ -468,7 +468,7 @@ msgid "Batch {num}"
 msgstr "Dávka {num}"
 
 #: GuiSubtrans/Widgets/TorchSetupDialog.py:221
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:145
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:149
 msgid "Browse..."
 msgstr "Procházet…"
 
@@ -629,7 +629,7 @@ msgstr ""
 msgid "Configure the Torch environment for local transcription"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:153
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:158
 msgid "Configure..."
 msgstr "Nastavit…"
 
@@ -769,11 +769,11 @@ msgstr "Vyvinul: MachineWrapped<br>Kontakt: machinewrapped@gmail.com<br><a href=
 msgid "Diarization is not mapped for model '{}', requesting without it"
 msgstr "Diarizace není pro model '{}' namapována, požaduje se bez ní"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:839
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:901
 msgid "Discard the {} transcribed lines? They have not been opened as a project."
 msgstr "Zahodit {} transkribovaných řádků? Nebyly otevřeny jako projekt."
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:838
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:900
 msgid "Discard transcription?"
 msgstr "Zahodit transkripci?"
 
@@ -1074,7 +1074,7 @@ msgstr "Nalezena neostrá shoda pro řádek {number} v překladech"
 msgid "Found unclosed tag {tag} in translation"
 msgstr "Nalezen neuzavřený tag {tag} v překladu"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:507
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:526
 msgid "Found {} audio track(s)."
 msgstr "Nalezeno {} zvukových stop."
 
@@ -1324,7 +1324,7 @@ msgstr "Neplatný časový rozsah bloku"
 msgid "Invalid message role: {role}. Must be one of 'user', 'system', 'developer', or 'assistant'."
 msgstr "Neplatná role zprávy: {role}. Musí být jedna z hodnot: 'uživatel', 'systém', 'vývojář' nebo 'asistent'"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:570
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:632
 msgid "Invalid provider settings"
 msgstr "Neplatné nastavení poskytovatele"
 
@@ -1444,7 +1444,7 @@ msgstr "Načítání existujícího souboru projektu {}"
 msgid "Loading transcription providers"
 msgstr "Načítání poskytovatelů přepisu"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:110
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:114
 msgid "Loading transcription providers..."
 msgstr "Načítání poskytovatelů přepisu..."
 
@@ -1480,7 +1480,7 @@ msgstr "Hlavní panel nástrojů"
 msgid "Max batch size is less than min batch size"
 msgstr "Maximální velikost dávky je menší než minimální velikost dávky"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:165
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:170
 msgid "Max chunk length"
 msgstr "Maximální délka bloku"
 
@@ -1541,7 +1541,7 @@ msgstr ""
 msgid "Maximum tokens a completion can contain (only applicable for -instruct models)"
 msgstr "Maximální počet tokenů, které může dokončení obsahovat (platí pouze pro modely -instruct)"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:146
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:150
 msgid "Media file"
 msgstr "Mediální soubor"
 
@@ -1555,7 +1555,7 @@ msgstr "Mediální soubor nemá přehratelnou délku"
 msgid "Media file not found: {}"
 msgstr "Mediální soubor nenalezen: {}"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:490
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:508
 msgid "Media files"
 msgstr "Mediální soubory"
 
@@ -1587,7 +1587,7 @@ msgstr "Slučování scén {scenes}"
 msgid "Messages"
 msgstr "Zprávy"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:164
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:169
 msgid "Min chunk length"
 msgstr "Minimální délka bloku"
 
@@ -1797,7 +1797,7 @@ msgstr "Není specifikována výstupní cesta, ukládání do {}"
 msgid "No output returned in the response"
 msgstr "V odpovědi nebyl vrácen žádný výstup"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:633
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:695
 msgid "No partial results to resume from."
 msgstr "Nejsou žádné částečné výsledky, ze kterých by bylo možné pokračovat."
 
@@ -2014,11 +2014,11 @@ msgstr "Zobrazit pouze modely z kategorie překladů"
 msgid "Open File"
 msgstr "Otevřít soubor"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:217
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:222
 msgid "Open as Project"
 msgstr "Otevřít jako projekt"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:154
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:159
 msgid "Open transcription settings for this provider"
 msgstr "Otevřít nastavení přepisu pro tohoto poskytovatele"
 
@@ -2171,7 +2171,7 @@ msgid "Prompt: {text}"
 msgstr "Výzva: {text}"
 
 #: GuiSubtrans/Widgets/ProjectSettings.py:157
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:156
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:161
 msgid "Provider"
 msgstr "Poskytovatel"
 
@@ -2211,8 +2211,8 @@ msgstr "Poskytovatel {provider} vyžaduje konfiguraci: {message}"
 msgid "Provider-prefixed model name (e.g. anthropic/claude-sonnet-4-6, openai/gpt-4o, gemini/gemini-2.5-flash)"
 msgstr "Název modelu s prefixem poskytovatele (např. anthropic/claude-sonnet-4-6, openai/gpt-4o, gemini/gemini-2.5-flash)"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:77
 #: GuiSubtrans/Widgets/TranscriptionDialog.py:78
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:79
 msgid "Provider-recommended default;"
 msgstr "Výchozí hodnota doporučená poskytovatelem;"
 
@@ -2348,7 +2348,7 @@ msgstr ""
 msgid "Restoring deleted lines"
 msgstr "Obnovování smazaných řádků"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:209
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:214
 msgid "Resume"
 msgstr "Pokračovat"
 
@@ -2360,7 +2360,7 @@ msgstr "Pokračování"
 msgid "Resuming transcription after {}"
 msgstr "Pokračuji v přepisu po {}"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:648
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:710
 msgid "Resuming transcription..."
 msgstr "Pokračuji v přepisu..."
 
@@ -2423,7 +2423,7 @@ msgstr "Uložit projekt/překlad (Podržte shift pro uložení jako...)"
 msgid "Save project/translation as..."
 msgstr "Uložit projekt/překlad jako..."
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:176
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:181
 msgid "Save transcribed subtitles"
 msgstr "Uložit přepsané titulky"
 
@@ -2476,7 +2476,7 @@ msgstr "Počet sekund čekání před opakováním neúspěšného překladu"
 msgid "Secret access key must be set in .env or provided as an argument"
 msgstr "Tajný přístupový klíč musí být nastaven v .env nebo poskytnut jako argument"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:492
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:510
 msgid "Select Media File"
 msgstr "Vybrat mediální soubor"
 
@@ -2484,16 +2484,16 @@ msgstr "Vybrat mediální soubor"
 msgid "Select Torch Installation Directory"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:200
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:323
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:205
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:328
 msgid "Select a media file to begin."
 msgstr "Chcete-li začít, vyberte mediální soubor."
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:519
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:581
 msgid "Select a valid media file first."
 msgstr "Nejprve vyberte platný mediální soubor."
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:143
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:147
 msgid "Select a video or audio file..."
 msgstr "Vyberte video nebo zvukový soubor..."
 
@@ -2960,11 +2960,11 @@ msgstr ""
 msgid "Torch is already loaded from '{}'. Changing the Torch installation requires restarting the application."
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:208
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:213
 msgid "Transcribe"
 msgstr "Přepsat"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:87
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:88
 msgid "Transcribe Media"
 msgstr "Přepsat média"
 
@@ -2972,11 +2972,11 @@ msgstr "Přepsat média"
 msgid "Transcribe audio/video to subtitles"
 msgstr "Přepsat zvuk/video na titulky"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:186
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:191
 msgid "Transcribed lines will appear here..."
 msgstr "Přepsané řádky se zobrazí zde..."
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:792
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:854
 msgid "Transcribed {} lines (saving to {})."
 msgstr "Přepsáno {} řádků (ukládá se do {})."
 
@@ -2984,7 +2984,7 @@ msgstr "Přepsáno {} řádků (ukládá se do {})."
 msgid "Transcribed {} lines from {} chunks"
 msgstr "Přepsáno {} řádků z {} bloků"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:794
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:856
 msgid "Transcribed {} lines."
 msgstr "Přepsáno {} řádků."
 
@@ -3000,7 +3000,7 @@ msgstr "Přepisuji blok {current}/{total}"
 msgid "Transcribing {} with {}"
 msgstr "Přepisuji {} pomocí {} (bloky se streamují, zatímco běží detekce ticha)"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:624
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:686
 msgid "Transcribing..."
 msgstr "Přepisuji..."
 
@@ -3032,15 +3032,15 @@ msgid "Transcription failed at {span}: {error}"
 msgstr ""
 
 #: GuiSubtrans/Commands/TranscribeMediaCommand.py:167
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:786
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:848
 msgid "Transcription failed: {error}"
 msgstr "Přepis selhal: {error}"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:785
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:847
 msgid "Transcription failed; partial results ({} lines) are available."
 msgstr "Přepis selhal; částečné výsledky ({} řádků) jsou k dispozici."
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:789
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:851
 msgid "Transcription incomplete - partial results ({} lines)."
 msgstr "Přepis neúplný - částečné výsledky ({} řádků)."
 
@@ -3056,7 +3056,7 @@ msgstr "Přepis nevygeneroval žádné titulky"
 msgid "Transcription provider is not set"
 msgstr "Poskytovatel přepisu není nastaven"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:562
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:624
 msgid "Transcription providers are still loading..."
 msgstr "Poskytovatelé přepisu se stále načítají..."
 
@@ -3182,7 +3182,7 @@ msgstr "Nelze vytvořit widget volby pro {key}: {error}"
 msgid "Unable to create provider client: {error}"
 msgstr "Nelze vytvořit klienta poskytovatele: {error}"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:352
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:357
 msgid "Unable to create transcription provider: {error}"
 msgstr "Nepodařilo se vytvořit poskytovatele přepisu: {error}"
 
@@ -3228,7 +3228,7 @@ msgstr "Nepodařilo se načíst model Qwen: {}"
 msgid "Unable to load instructions from {file}: {error}"
 msgstr "Nelze načíst pokyny ze souboru {file}: {error}"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:439
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:446
 msgid "Unable to load provider options: {error}"
 msgstr "Nepodařilo se načíst možnosti poskytovatele: {error}"
 
@@ -3240,12 +3240,12 @@ msgstr "Nelze načíst titulky ze souboru {file}"
 msgid "Unable to load transcription provider options: {error}"
 msgstr "Nepodařilo se načíst možnosti poskytovatele přepisu: {error}"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:329
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:334
 msgid "Unable to load transcription providers."
 msgstr "Nepodařilo se načíst poskytovatele přepisu."
 
 #: GuiSubtrans/SettingsDialog.py:577
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:328
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:333
 msgid "Unable to load transcription providers: {error}"
 msgstr "Nepodařilo se načíst poskytovatele přepisu: {error}"
 
@@ -3283,7 +3283,7 @@ msgstr "Nelze zobrazit náhled dávek: {error}"
 msgid "Unable to probe media duration: {}"
 msgstr "Nepodařilo se zjistit délku média: {}"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:512
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:532
 msgid "Unable to read media: {error}"
 msgstr "Nelze přečíst médium: {error}"
 
@@ -3291,7 +3291,7 @@ msgstr "Nelze přečíst médium: {error}"
 msgid "Unable to read project file, starting afresh"
 msgstr "Nelze načíst soubor projektu, začíná se znovu"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:542
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:604
 msgid "Unable to record dependency evidence: {error}"
 msgstr "Nelze zaznamenat důkazy o závislostech: {error}"
 
@@ -3476,7 +3476,7 @@ msgstr "Používá se model: {model}"
 msgid "Using proxy: {proxy}"
 msgstr "Používám proxy: {proxy}"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:161
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:166
 msgid "VTT and ASS preserve speaker labels; SRT has no speaker field"
 msgstr "VTT a ASS zachovávají popisky mluvčích; SRT nemá pole pro mluvčího"
 
@@ -3496,7 +3496,7 @@ msgstr "Validátor: Maximální počet nových řádků povolených v jednom př
 msgid "Virtual environment created successfully."
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:402
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:409
 #: PySubtrans/Transcription/TranscriptionProvider.py:140
 msgid "Warning"
 msgstr "Varování"
@@ -3521,7 +3521,7 @@ msgstr ""
 msgid "Whether to substitute whole words or partial matches, or choose automatically based on input language"
 msgstr "Zda nahrazovat celá slova nebo částečné shody, nebo zvolit automaticky na základě vstupního jazyka"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:79
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:80
 msgid "Write the transcription to a subtitle file alongside the media before translating"
 msgstr "Před překladem zapište přepis do souboru titulků vedle média"
 
