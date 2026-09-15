@@ -62,6 +62,11 @@ class TestLanguages(LoggedTestCase):
             self.assertLoggedIsNone(f"hint {hint!r}", ResolveLanguage(hint), input_value=hint)
             self.assertLoggedIsNone(f"tag for {hint!r}", LanguageTag(hint), input_value=hint)
 
+    def test_und_is_rejected_before_likely_subtags(self):
+        """The undetermined tag must not gain English likely subtags."""
+        self.assertLoggedIsNone('und locale', ResolveLanguage('und'))
+        self.assertLoggedIsNone('und tag', LanguageTag('und'))
+
     def test_tag_fills_region(self):
         """Bare languages gain their likely region; explicit regions are kept."""
         cases = {
