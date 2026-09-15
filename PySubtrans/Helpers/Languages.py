@@ -87,6 +87,11 @@ def ResolveLanguage(hint : str|None, display_language : str|None = None) -> Loca
     text = hint.strip()
     code = _lookup_language_name(text, display_language) or text.replace('-', '_')
 
+    # ffprobe uses `und` for an unlabeled track. Babel's likely-subtag
+    # fallback maps that sentinel to English, which is never a safe guess.
+    if code.casefold() == 'und' or code.casefold().startswith('und_'):
+        return None
+
     try:
         return Locale.parse(code)
     except (UnknownLocaleError, ValueError, TypeError):
@@ -112,6 +117,9 @@ def ToBcp47Tag(locale : Locale, include_script : bool = False) -> str:
     language = locale.language
     script = locale.script
     territory = locale.territory
+
+    if language == 'und':
+        return 'und'
 
     if territory is None or (include_script and script is None):
         likely_subtags = get_global('likely_subtags')

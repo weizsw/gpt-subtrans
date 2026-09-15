@@ -273,9 +273,11 @@ class TestTranscriptionDialogLayout(LoggedTestCase):
             dialog._audio_tracks = [
                 AudioTrack(index=0, language='chi'),
                 AudioTrack(index=1, language='eng'),
+                AudioTrack(index=2, language='und'),
             ]
             dialog.track_combo.addItem('Track 0', 0)
             dialog.track_combo.addItem('Track 1', 1)
+            dialog.track_combo.addItem('Track 2', 2)
 
             self.assertLoggedEqual(
                 'first track language',
@@ -286,6 +288,12 @@ class TestTranscriptionDialogLayout(LoggedTestCase):
             self.assertLoggedEqual(
                 'selected track language',
                 'English',
+                dialog.provider_fields['language'].GetValue())
+
+            dialog.track_combo.setCurrentIndex(2)
+            self.assertLoggedEqual(
+                'undetermined track leaves language empty',
+                '',
                 dialog.provider_fields['language'].GetValue())
 
             dialog.provider_fields['language'].SetValue('German')
