@@ -249,6 +249,8 @@ def FindBreakPoint(text : str, break_sequences: list[regex.Pattern], max_line_le
     min_break = min(line_length - max_line_length, max_line_length)
     min_break = max(min_break, min_line_length)
 
+    fallbacks : list[int] = []
+
     for priority, seq in enumerate(break_sequences, start=1):
         matches = list(seq.finditer(text))
         if not matches:
@@ -260,11 +262,17 @@ def FindBreakPoint(text : str, break_sequences: list[regex.Pattern], max_line_le
         if split_index < start_index or split_index > end_index:
             continue
 
-        # Don't break if it would result in a line longer than the maximum or shorter than the minimum, if avoidable
+        # Don't break if it would result in a line longer than the maximum or shorter than the minimum, if avoidable.
+        # Track the candidate as a fallback rather than discarding it - a break point that is merely unbalanced
+        # is still far better than no break point at all.
         if priority > len(priority_break_sequences) and split_index < min_break:
+            fallbacks.append(split_index)
             continue
 
         return split_index
+
+    if fallbacks:
+        return min(fallbacks, key=lambda index: abs(index - middle_index))
 
     return None
 
