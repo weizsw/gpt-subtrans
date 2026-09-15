@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: LLM-Subtrans\n"
-"POT-Creation-Date: 2026-09-14 21:05+0000\n"
+"POT-Creation-Date: 2026-09-15 18:40+0000\n"
 "PO-Revision-Date: 2025-01-01 00:00+0000\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: Spanish <EMAIL@ADDRESS>\n"
@@ -63,7 +63,7 @@ msgstr ""
 msgid " of {}"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:171
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:176
 msgid " s"
 msgstr ""
 
@@ -225,11 +225,11 @@ msgstr "La versión de la API debe configurarse en .env o proporcionarse como ar
 msgid "AWS region must be set in .env or provided as an argument"
 msgstr "La región de AWS debe configurarse en .env o proporcionarse como argumento"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:210
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:215
 msgid "Abort"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:781
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:843
 msgid "Aborted - partial results ({} lines)."
 msgstr ""
 
@@ -241,7 +241,7 @@ msgstr "Traducción de la escena {scene} abortada"
 msgid "Aborted {type}"
 msgstr "{type} abortado"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:690
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:752
 msgid "Aborting..."
 msgstr ""
 
@@ -296,7 +296,7 @@ msgstr ""
 
 #: GuiSubtrans/ProjectActions.py:134 GuiSubtrans/ProjectActions.py:168
 #: GuiSubtrans/ProjectActions.py:170
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:490
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:508
 msgid "All Files"
 msgstr "Todos los archivos"
 
@@ -390,7 +390,7 @@ msgstr "El SDK de Anthropic no está instalado. El proveedor Claude no estará d
 msgid "Anthropic account quota reached, please upgrade your plan or wait until it renews"
 msgstr "Cuota de la cuenta de Anthropic alcanzada, por favor actualice su plan o espere a que se renueve"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:80
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:81
 msgid "Apply the same post-processing used for translations (dashes, filler words, line breaks, etc.)"
 msgstr ""
 
@@ -402,7 +402,7 @@ msgstr "Intentar comunicarse con el endpoint usando formato de chat"
 msgid "Audio extraction failed: {}"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:149
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:154
 msgid "Audio track"
 msgstr ""
 
@@ -434,7 +434,7 @@ msgstr "Evitar crear un lote nuevo más pequeño que esto"
 msgid "Back"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:211
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:216
 msgid "Back to Settings"
 msgstr ""
 
@@ -452,7 +452,7 @@ msgid "Batch {num}"
 msgstr "Lote {num}"
 
 #: GuiSubtrans/Widgets/TorchSetupDialog.py:221
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:145
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:149
 msgid "Browse..."
 msgstr ""
 
@@ -613,7 +613,7 @@ msgstr ""
 msgid "Configure the Torch environment for local transcription"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:153
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:158
 msgid "Configure..."
 msgstr ""
 
@@ -753,11 +753,11 @@ msgstr "Desarrollado por: MachineWrapped<br>Contacto: machinewrapped@gmail.com<b
 msgid "Diarization is not mapped for model '{}', requesting without it"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:839
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:901
 msgid "Discard the {} transcribed lines? They have not been opened as a project."
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:838
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:900
 msgid "Discard transcription?"
 msgstr ""
 
@@ -1058,7 +1058,7 @@ msgstr "Se encontró una coincidencia difusa para la línea {number} en las trad
 msgid "Found unclosed tag {tag} in translation"
 msgstr "Se encontró una etiqueta sin cerrar {tag} en la traducción"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:507
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:526
 msgid "Found {} audio track(s)."
 msgstr ""
 
@@ -1305,7 +1305,7 @@ msgstr "Intervalo de tiempo del fragmento no válido"
 msgid "Invalid message role: {role}. Must be one of 'user', 'system', 'developer', or 'assistant'."
 msgstr "Rol de mensaje inválido: {role}. Debe ser uno de 'usuario', 'sistema', 'desarrollador' o 'asistente'."
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:570
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:632
 msgid "Invalid provider settings"
 msgstr "Configuración del proveedor no válida"
 
@@ -1425,7 +1425,7 @@ msgstr "Cargando archivo de proyecto existente {}"
 msgid "Loading transcription providers"
 msgstr "Cargando proveedores de transcripción"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:110
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:114
 msgid "Loading transcription providers..."
 msgstr "Cargando proveedores de transcripción..."
 
@@ -1461,7 +1461,7 @@ msgstr "Barra de herramientas principal"
 msgid "Max batch size is less than min batch size"
 msgstr "El tamaño máximo de lote es menor que el mínimo"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:165
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:170
 msgid "Max chunk length"
 msgstr "Longitud máxima del fragmento"
 
@@ -1522,7 +1522,7 @@ msgstr ""
 msgid "Maximum tokens a completion can contain (only applicable for -instruct models)"
 msgstr "Número máximo de tokens que puede contener una finalización (solo aplicable a modelos -instruct)"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:146
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:150
 msgid "Media file"
 msgstr "Archivo multimedia"
 
@@ -1536,7 +1536,7 @@ msgstr "El archivo multimedia no tiene una duración reproducible."
 msgid "Media file not found: {}"
 msgstr "Archivo multimedia no encontrado: {}"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:490
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:508
 msgid "Media files"
 msgstr "Archivos multimedia"
 
@@ -1568,7 +1568,7 @@ msgstr "Combinando escenas {scenes}"
 msgid "Messages"
 msgstr "Mensajes"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:164
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:169
 msgid "Min chunk length"
 msgstr "Longitud mínima del fragmento"
 
@@ -1778,7 +1778,7 @@ msgstr "No se especificó ruta de salida, guardando en {}"
 msgid "No output returned in the response"
 msgstr "No se devolvió ninguna salida en la respuesta"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:633
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:695
 msgid "No partial results to resume from."
 msgstr "No hay resultados parciales desde los que reanudar."
 
@@ -1995,11 +1995,11 @@ msgstr "Mostrar solo modelos de la categoría de traducción"
 msgid "Open File"
 msgstr "Abrir archivo"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:217
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:222
 msgid "Open as Project"
 msgstr "Abrir como proyecto"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:154
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:159
 msgid "Open transcription settings for this provider"
 msgstr "Abrir la configuración de transcripción para este proveedor"
 
@@ -2152,7 +2152,7 @@ msgid "Prompt: {text}"
 msgstr "Solicitud: {text}"
 
 #: GuiSubtrans/Widgets/ProjectSettings.py:157
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:156
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:161
 msgid "Provider"
 msgstr "Proveedor"
 
@@ -2192,8 +2192,8 @@ msgstr "El proveedor {provider} necesita configuración: {message}"
 msgid "Provider-prefixed model name (e.g. anthropic/claude-sonnet-4-6, openai/gpt-4o, gemini/gemini-2.5-flash)"
 msgstr "Nombre del modelo con prefijo del proveedor (ej. anthropic/claude-sonnet-4-6, openai/gpt-4o, gemini/gemini-2.5-flash)"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:77
 #: GuiSubtrans/Widgets/TranscriptionDialog.py:78
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:79
 msgid "Provider-recommended default;"
 msgstr "Valor predeterminado recomendado por el proveedor;"
 
@@ -2329,7 +2329,7 @@ msgstr ""
 msgid "Restoring deleted lines"
 msgstr "Restaurando líneas eliminadas"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:209
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:214
 msgid "Resume"
 msgstr "Reanudar"
 
@@ -2341,7 +2341,7 @@ msgstr "Reanudando"
 msgid "Resuming transcription after {}"
 msgstr "Reanudando la transcripción después de {}"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:648
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:710
 msgid "Resuming transcription..."
 msgstr "Reanudando la transcripción..."
 
@@ -2404,7 +2404,7 @@ msgstr "Guardar proyecto/traducción (Mantener shift para guardar como...)"
 msgid "Save project/translation as..."
 msgstr "Guardar proyecto/traducción como..."
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:176
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:181
 msgid "Save transcribed subtitles"
 msgstr "Guardar subtítulos transcritos"
 
@@ -2457,7 +2457,7 @@ msgstr "Segundos de espera antes de reintentar una traducción fallida"
 msgid "Secret access key must be set in .env or provided as an argument"
 msgstr "La clave de acceso secreta debe configurarse en .env o proporcionarse como argumento"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:492
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:510
 msgid "Select Media File"
 msgstr "Seleccionar archivo multimedia"
 
@@ -2465,16 +2465,16 @@ msgstr "Seleccionar archivo multimedia"
 msgid "Select Torch Installation Directory"
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:200
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:323
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:205
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:328
 msgid "Select a media file to begin."
 msgstr "Seleccione un archivo multimedia para comenzar."
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:519
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:581
 msgid "Select a valid media file first."
 msgstr "Seleccione primero un archivo multimedia válido."
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:143
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:147
 msgid "Select a video or audio file..."
 msgstr "Seleccione un archivo de vídeo o audio..."
 
@@ -2941,11 +2941,11 @@ msgstr ""
 msgid "Torch is already loaded from '{}'. Changing the Torch installation requires restarting the application."
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:208
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:213
 msgid "Transcribe"
 msgstr "Transcribir"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:87
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:88
 msgid "Transcribe Media"
 msgstr "Transcribir medios"
 
@@ -2953,11 +2953,11 @@ msgstr "Transcribir medios"
 msgid "Transcribe audio/video to subtitles"
 msgstr "Transcribir audio/vídeo a subtítulos"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:186
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:191
 msgid "Transcribed lines will appear here..."
 msgstr "Las líneas transcritas aparecerán aquí..."
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:792
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:854
 msgid "Transcribed {} lines (saving to {})."
 msgstr "Se transcribieron {} líneas (guardando en {})."
 
@@ -2965,7 +2965,7 @@ msgstr "Se transcribieron {} líneas (guardando en {})."
 msgid "Transcribed {} lines from {} chunks"
 msgstr "Se transcribieron {} líneas de {} fragmentos"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:794
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:856
 msgid "Transcribed {} lines."
 msgstr "Se transcribieron {} líneas."
 
@@ -2981,7 +2981,7 @@ msgstr "Transcribiendo fragmento {current}/{total}"
 msgid "Transcribing {} with {}"
 msgstr "Transcribiendo {} con {} (los fragmentos se transmiten mientras se ejecuta la detección de silencio)"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:624
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:686
 msgid "Transcribing..."
 msgstr "Transcribiendo..."
 
@@ -3013,15 +3013,15 @@ msgid "Transcription failed at {span}: {error}"
 msgstr ""
 
 #: GuiSubtrans/Commands/TranscribeMediaCommand.py:167
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:786
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:848
 msgid "Transcription failed: {error}"
 msgstr "Falló la transcripción: {error}"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:785
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:847
 msgid "Transcription failed; partial results ({} lines) are available."
 msgstr "Falló la transcripción; los resultados parciales ({} líneas) están disponibles."
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:789
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:851
 msgid "Transcription incomplete - partial results ({} lines)."
 msgstr "Transcripción incompleta: resultados parciales ({} líneas)."
 
@@ -3037,7 +3037,7 @@ msgstr "La transcripción no produjo subtítulos"
 msgid "Transcription provider is not set"
 msgstr "El proveedor de transcripción no está configurado"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:562
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:624
 msgid "Transcription providers are still loading..."
 msgstr "Los proveedores de transcripción aún se están cargando..."
 
@@ -3163,7 +3163,7 @@ msgstr "No se puede crear el widget de opción para {key}: {error}"
 msgid "Unable to create provider client: {error}"
 msgstr "No se puede crear el cliente del proveedor: {error}"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:352
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:357
 msgid "Unable to create transcription provider: {error}"
 msgstr "No se pudo crear el proveedor de transcripción: {error}"
 
@@ -3209,7 +3209,7 @@ msgstr "No se pudo cargar el modelo Qwen: {}"
 msgid "Unable to load instructions from {file}: {error}"
 msgstr "No se pueden cargar instrucciones desde {file}: {error}"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:439
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:446
 msgid "Unable to load provider options: {error}"
 msgstr "No se pudieron cargar las opciones del proveedor: {error}"
 
@@ -3221,12 +3221,12 @@ msgstr "No se pueden cargar subtítulos de {file}"
 msgid "Unable to load transcription provider options: {error}"
 msgstr "No se pudieron cargar las opciones del proveedor de transcripción: {error}"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:329
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:334
 msgid "Unable to load transcription providers."
 msgstr "No se pudieron cargar los proveedores de transcripción."
 
 #: GuiSubtrans/SettingsDialog.py:577
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:328
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:333
 msgid "Unable to load transcription providers: {error}"
 msgstr "No se pudieron cargar los proveedores de transcripción: {error}"
 
@@ -3264,7 +3264,7 @@ msgstr "No se pueden previsualizar los lotes: {error}"
 msgid "Unable to probe media duration: {}"
 msgstr "No se pudo sondear la duración del medio: {}"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:512
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:532
 msgid "Unable to read media: {error}"
 msgstr "No se pudo leer el medio: {error}"
 
@@ -3272,7 +3272,7 @@ msgstr "No se pudo leer el medio: {error}"
 msgid "Unable to read project file, starting afresh"
 msgstr "No se pudo leer el archivo de proyecto, comenzando de nuevo"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:542
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:604
 msgid "Unable to record dependency evidence: {error}"
 msgstr "No se pudo registrar la evidencia de dependencias: {error}"
 
@@ -3455,7 +3455,7 @@ msgstr "Usando el modelo: {model}"
 msgid "Using proxy: {proxy}"
 msgstr "Usando proxy: {proxy}"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:161
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:166
 msgid "VTT and ASS preserve speaker labels; SRT has no speaker field"
 msgstr "VTT y ASS conservan las etiquetas de hablante; SRT no tiene campo de hablante"
 
@@ -3475,7 +3475,7 @@ msgstr "Validador: número máximo de saltos de línea permitidos en una sola l�
 msgid "Virtual environment created successfully."
 msgstr ""
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:402
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:409
 #: PySubtrans/Transcription/TranscriptionProvider.py:140
 msgid "Warning"
 msgstr "Advertencia"
@@ -3500,7 +3500,7 @@ msgstr ""
 msgid "Whether to substitute whole words or partial matches, or choose automatically based on input language"
 msgstr "Si sustituir palabras completas o coincidencias parciales, o elegir automáticamente según el idioma de entrada"
 
-#: GuiSubtrans/Widgets/TranscriptionDialog.py:79
+#: GuiSubtrans/Widgets/TranscriptionDialog.py:80
 msgid "Write the transcription to a subtitle file alongside the media before translating"
 msgstr "Escribe la transcripción en un archivo de subtítulos junto al medio antes de traducir"
 
