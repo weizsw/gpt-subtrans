@@ -35,16 +35,24 @@ def _load_qwen_dependencies(settings: SettingsType) -> None:
     """Configure and import the optional Qwen runtime on first client use."""
     global torch, Qwen3ASRModel, _QWEN_SUPPORTED_LANGUAGES
 
+    logging.info(_("Preparing Torch runtime..."))
     PrepareTorchRuntime(settings.get_str('torch_installation_directory', ''))
     if torch is not None and Qwen3ASRModel is not None:
         return
 
     try:
+        logging.info(_("Importing torch..."))
         torch = importlib.import_module("torch")
+
+        logging.info(_("Importing qwen_asr (this can take a while on first run)..."))
         qwen_module = importlib.import_module("qwen_asr")
         Qwen3ASRModel = getattr(qwen_module, "Qwen3ASRModel")
+
+        logging.info(_("Importing qwen_asr.inference.utils..."))
         utils_module = importlib.import_module("qwen_asr.inference.utils")
         _QWEN_SUPPORTED_LANGUAGES = list(getattr(utils_module, "SUPPORTED_LANGUAGES"))
+
+        logging.info(_("Qwen runtime imports complete"))
     except (ImportError, OSError, AttributeError) as error:
         torch = None
         Qwen3ASRModel = None

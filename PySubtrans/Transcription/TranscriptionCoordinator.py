@@ -157,8 +157,10 @@ class TranscriptionCoordinator:
         """
         Obtain the provider client, refusing engines that cannot time their output.
         """
+        logging.info(_("Creating {} transcription client...").format(self.provider.name))
         client = self.provider.GetTranscriptionClient(self.settings)
         self._active_client = client
+        logging.info(_("Transcription client created"))
 
         if not client.supports_timestamps:
             self._active_client = None
