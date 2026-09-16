@@ -164,7 +164,8 @@ class TranscribeMediaCommand(Command):
         """Record an unexpected failure; expected ones arrive as a FAILED outcome."""
         self.error = str(error)
         self.status = TranscriptionStatus.FAILED
-        logging.error(_("Transcription failed: {error}").format(error=error))
+        underlying = getattr(error, 'error', None)
+        logging.error(_("Transcription failed: {error}").format(error=error), exc_info=underlying or error)
 
     @staticmethod
     def _resolved_torch_device() -> str|None:

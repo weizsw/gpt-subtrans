@@ -150,7 +150,7 @@ class TranscriptionCoordinator:
 
     def _failed(self, error : SubtitleError) -> TranscriptionOutcome:
         """Log and package a run that produced nothing usable."""
-        logging.error(str(error))
+        logging.error(str(error), exc_info=error.error or error)
         return TranscriptionOutcome(status=TranscriptionStatus.FAILED, error=error)
 
     def _start_client(self) -> TranscriptionClient:
