@@ -6,11 +6,12 @@ from tempfile import TemporaryDirectory
 from threading import Event
 from unittest.mock import patch
 
-from tests.GuiTestSupport import ConfigureOffscreenPlatform, InstallOffscreenSizeHintFilter
+from tests.GuiTestSupport import ConfigureOffscreenPlatform
 
 ConfigureOffscreenPlatform()
 
 from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox, QMessageBox
+from tests.GuiTestMessageFilters import InstallOffscreenSizeHintFilter
 
 InstallOffscreenSizeHintFilter()
 
