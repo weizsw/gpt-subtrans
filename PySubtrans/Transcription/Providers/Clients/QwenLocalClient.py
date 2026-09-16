@@ -47,11 +47,8 @@ def _load_qwen_dependencies(settings: SettingsType) -> None:
 
         logging.info(_("Importing qwen_asr (this can take a while on first run)..."))
         # qwen_asr pulls in transformers, which pulls in pandas for the first time.
-        # If PySide6 has already replaced builtins.__import__ (it does this as soon
-        # as it is imported, to support `from __feature__ import ...`), that
-        # replacement corrupts six's synthetic module machinery partway through
-        # pandas' own import chain. Importing under the pre-PySide6 import function
-        # avoids it; a no-op outside the GUI, where nothing patched __import__.
+        # If PySide6 has already replaced builtins.__import__ (it does this as soon as it is imported, to support `from __feature__ import ...`), that replacement corrupts six's synthetic module machinery partway through pandas' own import chain.
+        # Importing under the pre-PySide6 import function avoids it; a no-op outside the GUI, where nothing patched __import__.
         with UsingOriginalImport():
             qwen_module = importlib.import_module("qwen_asr")
             Qwen3ASRModel = getattr(qwen_module, "Qwen3ASRModel")

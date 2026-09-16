@@ -27,11 +27,8 @@ def Main() -> int:
     logging.basicConfig(filename=results / 'integration_tests.log', filemode='w',
                         encoding='utf-8', level=logging.INFO)
 
-    # Run the non-GUI suite to completion before PySide6 is ever imported. PySide6's
-    # shiboken signature loader installs a global import hook that inspects every
-    # subsequent import in the process; when transformers/sklearn/pandas are imported
-    # afterwards (e.g. by the Qwen tests), that hook corrupts six's synthetic module
-    # machinery and produces misleading "cannot import name" failures.
+    # Run the non-GUI suite to completion before PySide6 is ever imported.
+    # PySide6's shiboken signature loader installs a global import hook that inspects every subsequent import in the process; when transformers/sklearn/pandas are imported afterwards (e.g. by the Qwen tests), that hook corrupts six's synthetic module machinery and produces misleading "cannot import name" failures.
     suite = unittest.TestLoader().discover(
         str(root / 'tests' / 'IntegrationTests'), pattern='test_*.py', top_level_dir=str(root))
     if suite.countTestCases() == 0:
