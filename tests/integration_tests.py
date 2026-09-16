@@ -9,7 +9,11 @@ _root = Path(__file__).resolve().parent.parent
 # Prefer this checkout over an editable installation in another worktree.
 sys.path.insert(0, str(_root))
 
+from PySubtrans.Helpers.ImportGuard import CaptureOriginalImport
 from tests.GuiTestSupport import ConfigureOffscreenPlatform
+
+# Must happen before PySide6 is imported anywhere in this process; see PySubtrans.Helpers.ImportGuard.
+CaptureOriginalImport()
 
 
 class GuiDependenciesUnavailable(unittest.TestCase):
@@ -19,37 +23,51 @@ class GuiDependenciesUnavailable(unittest.TestCase):
         self.skipTest('PySide6 GUI dependencies are unavailable')
 
 
-def Main() -> int:
-    """Discover integration tests and return failure status to release scripts."""
-    root = _root
-    results = root / 'test_results'
-    results.mkdir(exist_ok=True)
-    logging.basicConfig(filename=results / 'integration_tests.log', filemode='w',
-                        encoding='utf-8', level=logging.INFO)
+def _discover(directory : str) -> unittest.TestSuite:
+    """Discover every test_*.py under tests/<directory>."""
+    return unittest.TestLoader().discover(
+        str(_root / 'tests' / directory), pattern='test_*.py', top_level_dir=str(_root))
 
-    # Run the non-GUI suite to completion before PySide6 is ever imported.
-    # PySide6's shiboken signature loader installs a global import hook that inspects every subsequent import in the process; when transformers/sklearn/pandas are imported afterwards (e.g. by the Qwen tests), that hook corrupts six's synthetic module machinery and produces misleading "cannot import name" failures.
-    suite = unittest.TestLoader().discover(
-        str(root / 'tests' / 'IntegrationTests'), pattern='test_*.py', top_level_dir=str(root))
-    if suite.countTestCases() == 0:
-        print('No integration tests discovered.', file=sys.stderr)
-        return 1
-    result = unittest.TextTestRunner(verbosity=1).run(suite)
 
-    ConfigureOffscreenPlatform()
-    gui_suite = unittest.TestSuite()
+def _run(suite : unittest.TestSuite) -> bool:
+    return unittest.TextTestRunner(verbosity=1).run(suite).wasSuccessful()
+
+
+def _gui_dependencies_available() -> bool:
+    """Whether PySide6 can actually be imported, not just whether it's installed."""
     try:
         importlib.import_module('PySide6.QtGui')
         importlib.import_module('PySide6.QtWidgets')
     except (ImportError, OSError) as error:
         logging.info('Skipping GUI integration tests: %s', error)
-        gui_suite.addTest(GuiDependenciesUnavailable())
-    else:
-        gui_suite.addTests(unittest.TestLoader().discover(
-            str(root / 'tests' / 'GuiIntegrationTests'), pattern='test_*.py', top_level_dir=str(root)))
-    gui_result = unittest.TextTestRunner(verbosity=1).run(gui_suite)
+        return False
+    return True
 
-    return 0 if result.wasSuccessful() and gui_result.wasSuccessful() else 1
+
+def Main() -> int:
+    """Run the non-GUI and GUI integration suites in turn and return combined status."""
+    results = _root / 'test_results'
+    results.mkdir(exist_ok=True)
+    logging.basicConfig(filename=results / 'integration_tests.log', filemode='w',
+                        encoding='utf-8', level=logging.INFO)
+
+    non_gui_suite = _discover('IntegrationTests')
+    if non_gui_suite.countTestCases() == 0:
+        print('No integration tests discovered.', file=sys.stderr)
+        return 1
+    non_gui_ok = _run(non_gui_suite)
+
+    # GUI tests run last: a nicer default ordering (the heavier, more fragile
+    # suite trails the faster one), not a requirement for correctness -- the
+    # import-hook corruption this used to guard against is now handled by
+    # ImportGuard, scoped to the exact call site that needs it.
+    ConfigureOffscreenPlatform()
+    if _gui_dependencies_available():
+        gui_ok = _run(_discover('GuiIntegrationTests'))
+    else:
+        gui_ok = _run(unittest.TestSuite([GuiDependenciesUnavailable()]))
+
+    return 0 if non_gui_ok and gui_ok else 1
 
 
 if __name__ == '__main__':
