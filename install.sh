@@ -232,20 +232,23 @@ case $provider_choice in
 esac
 
 echo
-read -p "Install local transcription? (y/n): " install_transcription
+while true; do
+    read -p "Install local transcription? (y/n): " install_transcription
 
-case $install_transcription in
-    y|Y)
-        install_qwen_local
-        ;;
-    n|N)
-        echo "No local transcription selected."
-        ;;
-    *)
-        echo "Invalid choice. Exiting installation."
-        exit 1
-        ;;
-esac
+    case $install_transcription in
+        y|Y)
+            install_qwen_local
+            break
+            ;;
+        n|N)
+            echo "No local transcription selected."
+            break
+            ;;
+        *)
+            echo "Please enter y or n."
+            ;;
+    esac
+done
 
 if [ ! -d "envsubtrans" ]; then
     echo
