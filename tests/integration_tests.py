@@ -16,13 +16,6 @@ from tests.GuiTestSupport import ConfigureOffscreenPlatform
 CaptureOriginalImport()
 
 
-class GuiDependenciesUnavailable(unittest.TestCase):
-    """Report optional GUI integration coverage that could not run."""
-
-    def runTest(self) -> None:
-        self.skipTest('PySide6 GUI dependencies are unavailable')
-
-
 def _discover(directory : str) -> unittest.TestSuite:
     """Discover every test_*.py under tests/<directory>."""
     return unittest.TestLoader().discover(
@@ -65,7 +58,8 @@ def Main() -> int:
     if _gui_dependencies_available():
         gui_ok = _run(_discover('GuiIntegrationTests'))
     else:
-        gui_ok = _run(unittest.TestSuite([GuiDependenciesUnavailable()]))
+        print('Skipping GUI integration tests: PySide6 dependencies are unavailable.', file=sys.stderr)
+        gui_ok = True
 
     return 0 if non_gui_ok and gui_ok else 1
 
