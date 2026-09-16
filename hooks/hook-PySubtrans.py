@@ -12,15 +12,10 @@ try:
     # the package here lets hook-qwen_asr.py fire and collect its data.
     hiddenimports += ['qwen_asr']
 
-    # Torch is excluded from static analysis entirely (see below), so PyInstaller
-    # has no way to see that several of its own internals (e.g. torch._inductor,
-    # torch._dispatch.python, torch._guards) import unittest.mock at runtime for
-    # ordinary compile/dispatch bookkeeping, not just for tests. The external
-    # Torch venv only contributes its site-packages to sys.path, not its stdlib,
-    # so the frozen app's own bundle must carry unittest.mock itself or Qwen Local
-    # transcription fails with "No module named 'unittest.mock'" once torch code
-    # actually touches it (importing unittest.mock also runs unittest/__init__.py,
-    # so the whole package is pulled in regardless of naming just the submodule).
+    # Torch is excluded from static analysis entirely (see the exclusion below), so PyInstaller can't see that it internally imports unittest.mock at runtime -- for ordinary compile/dispatch bookkeeping in torch._inductor, torch._dispatch.python and torch._guards, not just for tests.
+    # The external Torch venv only contributes its site-packages to sys.path, not its stdlib, so the frozen bundle has to carry unittest.mock itself.
+    # Without it, Qwen Local transcription fails at runtime with "No module named 'unittest.mock'" the moment torch code touches it.
+    # Naming just the submodule still pulls in the whole unittest package, since importing it runs unittest/__init__.py first.
     hiddenimports += ['unittest.mock']
 
     # Torch is installed separately for frozen Qwen Local deployments.  Keep
