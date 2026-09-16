@@ -49,19 +49,19 @@ msgstr ""
 
 #: GuiSubtrans/Widgets/TranscriptionRunProgress.py:102
 msgid " (about {} left)"
-msgstr ""
+msgstr " (quedan unos {})"
 
 #: GuiSubtrans/Widgets/TranscriptionRunProgress.py:99
 msgid " (elapsed {})"
-msgstr ""
+msgstr " (transcurrido {})"
 
 #: GuiSubtrans/Widgets/TranscriptionRunProgress.py:96
 msgid " (source length {})"
-msgstr ""
+msgstr " (duración de la fuente {})"
 
 #: GuiSubtrans/Widgets/TranscriptionRunProgress.py:93
 msgid " of {}"
-msgstr ""
+msgstr " de {}"
 
 #: GuiSubtrans/Widgets/TranscriptionDialog.py:176
 msgid " s"
