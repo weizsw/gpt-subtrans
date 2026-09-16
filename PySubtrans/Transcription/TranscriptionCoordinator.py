@@ -26,11 +26,8 @@ class TranscriptionCoordinator:
     """
     End-to-end media to subtitles transcription.
 
-    Extracts coherent audio chunks from a media file, transcribes each
-    chunk with the provider client, and assembles timestamped subtitles.
-    Has no GUI dependencies so CLI and library callers can use it directly.
-    Subscribe to `events` for progress and per-line notifications; each run
-    returns a TranscriptionOutcome describing what was produced.
+    Extracts coherent audio chunks from a media file, transcribes each chunk with the provider client, and assembles timestamped subtitles.
+    Subscribe to `events` for progress and per-line notifications; each run returns a TranscriptionOutcome describing what was produced.
     """
     def __init__(self, provider : TranscriptionProvider, settings : SettingsType|Options|None = None):
         self.provider : TranscriptionProvider = provider
@@ -89,11 +86,8 @@ class TranscriptionCoordinator:
         """
         Transcribe a media file into timestamped subtitles.
 
-        When *prior_subtitles* is supplied (from an earlier aborted run),
-        already-transcribed chunks are skipped and the new lines are appended
-        after the existing ones. Expected failures (missing media, an engine
-        without timings, a blocked run, no speech) are reported as a FAILED
-        outcome rather than raised.
+        When *prior_subtitles* is supplied (from an earlier aborted run), already-transcribed chunks are skipped and the new lines are appended after the existing ones. 
+        Expected failures (missing media, an engine without timings, a blocked run, no speech) are reported as a FAILED outcome rather than raised.
         """
         if not media_path or not os.path.isfile(media_path):
             return self._failed(SubtitleError(_("Media file not found: {}").format(media_path)))
@@ -179,12 +173,10 @@ class TranscriptionCoordinator:
     def _run_chunks(self, run : TranscriptionRun, client : TranscriptionClient, media_path : str,
                     chunks : Generator[AudioChunk, None, None]) -> None:
         """
-        Transcribe each planned chunk in turn, honouring abort, resume and
-        the failure policy. Partial results stay in run.lines.
+        Transcribe each planned chunk in turn, honouring abort, resume and the failure policy. Partial results stay in run.lines.
 
-        Audio extraction for the next chunk is submitted to a background
-        thread while the current chunk is being transcribed, so ffmpeg I/O
-        overlaps with GPU (or network) inference.
+        Audio extraction for the next chunk is submitted to a background thread while the current chunk is being transcribed, 
+        so ffmpeg I/O overlaps with GPU (or network) inference.
         """
         def report_progress(done : int, chunk : AudioChunk) -> None:
             # Total is unknown while the plan streams in (0 signals that)
@@ -199,21 +191,15 @@ class TranscriptionCoordinator:
         pool = ThreadPoolExecutor(max_workers=1, thread_name_prefix='audio-prefetch')
 
         try:
-            # One-chunk lookahead: as each chunk arrives from the
-            # generator we immediately submit its audio extraction to a
-            # background thread. While that runs we transcribe the
-            # *previous* chunk whose audio is already available. The
-            # first chunk has no predecessor, so its extraction cannot
-            # overlap — but from chunk 2 onward ffmpeg runs in parallel
-            # with inference.
+            # One-chunk lookahead: as each chunk arrives from the generator, we submit its extraction to a background thread.
+            # While that runs we transcribe the previous chunk, whose audio is (probably)already available.
             prev_chunk : AudioChunk|None = None
             prev_audio : bytes|None = None
             prev_done : int = -1
             done = 0
 
             while True:
-                # Advance the chunk plan, catching generator errors so
-                # the buffered previous chunk can still be processed.
+                # Advance the chunk plan, catching generator errors so the buffered previous chunk can still be processed.
                 chunk : AudioChunk|None = None
                 plan_error : SubtitleError|None = None
 
@@ -308,12 +294,9 @@ class TranscriptionCoordinator:
         """
         Record a chunk failure and stop the run.
 
-        Skipping a failed chunk is never correct: resume appends after the
-        last line, so a gap can never be filled — the user would be left
-        paying for a transcription they cannot complete.  When lines already
-        exist the run stops as INCOMPLETE so the user can resume from where
-        it left off; when nothing has been transcribed the error propagates
-        and the run is FAILED.
+        Skipping a failed chunk is never correct: resume appends after the last line, so a gap can never be filled — the user would be left
+        paying for a transcription they cannot complete.  When lines already exist the run stops as INCOMPLETE so the user can resume from where
+        it left off; when nothing has been transcribed the error propagates and the run is FAILED.
         """
         run.had_failures = True
 
