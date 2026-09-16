@@ -10,22 +10,11 @@ if not hasattr(sys, "_MEIPASS"):
     from check_imports import check_required_imports
     check_required_imports(['PySubtrans', 'GuiSubtrans', 'PySide6', 'scripts'], 'gui')
 
+from PySubtrans.Helpers.ImportGuard import CaptureOriginalImport
 from scripts.subtrans_common import InitLogger
 
-# PySide6's shiboken signature loader installs a global import hook that inspects
-# every subsequent import in the process. If pandas (pulled in later by an optional
-# Qwen Local transcription) is imported for the first time after that hook is
-# active, the hook corrupts six's synthetic module machinery partway through
-# dateutil's import chain, breaking transformers with a misleading "cannot import
-# name 'GenerationMixin'" error. Importing pandas here, before PySide6, resolves
-# it up front so the hook never has to inspect that import chain. Cheap no-op
-# when the optional qwen-asr extra is not installed.
-try:
-    import pandas
-except ImportError:
-    pass
-else:
-    del pandas
+# Must happen before PySide6 is imported; see PySubtrans.Helpers.ImportGuard.
+CaptureOriginalImport()
 
 # PySide6 6.9+ conflicts with debugpy's console handler on Windows during Qt init
 if sys.platform == 'win32':

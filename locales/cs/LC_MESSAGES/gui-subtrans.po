@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: LLM-Subtrans\n"
-"POT-Creation-Date: 2026-09-15 18:40+0000\n"
+"POT-Creation-Date: 2026-09-16 21:58+0000\n"
 "PO-Revision-Date: 2025-08-09 21:00+0000\n"
 "Last-Translator: AI Assistant\n"
 "Language-Team: Czech\n"
@@ -83,7 +83,7 @@ msgstr " z {}"
 msgid " s"
 msgstr " s"
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:171
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:167
 msgid "'{}' cannot provide subtitle timings (no word or segment timestamps). Transcription without timings has no value here, so nothing was requested and no credits were spent."
 msgstr "'{}' nemůže poskytnout časování titulků (žádná časová razítka slov ani segmentů). Transkripce bez časování zde nemá žádnou hodnotu, takže nebylo nic vyžádáno a nebyly vynaloženy žádné kredity."
 
@@ -306,7 +306,7 @@ msgstr "Pokročilé"
 msgid "Aligner model for word timestamps"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:220
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:236
 msgid "Alignment failed, timestamps will be approximate"
 msgstr "Zarovnání selhalo, časové údaje budou přibližné"
 
@@ -480,7 +480,7 @@ msgstr "Vytvořit mapu terminologie"
 msgid "Build a terminology map during translation to keep terminology consistent"
 msgstr "Během překladu vytvořte mapu terminologie pro zajištění konzistence."
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:138
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:154
 msgid "CPU inference is disabled. Enable 'allow_cpu_fallback' in Qwen Local advanced settings to give consent for this emergency fallback."
 msgstr ""
 
@@ -700,6 +700,10 @@ msgstr "Vytvořit soubor projektu pro možnost pokračování nebo revize překl
 msgid "Creating virtual environment at {path}..."
 msgstr ""
 
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:160
+msgid "Creating {} transcription client..."
+msgstr ""
+
 #: PySubtrans/Providers/Provider_LiteLLM.py:73
 msgid "Custom API base URL (optional — only needed for self-hosted LiteLLM proxy)"
 msgstr "Vlastní základní URL adresa API (volitelné — vyžadováno pouze pro self-hosted LiteLLM proxy)"
@@ -741,7 +745,7 @@ msgstr "Podrobné pokyny pro překladatele"
 msgid "Detected hardware"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:212
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:228
 msgid "Detected language unsupported by aligner, retrying with English"
 msgstr "Detekovaný jazyk aligner nepodporuje, opakuji s angličtinou"
 
@@ -757,7 +761,7 @@ msgstr "Detekován formát titulků '{format}' z obsahu"
 msgid "Detected subtitle format '{format}' is not supported."
 msgstr "Detekovaný formát titulků '{format}' není podporován."
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:221
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:209
 msgid "Detecting audio..."
 msgstr ""
 
@@ -799,7 +803,7 @@ msgstr "Úprava dávky ({scene},{batch})"
 msgid "Editing line {line}"
 msgstr "Úprava řádku {line}"
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:399
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:384
 msgid "Empty transcription for chunk {}"
 msgstr "Prázdná transkripce pro segment {}"
 
@@ -1222,6 +1226,18 @@ msgstr "Pokud dávka neprojde validací, rozdělte ji na polovinu a každou polo
 msgid "If true, translations that fail validation will be retried with a note about the error"
 msgstr "Pokud je povoleno, neúspěšné překlady budou zopakovány s poznámkou o chybě"
 
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:48
+msgid "Importing qwen_asr (this can take a while on first run)..."
+msgstr ""
+
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:59
+msgid "Importing qwen_asr.inference.utils..."
+msgstr ""
+
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:45
+msgid "Importing torch..."
+msgstr ""
+
 #: GuiSubtrans/Widgets/SelectionView.py:57
 msgid "Improve Selection"
 msgstr "Vylepšit výběr"
@@ -1352,7 +1368,7 @@ msgstr "Neplatné časové razítko"
 msgid "Invalid translation provider"
 msgstr "Neplatný poskytovatel překladu"
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:97
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:113
 msgid "Language '{}' is not in qwen-asr's supported list, using auto-detection"
 msgstr "Jazyk '{}' není v seznamu podporovaných jazyků qwen-asr, používám automatickou detekci"
 
@@ -1432,7 +1448,7 @@ msgstr "Načíst projekt/překlad (Podržte shift pro načtení titulků znovu)"
 msgid "Load project/translation (reload subtitles)"
 msgstr "Načíst projekt/překlad (načíst titulky znovu)"
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:257
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:273
 msgid "Loading Qwen model {} on {}"
 msgstr "Načítání modelu Qwen {} na {}"
 
@@ -1448,7 +1464,7 @@ msgstr "Načítání poskytovatelů přepisu"
 msgid "Loading transcription providers..."
 msgstr "Načítání poskytovatelů přepisu..."
 
-#: scripts/gui-subtrans.py:127
+#: scripts/gui-subtrans.py:131
 msgid "Logging to {path}"
 msgstr "Zaznamenávání do {path}"
 
@@ -1551,7 +1567,7 @@ msgstr "Mediální soubor nemá přehratelnou délku"
 
 #: PySubtrans/Transcription/AudioExtractor.py:232
 #: PySubtrans/Transcription/SilenceStream.py:51
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:99
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:93
 msgid "Media file not found: {}"
 msgstr "Mediální soubor nenalezen: {}"
 
@@ -1891,7 +1907,7 @@ msgstr "V {} nejsou žádné titulky k překladu"
 msgid "No subtitles translated"
 msgstr "Nebyly přeloženy žádné titulky"
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:156
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:172
 msgid "No supported hardware accelerator is available. Enable 'allow_cpu_fallback' in Qwen Local advanced settings to permit CPU inference."
 msgstr ""
 
@@ -1907,7 +1923,7 @@ msgstr "V odpovědi nebyl nalezen žádný textový obsah"
 msgid "No text returned in the response"
 msgstr "V odpovědi nebyl vrácen žádný text"
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:346
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:331
 msgid "No timed subtitles could be produced from {}"
 msgstr "Z {} nebylo možné vytvořit žádné časované titulky"
 
@@ -2100,11 +2116,15 @@ msgstr "Vyberte prosím jeden bod rozdělení"
 msgid "Postprocess subtitles after translation"
 msgstr "Dodatečně zpracovat titulky po překladu"
 
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:39
+msgid "Preparing Torch runtime..."
+msgstr ""
+
 #: GuiSubtrans/Widgets/TorchSetupDialog.py:293
 msgid "Preparing installation..."
 msgstr ""
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:101
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:95
 msgid "Preparing {} transcription..."
 msgstr ""
 
@@ -2232,15 +2252,19 @@ msgstr ""
 msgid "Qwen Local provider could not be registered: {}"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:228
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:63
+msgid "Qwen runtime imports complete"
+msgstr ""
+
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:244
 msgid "Qwen transcription failed: {}"
 msgstr "Přepis Qwen selhal: {}"
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:85
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:101
 msgid "Qwen transcription runtime could not be loaded. Check that the configured external Torch installation is compatible with this application, then restart after changing the Torch installation setting. Details: {}"
 msgstr ""
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:51
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:67
 msgid "Qwen transcription runtime could not be loaded: {}. Restart after changing the Torch installation setting."
 msgstr ""
 
@@ -2288,7 +2312,7 @@ msgstr "Znovu provést poslední vrácenou akci"
 msgid "Redo {command}"
 msgstr "Znovu provést {command}"
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:283
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:299
 msgid "Releasing previously loaded Qwen model {}"
 msgstr "Uvolňuji dříve načtený model Qwen {}"
 
@@ -2543,7 +2567,7 @@ msgstr "Časový limit detekce ticha vypršel po {} sekundách"
 msgid "Silence stream was used outside a with block"
 msgstr "Stream ticha byl použit mimo blok with"
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:389
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:374
 msgid "Skipping silent chunk {} before requesting"
 msgstr "Přeskakuji tichý blok {} před odesláním požadavku"
 
@@ -2821,7 +2845,7 @@ msgstr ""
 msgid "The configured ffmpeg executable was not found: {}"
 msgstr "Nakonfigurovaný spustitelný soubor ffmpeg nebyl nalezen: {}"
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:147
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:163
 msgid "The configured {} accelerator is unavailable. Enable 'allow_cpu_fallback' in Qwen Local advanced settings to permit CPU fallback, or choose an available accelerator."
 msgstr ""
 
@@ -2980,7 +3004,7 @@ msgstr "Přepsané řádky se zobrazí zde..."
 msgid "Transcribed {} lines (saving to {})."
 msgstr "Přepsáno {} řádků (ukládá se do {})."
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:348
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:333
 msgid "Transcribed {} lines from {} chunks"
 msgstr "Přepsáno {} řádků z {} bloků"
 
@@ -2996,7 +3020,7 @@ msgstr "Přepisuji blok {current}"
 msgid "Transcribing chunk {current}/{total}"
 msgstr "Přepisuji blok {current}/{total}"
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:117
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:111
 msgid "Transcribing {} with {}"
 msgstr "Přepisuji {} pomocí {} (bloky se streamují, zatímco běží detekce ticha)"
 
@@ -3015,11 +3039,15 @@ msgstr "Nastavení přepisu"
 msgid "Transcription aborted"
 msgstr "Přepis zrušen"
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:257
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:245
 msgid "Transcription cancelled after {done} chunks"
 msgstr "Přepis zrušen po {done} blocích"
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:351
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:163
+msgid "Transcription client created"
+msgstr ""
+
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:336
 msgid "Transcription cost: ${:.4f}"
 msgstr "Cena přepisu: ${:.4f}"
 
@@ -3027,11 +3055,11 @@ msgstr "Cena přepisu: ${:.4f}"
 msgid "Transcription failed ({}): non-JSON response: {}"
 msgstr "Přepis selhal ({}): odpověď není ve formátu JSON: {}"
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:328
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:313
 msgid "Transcription failed at {span}: {error}"
 msgstr ""
 
-#: GuiSubtrans/Commands/TranscribeMediaCommand.py:167
+#: GuiSubtrans/Commands/TranscribeMediaCommand.py:168
 #: GuiSubtrans/Widgets/TranscriptionDialog.py:848
 msgid "Transcription failed: {error}"
 msgstr "Přepis selhal: {error}"
@@ -3069,7 +3097,7 @@ msgstr "Požadavek na přepis selhal: POST {} vrátil {}: {}"
 msgid "Transcription request failed: {}"
 msgstr "Požadavek na přepis selhal: {}"
 
-#: PySubtrans/Transcription/TranscriptionCoordinator.py:322
+#: PySubtrans/Transcription/TranscriptionCoordinator.py:307
 msgid "Transcription stopped at {span}: {error}"
 msgstr "Přepis zastaven u {span}: {error}"
 
@@ -3220,7 +3248,7 @@ msgstr "Nepodařilo se inicializovat Anthropic SDK. Poskytovatel Claude nebude k
 msgid "Unable to list audio tracks: {}"
 msgstr "Nepodařilo se zobrazit seznam zvukových stop: {}"
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:272
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:288
 msgid "Unable to load Qwen model: {}"
 msgstr "Nepodařilo se načíst model Qwen: {}"
 
@@ -3396,7 +3424,7 @@ msgstr "Nečekaný typ odpovědi: {response_type}"
 msgid "Unexpected transcription response shape"
 msgstr "Neočekávaná struktura odpovědi přepisu"
 
-#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:133
+#: PySubtrans/Transcription/Providers/Clients/QwenLocalClient.py:149
 msgid "Unknown device '{}', using automatic selection"
 msgstr "Neznámé zařízení '{}', použije se automatický výběr"
 
