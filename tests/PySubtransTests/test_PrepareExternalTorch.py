@@ -128,7 +128,7 @@ class TestPrepareExternalTorch(LoggedTestCase):
             with patch.object(prepare_external_torch, 'ProbeVenvCompatibility', return_value=metadata['compatibility']):
                 validated = prepare_external_torch.ValidateExternalTorch(root, frozen_metadata)
             self.assertLoggedEqual('POSIX venv accepted', root.resolve(), validated)
-            self.assertLoggedEqual('POSIX layout preserved', site_packages,
+            self.assertLoggedEqual('POSIX layout preserved', site_packages.resolve(),
                                    prepare_external_torch._GetSitePackagesDirectory(root, create=True))
 
     def test_external_probe_disables_site_and_has_a_deadline(self) -> None:
