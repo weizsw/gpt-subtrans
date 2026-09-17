@@ -178,6 +178,8 @@ if "!provider_choice!"=="0" (
 )
 
 echo.
+:prompt_local_transcription
+set "install_transcription="
 set /p install_transcription="Install local transcription? (y/n): "
 
 if /i "!install_transcription!"=="y" (
@@ -185,9 +187,8 @@ if /i "!install_transcription!"=="y" (
 ) else if /i "!install_transcription!"=="n" (
     echo No local transcription selected. Cloud transcription remains available.
 ) else (
-    echo Invalid choice. Exiting installation.
-    pause
-    exit /b 1
+    echo Please enter y or n.
+    goto prompt_local_transcription
 )
 
 REM Create or update the virtual environment

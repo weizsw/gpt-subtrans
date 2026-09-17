@@ -1,10 +1,9 @@
 """Exercise synchronous transcription settings and result handling."""
-import os
-import sys
 from unittest.mock import patch
 
-if sys.platform != 'win32':
-    os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+from tests.GuiTestSupport import ConfigureOffscreenPlatform
+
+ConfigureOffscreenPlatform()
 
 from PySide6.QtWidgets import QApplication, QDialog, QDialogButtonBox
 
@@ -124,6 +123,7 @@ class TestTranscriptionRunEvidence(LoggedTestCase):
     def _observe(self, dialog : TranscriptionDialog, command : TranscribeMediaCommand) -> None:
         """Wire the dialog to the command the same way a real run does."""
         dialog.active_command = command
+        command.statusChanged.connect(dialog._on_status)
         command.progressed.connect(dialog._on_progress)
         command.audioProgressed.connect(dialog._on_audio_progress)
         command.segmented.connect(dialog._on_segment)

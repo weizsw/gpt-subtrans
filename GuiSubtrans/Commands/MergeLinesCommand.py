@@ -58,8 +58,8 @@ class MergeLinesCommand(Command):
                 raise CommandError(_("Failed to merge lines"), command=self)
 
             line_update = {
-                'start': merged_line.start,
-                'end': merged_line.end,
+                'start': merged_line.txt_start,
+                'end': merged_line.srt_end,
                 'text': merged_line.text,
                 }
 
@@ -82,18 +82,32 @@ class MergeLinesCommand(Command):
 
         subtitles : Subtitles = self.datamodel.project.subtitles
 
-        updates = {}
+        model_update : ModelUpdate = self.AddModelUpdate()
         for scene_number, batch_number, original_lines, translated_lines in self.undo_data:
             batch : SubtitleBatch = subtitles.GetBatch(scene_number, batch_number)
-            for line in original_lines:
+            translated_by_number = { line.number: line for line in translated_lines }
+
+            for line_index, line in enumerate(original_lines):
                 batch.AddLine(line)
-                updates[(scene_number, batch_number, line.number)] = { 'start': line.start, 'end': line.end, 'text': line.text }
 
-            for line in translated_lines:
-                batch.AddTranslatedLine(line)
-                updates[(scene_number, batch_number, line.number)]['translation'] = line.text
+                translated_line = translated_by_number.get(line.number)
+                line_update = {
+                    'start': line.txt_start,
+                    'end': line.srt_end,
+                    'text': line.text,
+                    'translation': translated_line.text if translated_line else None,
+                }
 
-        model_update : ModelUpdate =  self.AddModelUpdate()
-        model_update.lines.updates = updates
+                if line_index == 0:
+                    # The first line survived the merge and can be patched in place.
+                    model_update.lines.update((scene_number, batch_number, line.number), line_update)
+                else:
+                    # All following lines were removed from the view model and must be added back.
+                    restored_line = line.copy()
+                    restored_line.translation = translated_line.text if translated_line else None
+                    model_update.lines.add((scene_number, batch_number, line.number), restored_line)
+
+            for translated_line in translated_lines:
+                batch.AddTranslatedLine(translated_line)
 
         return True

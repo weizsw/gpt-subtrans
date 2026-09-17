@@ -7,7 +7,6 @@ from GuiSubtrans.ViewModel.BatchItem import BatchItem
 from GuiSubtrans.ViewModel.LineItem import LineItem
 from GuiSubtrans.ViewModel.ViewModel import ProjectViewModel
 from GuiSubtrans.ProjectSelection import ProjectSelection
-from GuiSubtrans.ViewModel.ViewModelItem import ViewModelItem
 from GuiSubtrans.Widgets.Widgets import LineItemView
 
 class SubtitleListModel(QAbstractProxyModel):
@@ -24,7 +23,7 @@ class SubtitleListModel(QAbstractProxyModel):
         self.viewmodel : ProjectViewModel = viewmodel
         self.selected_batch_numbers = []
         self.visible = []
-        self.visible_row_map : dict = {}
+        self.visible_row_map : dict[int, int] = {}
         self.size_map : dict = {}
 
         # Connect signals to update mapping when source model changes
@@ -32,9 +31,11 @@ class SubtitleListModel(QAbstractProxyModel):
         # layoutChanged is a pretty high-level signal that should cover most cases,
         # but perhaps we can be more granular to avoid a complete refresh of the view.
         if self.viewmodel:
-            self.setSourceModel(self.viewmodel)
             self.viewmodel.layoutChanged.connect(self._update_visible_batches)
             self.viewmodel.dataChanged.connect(self._on_data_changed)
+            # Connect before setSourceModel so the mapping is current before
+            # QAbstractProxyModel forwards the source layoutChanged signal.
+            self.setSourceModel(self.viewmodel)
 
     def ShowSelection(self, selection : ProjectSelection):
         """
@@ -52,7 +53,7 @@ class SubtitleListModel(QAbstractProxyModel):
         if sorted(batch_numbers) != self.selected_batch_numbers:
             self.ShowSelectedBatches(batch_numbers)
 
-    def ShowSelectedBatches(self, batch_numbers : list[tuple[int, int]]):
+    def ShowSelectedBatches(self, batch_numbers : list[tuple[int, int]], emit_layout : bool = True):
         """
         Filter the model to only show lines from the selected batches.
 
@@ -85,13 +86,12 @@ class SubtitleListModel(QAbstractProxyModel):
 
         self.visible = visible
         self.visible_row_map = { item[2] : row for row, item in enumerate(self.visible) }
-        self.layoutChanged.emit()
+        self.size_map.clear()
+        if emit_layout:
+            self.layoutChanged.emit()
 
     def mapFromSource(self, source_index : QModelIndex|QPersistentModelIndex):
         item = self.viewmodel.itemFromIndex(source_index)
-        if not isinstance(item, ViewModelItem):
-            return QModelIndex()
-
         if isinstance(item, LineItem):
             row = self.visible_row_map.get(item.number, None)
             if row is not None:
@@ -111,11 +111,12 @@ class SubtitleListModel(QAbstractProxyModel):
             logging.debug(f"Tried to map an unknown row to source model: {row}")
             return QModelIndex()
 
-        key = self.visible[row]
-        _, _, line = key
+        scene_number, batch_number, line_number = self.visible[row]
 
-        item = self.viewmodel.GetLineItem(line)
-        if item is None:
+        scene_item = self.viewmodel.model.get(scene_number)
+        batch_item = scene_item.batches.get(batch_number) if scene_item else None
+        item = batch_item.lines.get(line_number) if batch_item else None
+        if not isinstance(item, LineItem):
             return QModelIndex()
         return self.viewmodel.indexFromItem(item)
 
@@ -227,9 +228,9 @@ class SubtitleListModel(QAbstractProxyModel):
         """
         visible_batches = self._get_valid_batches(self.selected_batch_numbers)
         if visible_batches:
-            self.ShowSelectedBatches(visible_batches)
+            self.ShowSelectedBatches(visible_batches, emit_layout=False)
         else:
-            self.ShowSelection(ProjectSelection())
+            self.ShowSelectedBatches(self.viewmodel.GetBatchNumbers(), emit_layout=False)
 
         self.layoutChanged.emit()
 

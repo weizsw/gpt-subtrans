@@ -10,7 +10,11 @@ if not hasattr(sys, "_MEIPASS"):
     from check_imports import check_required_imports
     check_required_imports(['PySubtrans', 'GuiSubtrans', 'PySide6', 'scripts'], 'gui')
 
+from PySubtrans.Helpers.ImportGuard import CaptureOriginalImport
 from scripts.subtrans_common import InitLogger
+
+# Must happen before PySide6 is imported; see PySubtrans.Helpers.ImportGuard.
+CaptureOriginalImport()
 
 # PySide6 6.9+ conflicts with debugpy's console handler on Windows during Qt init
 if sys.platform == 'win32':

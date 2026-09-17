@@ -1,9 +1,8 @@
-import os
-import sys
 from unittest.mock import patch
 
-if sys.platform != 'win32':
-    os.environ.setdefault('QT_QPA_PLATFORM', 'offscreen')
+from tests.GuiTestSupport import ConfigureOffscreenPlatform
+
+ConfigureOffscreenPlatform()
 
 from PySide6.QtWidgets import QApplication
 
@@ -48,7 +47,8 @@ class TestTorchSetupSelection(LoggedTestCase):
 
     def test_hardware_detection_reports_driver_cuda_capability(self) -> None:
         """The hardware description tells the user what the driver reported."""
-        with patch('PySubtrans.Transcription.Torch.Hardware.DetectNvidiaDriver', return_value='616.56'), \
+        with patch('PySubtrans.Transcription.Torch.Hardware.sys.platform', 'linux'), \
+                patch('PySubtrans.Transcription.Torch.Hardware.DetectNvidiaDriver', return_value='616.56'), \
                 patch('PySubtrans.Transcription.Torch.Hardware.DetectNvidiaCudaVersion', return_value='13.4'):
             hardware = DetectHardware()
 

@@ -15,16 +15,20 @@ from PySubtrans.Helpers.TestCases import LoggedTestCase
 class TestResources(LoggedTestCase):
     """Test application resource path selection."""
 
+    _PORTABLE_APP_DIR : str = os.path.abspath('portable-app')
+
     def tearDown(self) -> None:
         """Restore the normal configuration directory after each test."""
         ConfigureConfigDir(config_path=default_config_dir)
         super().tearDown()
 
     @patch('PySubtrans.Helpers.Resources.os.path.isdir', return_value=False)
-    @patch('PySubtrans.Helpers.Resources.os.getcwd', return_value=os.path.abspath('portable-app'))
+    @patch('PySubtrans.Helpers.Resources.os.getcwd', return_value=_PORTABLE_APP_DIR)
     def test_portable_mode_uses_local_settings_directory(self, mock_getcwd, mock_isdir):
         """Portable mode stores settings below the current directory."""
-        expected_path = os.path.abspath(os.path.join(os.path.abspath('portable-app'), '.settings'))
+        # NOTE: os.getcwd is patched on the shared os module for the duration of this test,
+        # so the expected path must not be built with another live os.path.abspath() call.
+        expected_path = os.path.join(self._PORTABLE_APP_DIR, '.settings')
 
         result = ConfigureConfigDirFromArguments(['--portable'])
 
@@ -33,10 +37,10 @@ class TestResources(LoggedTestCase):
         mock_isdir.assert_not_called()
 
     @patch('PySubtrans.Helpers.Resources.os.path.isdir', return_value=True)
-    @patch('PySubtrans.Helpers.Resources.os.getcwd', return_value=os.path.abspath('portable-app'))
+    @patch('PySubtrans.Helpers.Resources.os.getcwd', return_value=_PORTABLE_APP_DIR)
     def test_existing_settings_directory_enables_portable_mode(self, mock_getcwd, mock_isdir):
         """An existing .settings directory enables portable mode automatically."""
-        expected_path = os.path.abspath(os.path.join(os.path.abspath('portable-app'), '.settings'))
+        expected_path = os.path.join(self._PORTABLE_APP_DIR, '.settings')
 
         result = ConfigureConfigDirFromArguments([])
 
