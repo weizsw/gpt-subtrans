@@ -5,6 +5,7 @@ from GuiSubtrans.GuiSubtitleTestCase import GuiSubtitleTestCase
 from GuiSubtrans.ProjectSelection import ProjectSelection, SelectionBatch, SelectionLine
 from GuiSubtrans.Widgets.SelectionView import SelectionView
 from PySubtrans.Helpers.TestCases import BuildSubtitlesFromLineCounts
+from PySubtrans.SubtitleEditor import SubtitleEditor
 from PySubtrans.SubtitleLine import SubtitleLine
 
 
@@ -57,6 +58,63 @@ class PostprocessTranslationsCommandTests(GuiSubtitleTestCase):
             'undo restores all translated lines',
             ['um, translated line', 'um, translated line'],
             restored_texts,
+        )
+
+    def test_postprocess_syncs_original_line_translation_cache(self) -> None:
+        self.options.update({
+            'remove_filler_words': True,
+            'break_long_lines': False,
+            'break_dialog_on_one_line': False,
+            'normalise_dialog_tags': False,
+            'convert_wide_dashes': False,
+            'full_width_punctuation': False,
+        })
+
+        subtitles = BuildSubtitlesFromLineCounts([[1]])
+        datamodel = self.create_project_datamodel(subtitles)
+        batch = subtitles.scenes[0].batches[0]
+        batch.translated = [SubtitleLine.Construct(
+            line.number,
+            line.start,
+            line.end,
+            'um, translated line',
+        ) for line in batch.originals]
+        for line in batch.originals:
+            line.translation = 'um, translated line'
+
+        command = PostprocessTranslationsCommand([1], datamodel)
+        self.assertLoggedTrue('postprocess command executes', command.execute())
+
+        original_line = batch.GetOriginalLine(1)
+        self.assertLoggedIsNotNone('original line exists', original_line)
+        assert original_line is not None
+        self.assertLoggedEqual(
+            'original line translation cache is synced with the postprocessed text',
+            'translated line',
+            original_line.translation,
+        )
+
+        with SubtitleEditor(subtitles) as editor:
+            editor.UpdateLine(1, {'text': 'edited original text'})
+
+        translated_line = batch.GetTranslatedLine(1)
+        self.assertLoggedIsNotNone('translated line exists', translated_line)
+        assert translated_line is not None
+        self.assertLoggedEqual(
+            'editing the original line does not revert the postprocessed translation',
+            'translated line',
+            translated_line.text,
+        )
+
+        self.assertLoggedTrue('postprocess command undoes', command.undo())
+
+        original_line = batch.GetOriginalLine(1)
+        self.assertLoggedIsNotNone('original line exists after undo', original_line)
+        assert original_line is not None
+        self.assertLoggedEqual(
+            'undo restores the original line translation cache',
+            'um, translated line',
+            original_line.translation,
         )
 
     def test_postprocess_button_requires_all_selected_lines_translated(self) -> None:
