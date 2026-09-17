@@ -203,7 +203,7 @@ def _GetSitePackagesDirectory(root : Path, create : bool) -> Path:
     # Glob-based fallback for venvs whose Python version differs from ours
     for candidate in sorted(root.glob("lib/python*/site-packages")):
         if (candidate / "torch").is_dir():
-            return candidate
+            return candidate.resolve()
 
     if not create:
         raise RuntimeError("The external Torch location has no supported site-packages directory.")
@@ -216,7 +216,7 @@ def _GetSitePackagesDirectory(root : Path, create : bool) -> Path:
     else:
         destination = root / "site-packages"
     destination.mkdir(parents=True, exist_ok=True)
-    return destination
+    return destination.resolve()
 
 
 

@@ -23,7 +23,7 @@ class SubtitleListModel(QAbstractProxyModel):
         self.viewmodel : ProjectViewModel = viewmodel
         self.selected_batch_numbers = []
         self.visible = []
-        self.visible_row_map : dict[tuple[int, int, int], int] = {}
+        self.visible_row_map : dict[int, int] = {}
         self.size_map : dict = {}
 
         # Connect signals to update mapping when source model changes
@@ -85,7 +85,7 @@ class SubtitleListModel(QAbstractProxyModel):
                     visible.extend(sorted(visible_lines))
 
         self.visible = visible
-        self.visible_row_map = { item : row for row, item in enumerate(self.visible) }
+        self.visible_row_map = { item[2] : row for row, item in enumerate(self.visible) }
         self.size_map.clear()
         if emit_layout:
             self.layoutChanged.emit()
@@ -93,7 +93,7 @@ class SubtitleListModel(QAbstractProxyModel):
     def mapFromSource(self, source_index : QModelIndex|QPersistentModelIndex):
         item = self.viewmodel.itemFromIndex(source_index)
         if isinstance(item, LineItem):
-            row = self.visible_row_map.get((item.scene, item.batch, item.number), None)
+            row = self.visible_row_map.get(item.number, None)
             if row is not None:
                 return self.index(row, 0, QModelIndex())
 
@@ -213,7 +213,7 @@ class SubtitleListModel(QAbstractProxyModel):
 
         if isinstance(source_item, LineItem):
             # Emit dataChanged for the corresponding index in the proxy model
-            proxy_row = self.visible_row_map.get((source_item.scene, source_item.batch, source_item.number))
+            proxy_row = self.visible_row_map.get(source_item.number)
             if proxy_row is not None:
                 proxy_index = self.index(proxy_row, 0)
                 self.dataChanged.emit(proxy_index, proxy_index, roles or [])
