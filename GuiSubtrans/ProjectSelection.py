@@ -101,9 +101,21 @@ class ProjectSelection():
     def effective_lines(self) -> list[SelectionLine]:
         """
         Lines to act on: explicitly selected lines if any rows were individually
-        selected, otherwise every line covered by the selected scenes/batches.
+        selected, otherwise every line belonging to an explicitly selected scene
+        or batch. AppendItem also populates self.lines with the unselected lines
+        of sibling batches while walking back up to their parent scene, so those
+        must be excluded rather than treated as part of the selection.
         """
-        return self.selected_lines if self.selected_lines else list(self.lines.values())
+        if self.selected_lines:
+            return self.selected_lines
+
+        selected_batch_keys = { batch.key for batch in self.selected_batches }
+        selected_scene_numbers = { scene.number for scene in self.selected_scenes }
+
+        return [
+            line for line in self.lines.values()
+            if (line.scene, line.batch) in selected_batch_keys or line.scene in selected_scene_numbers
+        ]
 
     def Any(self) -> bool:
         return bool(self.scene_numbers or self.batch_numbers or self.lines)
