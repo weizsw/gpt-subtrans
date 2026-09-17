@@ -152,6 +152,84 @@ class PostprocessTranslationsCommandTests(GuiSubtitleTestCase):
         self.assertLoggedEqual('no undo data was recorded', 0, len(command.undo_data))
         self.assertLoggedEqual('no model updates were queued', 0, len(command.model_updates))
 
+    def test_postprocess_removes_stale_translated_line_when_result_is_empty(self) -> None:
+        self.options.update({
+            'remove_filler_words': True,
+            'break_long_lines': False,
+            'break_dialog_on_one_line': False,
+            'normalise_dialog_tags': False,
+            'convert_wide_dashes': False,
+            'full_width_punctuation': False,
+        })
+
+        subtitles = BuildSubtitlesFromLineCounts([[1]])
+        datamodel = self.create_project_datamodel(subtitles)
+        batch = subtitles.scenes[0].batches[0]
+        batch.translated = [SubtitleLine.Construct(
+            line.number, line.start, line.end, 'Um,',
+        ) for line in batch.originals]
+        for line in batch.originals:
+            line.translation = 'Um,'
+
+        command = PostprocessTranslationsCommand([1], datamodel)
+        self.assertLoggedTrue('postprocess command executes', command.execute())
+
+        self.assertLoggedIsNone(
+            'the stale translated line is removed rather than left with the old text',
+            batch.GetTranslatedLine(1),
+        )
+        original_line = batch.GetOriginalLine(1)
+        self.assertLoggedIsNotNone('original line exists', original_line)
+        assert original_line is not None
+        self.assertLoggedIsNone(
+            'the original line translation cache is cleared',
+            original_line.translation,
+        )
+
+        self.assertLoggedTrue('postprocess command undoes', command.undo())
+
+        translated_line = batch.GetTranslatedLine(1)
+        self.assertLoggedIsNotNone('undo restores the translated line', translated_line)
+        assert translated_line is not None
+        self.assertLoggedEqual(
+            'undo restores the original translated text',
+            'Um,',
+            translated_line.text,
+        )
+
+    def test_postprocess_revalidates_batch_and_updates_model_errors(self) -> None:
+        self.options.update({
+            'remove_filler_words': True,
+            'break_long_lines': False,
+            'break_dialog_on_one_line': False,
+            'normalise_dialog_tags': False,
+            'convert_wide_dashes': False,
+            'full_width_punctuation': False,
+        })
+
+        subtitles = BuildSubtitlesFromLineCounts([[1]])
+        datamodel = self.create_project_datamodel(subtitles)
+        batch = subtitles.scenes[0].batches[0]
+        batch.translated = [SubtitleLine.Construct(
+            line.number, line.start, line.end, 'Um,',
+        ) for line in batch.originals]
+
+        command = PostprocessTranslationsCommand([1], datamodel)
+        self.assertLoggedTrue('postprocess command executes', command.execute())
+
+        self.assertLoggedEqual('one model update is queued', 1, len(command.model_updates))
+        batch_updates = command.model_updates[0].batches.updates
+        self.assertLoggedIn(
+            'the model update includes the batch errors',
+            (batch.scene, batch.number),
+            batch_updates,
+        )
+        self.assertLoggedIn(
+            'the batch is revalidated as untranslated after the translation is emptied',
+            'errors',
+            batch_updates[(batch.scene, batch.number)],
+        )
+
     def test_postprocess_button_requires_all_selected_lines_translated(self) -> None:
         action_handler = Mock()
         view = SelectionView(action_handler)

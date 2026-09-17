@@ -13,6 +13,7 @@ from PySubtrans.SubtitleEditor import SubtitleEditor
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.SubtitleLine import SubtitleLine
 from PySubtrans.SubtitleProcessor import SubtitleProcessor
+from PySubtrans.SubtitleValidator import SubtitleValidator
 from PySubtrans.Subtitles import Subtitles
 
 
@@ -80,6 +81,8 @@ class PostprocessTranslationsCommand(Command):
 
                     self._set_translation(editor, model_update, batch, processed_line.number, processed_line.text)
 
+                self._revalidate_batch(model_update, batch)
+
         return True
 
     def undo(self) -> bool:
@@ -94,21 +97,23 @@ class PostprocessTranslationsCommand(Command):
 
         self.ClearModelUpdates()
 
-        model_updates : dict[BatchKey, ModelUpdate] = {}
+        lines_by_batch : dict[BatchKey, tuple[SubtitleBatch, dict[int, str|None]]] = {}
+        for line_number, previous_text in self.undo_data.items():
+            batch : SubtitleBatch|None = subtitles.GetBatchContainingLine(line_number)
+            if not batch:
+                raise CommandError(_("Line {line} not found in any batch").format(line=line_number), command=self)
+
+            batch_key : BatchKey = (batch.scene, batch.number)
+            _existing_batch, line_updates = lines_by_batch.setdefault(batch_key, (batch, {}))
+            line_updates[line_number] = previous_text
 
         with SubtitleEditor(subtitles) as editor:
-            for line_number, previous_text in self.undo_data.items():
-                batch : SubtitleBatch|None = subtitles.GetBatchContainingLine(line_number)
-                if not batch:
-                    raise CommandError(_("Line {line} not found in any batch").format(line=line_number), command=self)
+            for batch, line_updates in lines_by_batch.values():
+                model_update : ModelUpdate = self.AddModelUpdate()
+                for line_number, previous_text in line_updates.items():
+                    self._set_translation(editor, model_update, batch, line_number, previous_text)
 
-                batch_key : BatchKey = (batch.scene, batch.number)
-                model_update = model_updates.get(batch_key)
-                if model_update is None:
-                    model_update = self.AddModelUpdate()
-                    model_updates[batch_key] = model_update
-
-                self._set_translation(editor, model_update, batch, line_number, previous_text)
+                self._revalidate_batch(model_update, batch)
 
         return True
 
@@ -117,4 +122,19 @@ class PostprocessTranslationsCommand(Command):
     ) -> None:
         """Update a line's translation and queue the corresponding view-model change."""
         editor.UpdateLine(line_number, {'translation': text})
+
+        if text is None:
+            # UpdateLine only rebuilds batch.translated from a non-None cache, so an emptied
+            # translation leaves a stale entry behind - remove it explicitly.
+            batch.translated = [line for line in batch.translated if line.number != line_number]
+
         model_update.lines.update((batch.scene, batch.number, line_number), {'translation': text})
+
+    def _revalidate_batch(self, model_update : ModelUpdate, batch : SubtitleBatch) -> None:
+        """Recompute the batch's validation errors after its translations changed."""
+        if not self.datamodel:
+            return
+
+        validator = SubtitleValidator(self.datamodel.project_options)
+        validator.ValidateBatch(batch)
+        model_update.batches.update((batch.scene, batch.number), {'errors': batch.errors})
