@@ -111,10 +111,12 @@ class SubtitleListModel(QAbstractProxyModel):
             logging.debug(f"Tried to map an unknown row to source model: {row}")
             return QModelIndex()
 
-        _, _, line_number = self.visible[row]
+        scene_number, batch_number, line_number = self.visible[row]
 
-        item = self.viewmodel.GetLineItem(line_number)
-        if item is None:
+        scene_item = self.viewmodel.model.get(scene_number)
+        batch_item = scene_item.batches.get(batch_number) if scene_item else None
+        item = batch_item.lines.get(line_number) if batch_item else None
+        if not isinstance(item, LineItem):
             return QModelIndex()
         return self.viewmodel.indexFromItem(item)
 
