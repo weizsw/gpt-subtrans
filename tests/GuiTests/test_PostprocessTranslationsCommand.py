@@ -1,5 +1,6 @@
 from unittest.mock import Mock
 
+from GuiSubtrans.Command import CommandError
 from GuiSubtrans.Commands.PostprocessTranslationsCommand import PostprocessTranslationsCommand
 from GuiSubtrans.GuiSubtitleTestCase import GuiSubtitleTestCase
 from GuiSubtrans.ProjectSelection import ProjectSelection, SelectionBatch, SelectionLine
@@ -116,6 +117,40 @@ class PostprocessTranslationsCommandTests(GuiSubtitleTestCase):
             'um, translated line',
             original_line.translation,
         )
+
+    def test_postprocess_does_not_mutate_any_batch_if_one_batch_fails_validation(self) -> None:
+        self.options.update({
+            'remove_filler_words': True,
+            'break_long_lines': False,
+            'break_dialog_on_one_line': False,
+            'normalise_dialog_tags': False,
+            'convert_wide_dashes': False,
+            'full_width_punctuation': False,
+        })
+
+        subtitles = BuildSubtitlesFromLineCounts([[1], [1]])
+        datamodel = self.create_project_datamodel(subtitles)
+
+        valid_batch = subtitles.scenes[0].batches[0]
+        valid_batch.translated = [SubtitleLine.Construct(
+            line.number, line.start, line.end, 'um, translated line',
+        ) for line in valid_batch.originals]
+
+        # The second batch's selected line has no translated counterpart, so validation should fail.
+        invalid_batch = subtitles.scenes[1].batches[0]
+        invalid_batch.translated = []
+
+        command = PostprocessTranslationsCommand([1, 2], datamodel)
+        with self.assertRaises(CommandError):
+            command.execute()
+
+        self.assertLoggedSequenceEqual(
+            'the valid batch is untouched when a later batch fails validation',
+            ['um, translated line'],
+            [line.text for line in valid_batch.translated],
+        )
+        self.assertLoggedEqual('no undo data was recorded', 0, len(command.undo_data))
+        self.assertLoggedEqual('no model updates were queued', 0, len(command.model_updates))
 
     def test_postprocess_button_requires_all_selected_lines_translated(self) -> None:
         action_handler = Mock()

@@ -299,7 +299,8 @@ class ProjectActions(QObject):
 
         self._validate_datamodel()
 
-        self.QueueCommand(PostprocessTranslationsCommand(selection.line_numbers))
+        line_numbers = [ line.number for line in selection.effective_lines ]
+        self.QueueCommand(PostprocessTranslationsCommand(line_numbers))
 
     def UpdateScene(self, scene_number : int, update : dict):
         """

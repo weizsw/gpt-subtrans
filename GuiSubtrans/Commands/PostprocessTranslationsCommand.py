@@ -11,6 +11,7 @@ from PySubtrans.Helpers.Localization import _
 from PySubtrans.SubtitleBatch import SubtitleBatch
 from PySubtrans.SubtitleEditor import SubtitleEditor
 from PySubtrans.SubtitleError import SubtitleError
+from PySubtrans.SubtitleLine import SubtitleLine
 from PySubtrans.SubtitleProcessor import SubtitleProcessor
 from PySubtrans.Subtitles import Subtitles
 
@@ -54,6 +55,9 @@ class PostprocessTranslationsCommand(Command):
             if not selected_lines.issubset(found_lines):
                 raise CommandError(_("Some selected lines were not found"), command=self)
 
+            # Validate and post-process every batch before mutating any of them, so a
+            # failure part-way through does not leave some batches changed with no undo data.
+            processed_batches : list[tuple[SubtitleBatch, list[SubtitleLine]]] = []
             for batch in batches:
                 original_selected_lines = [line for line in batch.originals if line.number in selected_lines]
                 lines_to_process = [line for line in batch.translated if line.number in selected_lines]
@@ -66,8 +70,9 @@ class PostprocessTranslationsCommand(Command):
                         "Some selected lines in scene {scene} batch {batch} are not translated"
                     ).format(scene=batch.scene, batch=batch.number), command=self)
 
-                processed_lines = processor.PostprocessSubtitles(lines_to_process)
+                processed_batches.append((batch, processor.PostprocessSubtitles(lines_to_process)))
 
+            for batch, processed_lines in processed_batches:
                 model_update : ModelUpdate = self.AddModelUpdate()
                 for processed_line in processed_lines:
                     previous_line = batch.GetTranslatedLine(processed_line.number)

@@ -97,6 +97,14 @@ class ProjectSelection():
     def selected_lines(self) -> list[SelectionLine]:
         return [line for line in self.lines.values() if line.selected ]
 
+    @property
+    def effective_lines(self) -> list[SelectionLine]:
+        """
+        Lines to act on: explicitly selected lines if any rows were individually
+        selected, otherwise every line covered by the selected scenes/batches.
+        """
+        return self.selected_lines if self.selected_lines else list(self.lines.values())
+
     def Any(self) -> bool:
         return bool(self.scene_numbers or self.batch_numbers or self.lines)
 
@@ -172,7 +180,8 @@ class ProjectSelection():
         """
         Are all lines included in the selection translated?
         """
-        return bool(self.lines) and all(line.translated for line in self.lines.values())
+        lines = self.effective_lines
+        return bool(lines) and all(line.translated for line in lines)
 
     def IsFirstInBatchSelected(self) -> bool:
         """
