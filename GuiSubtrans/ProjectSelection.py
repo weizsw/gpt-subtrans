@@ -47,11 +47,12 @@ class SelectionBatch:
 class SelectionLine:
     Key : TypeAlias = int
 
-    def __init__(self, scene: int, batch: int, number: int, selected : bool) -> None:
+    def __init__(self, scene: int, batch: int, number: int, selected : bool, translated : bool = False) -> None:
         self.scene = scene
         self.batch = batch
         self.number = number
         self.selected = selected
+        self.translated = translated
 
     @property
     def key(self):
@@ -95,6 +96,26 @@ class ProjectSelection():
     @property
     def selected_lines(self) -> list[SelectionLine]:
         return [line for line in self.lines.values() if line.selected ]
+
+    @property
+    def effective_lines(self) -> list[SelectionLine]:
+        """
+        Lines to act on: explicitly selected lines if any rows were individually
+        selected, otherwise every line belonging to an explicitly selected scene
+        or batch. AppendItem also populates self.lines with the unselected lines
+        of sibling batches while walking back up to their parent scene, so those
+        must be excluded rather than treated as part of the selection.
+        """
+        if self.selected_lines:
+            return self.selected_lines
+
+        selected_batch_keys = { batch.key for batch in self.selected_batches }
+        selected_scene_numbers = { scene.number for scene in self.selected_scenes }
+
+        return [
+            line for line in self.lines.values()
+            if (line.scene, line.batch) in selected_batch_keys or line.scene in selected_scene_numbers
+        ]
 
     def Any(self) -> bool:
         return bool(self.scene_numbers or self.batch_numbers or self.lines)
@@ -166,6 +187,13 @@ class ProjectSelection():
         Are all selected batches translated?
         """
         return all(batch.translated for batch in self.selected_batches)
+
+    def AllLinesTranslated(self) -> bool:
+        """
+        Are all lines included in the selection translated?
+        """
+        lines = self.effective_lines
+        return bool(lines) and all(line.translated for line in lines)
 
     def IsFirstInBatchSelected(self) -> bool:
         """
@@ -258,8 +286,14 @@ class ProjectSelection():
                 if not self.scenes.get(item.scene):
                     self.AppendItem(model, model.parent(index), False)
 
-                for line in item.lines:
-                    self.lines[line] = SelectionLine(batch.scene, batch.number, line, False)
+                for line_number, line_item in item.lines.items():
+                    self.lines[line_number] = SelectionLine(
+                        batch.scene,
+                        batch.number,
+                        line_number,
+                        False,
+                        translated=line_item.translation is not None,
+                    )
 
     def AddSelectedLines(self, selected_lines : list[SelectionLine]):
         """

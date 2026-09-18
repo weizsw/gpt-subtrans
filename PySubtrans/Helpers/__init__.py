@@ -1,11 +1,40 @@
 import os
 
+from collections.abc import Iterable
 from typing import Any
 
 import regex
 from PySubtrans.Helpers.Localization import LocaleDisplayItem
 from PySubtrans.Helpers.Text import SanitiseForFilename
 from PySubtrans.SubtitleError import SubtitleError
+
+def FormatNumberRanges(numbers : Iterable[int]) -> str:
+    """
+    Format integer values as a comma-separated list of compact contiguous ranges.
+
+    Duplicate values are removed and values are sorted before formatting. A
+    singleton is written as one number, while a run of two or more values is
+    written as ``start-end``.
+    """
+    sorted_numbers = sorted(set(numbers))
+    if not sorted_numbers:
+        return ""
+
+    ranges : list[str] = []
+    range_start = sorted_numbers[0]
+    range_end = range_start
+
+    for number in sorted_numbers[1:]:
+        if number == range_end + 1:
+            range_end = number
+            continue
+
+        ranges.append(str(range_start) if range_start == range_end else f"{range_start}-{range_end}")
+        range_start = number
+        range_end = number
+
+    ranges.append(str(range_start) if range_start == range_end else f"{range_start}-{range_end}")
+    return ", ".join(ranges)
 
 def GetValueName(value : Any) -> str:
     """

@@ -37,6 +37,9 @@ class SelectionView(QFrame):
 
         _show(self._translate_button, selection.lines and selection.Any())
         _show(self._reparse_button, selection.AnyBatches() and selection.OnlyBatches() and selection.AnyTranslated())
+        postprocess_enabled = selection.AllLinesTranslated()
+        self._postprocess_button.setEnabled(postprocess_enabled)
+        _show(self._postprocess_button, postprocess_enabled)
         _show(self._autosplit_batch_button, selection.AnyBatches() and selection.OnlyBatches() and not selection.MultipleSelected())
         _show(self._split_batch_button, selection.AnyLines() and not selection.MultipleSelected() and not selection.IsFirstInBatchSelected())
         _show(self._split_scene_button, selection.AnyBatches() and not selection.MultipleSelected() and not selection.IsFirstInSceneSelected())
@@ -85,6 +88,7 @@ class SelectionView(QFrame):
         self._translate_button = self._create_button(_("Translate Selection"), self._on_translate_selection)
         self._autosplit_batch_button = self._create_button(_("Auto-Split Batch"), self._on_auto_split_batch)
         self._reparse_button = self._create_button(_("Reparse Translation"), self._on_reparse)
+        self._postprocess_button = self._create_button(_("Post-process Selection"), self._on_postprocess)
         self._split_batch_button = self._create_button(_("Split Batch"), self._on_split_batch)
         self._split_scene_button = self._create_button(_("Split Scene"), self._on_split_scene)
         self._merge_lines_button = self._create_button(_("Merge Lines"), self._on_merge_selection)
@@ -104,6 +108,7 @@ class SelectionView(QFrame):
         layout.addWidget(self._merge_batches_button)
         layout.addWidget(self._delete_lines_button)
         layout.addWidget(self._reparse_button)
+        layout.addWidget(self._postprocess_button)
         layout.addWidget(self._translate_button)
 
     def _debug_text(self, selection : ProjectSelection):
@@ -114,7 +119,7 @@ class SelectionView(QFrame):
             dbg.append("sequential")
         if selection.MultipleSelected() and selection.AllLinesInSameBatch():
             dbg.append("in the same batch")
-        if selection.AnyBatches() and selection.AllTranslated():
+        if selection.AllLinesTranslated():
             dbg.append("all translated")
         return f" ({' '.join(dbg)})" if dbg else None
 
@@ -151,6 +156,10 @@ class SelectionView(QFrame):
     def _on_reparse(self):
         if self.selection and self.selection.AnyBatches() and self.selection.AllTranslated():
             self.action_handler.ReparseSelection(self.selection)
+
+    def _on_postprocess(self):
+        if self.selection and self.selection.AllLinesTranslated():
+            self.action_handler.PostprocessSelection(self.selection)
 
     def _on_swap_text(self):
         if self.selection:

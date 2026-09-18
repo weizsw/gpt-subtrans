@@ -128,6 +128,14 @@ class TestTextHelpers(LoggedTestCase):
         ("A line with a <i>block of italics that should not be broken.</i>", 60, 10, "A line with a\n<i>block of italics that should not be broken.</i>"),
         ("We shouldn't split the number 500,000 even if it's a good position", 60, 10, "We shouldn't split the number\n500,000 even if it's a good position"),
         ("Break this! But not at the exclamation mark because it would be too unbalanced.", 45, 35, "Break this! But not at the exclamation\nmark because it would be too unbalanced."),
+        # Regression: a line with no balanced break point must still fall back to the best available break, not stay whole
+        ("Formerly under General Meng Tian, supervising the construction of the mausoleum.", 40, 4,
+         "Formerly under General Meng Tian,\nsupervising the construction of the mausoleum."),
+        # No break sequence matches anywhere - the line is left untouched
+        ("Supercalifragilisticexpialidocioussupercalifragilisticexpialidocious", 40, 4,
+         "Supercalifragilisticexpialidocioussupercalifragilisticexpialidocious"),
+        # Among unbalanced fallback candidates from different tiers, the one closest to the middle wins, not the highest-priority tier
+        ("Hi. " + "x" * 40 + ", " + "y" * 40, 40, 4, "Hi. " + "x" * 40 + ",\n" + "y" * 40),
     ]
 
     def test_BreakLongLines(self):
