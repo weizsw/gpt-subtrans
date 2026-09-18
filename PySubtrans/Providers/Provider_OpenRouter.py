@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import httpx
 
 from PySubtrans.Helpers.Localization import _
 from PySubtrans.Options import SettingsType, env_float, env_int
@@ -219,6 +218,9 @@ class OpenRouterProvider(TranslationProvider):
             return  # Cache already populated with current filter setting
             
         try:
+            # Sanctioned lazy import: the startup profile attributed about 1.25 seconds to loading httpx through the provider registration path.
+            import httpx
+
             # Build URL with translation filter if enabled
             use_model_filter = self.settings.get_bool( 'only_translation_models', True)
             if not self.server_address:

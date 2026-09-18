@@ -1,8 +1,12 @@
+from __future__ import annotations
+
 import json
 import logging
 import time
-from typing import Any
-import httpx
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    import httpx
 
 from PySubtrans.Helpers import FormatMessages
 from PySubtrans.Helpers.Parse import ParseErrorMessageFromText, TryParseNonNegative
@@ -107,6 +111,9 @@ class CustomClient(TranslationClient):
         """
         Make a request to the server to provide a translation
         """
+        # Sanctioned lazy import: the startup profile attributed about 1.25 seconds to loading httpx through the shared translation client.
+        import httpx
+
         for retry in range(self.max_retries + 1):
             if self.aborted:
                 return None

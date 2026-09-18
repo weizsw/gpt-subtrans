@@ -27,7 +27,7 @@ CaptureOriginalImport()
 if sys.platform == 'win32':
     _prev_sigint = signal.signal(signal.SIGINT, signal.SIG_IGN)
 
-from PySide6.QtCore import QTimer, Qt
+from PySide6.QtCore import QEvent, QObject, QTimer, Qt
 from PySide6.QtWidgets import QApplication
 
 if sys.platform == 'win32':
@@ -105,12 +105,27 @@ def write_profile(profiler : cProfile.Profile, filename : str, sort_key : str) -
     logging.info(f"Profiling stats written to {profile_path}")
 
 def finish_startup_profile(app : QApplication) -> None:
-    """Write startup statistics after the first event-loop turn and exit."""
+    """Write startup statistics after the first window paint and exit."""
     if _startup_profiler is not None:
         _startup_profiler.disable()
         write_profile(_startup_profiler, 'profile_guisubtrans_startup.txt', 'cumulative')
 
     app.quit()
+
+class _StartupProfilePaintFilter(QObject):
+    """Finish startup profiling after the first main-window paint."""
+
+    def __init__(self, app : QApplication, parent : QObject):
+        super().__init__(parent)
+        self.app = app
+        self._finish_scheduled = False
+
+    def eventFilter(self, watched : QObject, event : QEvent) -> bool:
+        if not self._finish_scheduled and event.type() == QEvent.Type.Paint:
+            self._finish_scheduled = True
+            QTimer.singleShot(0, lambda: finish_startup_profile(self.app))
+
+        return False
 
 def run_with_profiler(app):
     profiler = cProfile.Profile()
@@ -152,7 +167,8 @@ if __name__ == "__main__":
     logging.info(_("Logging to {path}").format(path=logger_options.log_path))
 
     if arguments.get('profile_startup'):
-        QTimer.singleShot(0, lambda: finish_startup_profile(app))
+        startup_profile_filter = _StartupProfilePaintFilter(app, main_window)
+        main_window.installEventFilter(startup_profile_filter)
         app.exec()
     elif arguments.get('profile'):
         run_with_profiler(app)

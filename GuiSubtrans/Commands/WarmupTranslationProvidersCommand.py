@@ -16,7 +16,6 @@ class WarmupTranslationProvidersCommand(Command):
         super().__init__()
         self.is_blocking = False
         self.skip_undo = True
-        self.can_undo = False
         self.mark_project_dirty = False
         self.updates_datamodel = False
         self.warmed_providers : dict[str, TranslationProvider] = {}
