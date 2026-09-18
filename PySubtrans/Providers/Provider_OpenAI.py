@@ -128,6 +128,18 @@ else:
 
                 return options
 
+            @classmethod
+            def WarmUp(cls) -> None:
+                """Load OpenAI dependencies before the provider is selected in the settings dialog."""
+                # Sanctioned background warm-up: preloads the OpenAI SDK that previously cost about 2.4 seconds on first use.
+                import openai   # type: ignore
+                # Sanctioned background warm-up: preloads the OpenAI chat client path that shares the measured 2.4-second SDK cost.
+                from PySubtrans.Providers.Clients.ChatGPTClient import ChatGPTClient
+                # Sanctioned background warm-up: preloads the OpenAI reasoning client path that shares the measured 2.4-second SDK cost.
+                from PySubtrans.Providers.Clients.OpenAIReasoningClient import OpenAIReasoningClient
+                _warmup_imports = (ChatGPTClient, OpenAIReasoningClient)
+                del _warmup_imports
+
             def GetAvailableModels(self) -> list[str]:
                 """
                 Returns a list of possible values for the LLM model

@@ -98,6 +98,7 @@ class SettingsDialog(QDialog):
             'max_newlines': (int, _("Validator: Maximum number of newlines to allow in a single translated line")),
             'max_retries': (int, _("Number of times to retry a failed translation before giving up")),
             'backoff_time': (float, _("Seconds to wait before retrying a failed translation")),
+            'prewarm_providers': (bool, _("Initialise all installed translation provider libraries after startup to make switching providers faster")),
         }
     }
 
