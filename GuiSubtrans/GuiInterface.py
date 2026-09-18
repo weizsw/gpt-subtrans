@@ -313,7 +313,7 @@ class GuiInterface(QObject):
         Open the app-modal transcription dialog. On accept, load the
         transcribed project exactly like a freshly loaded subtitle file.
         """
-        if self.command_queue.has_commands:
+        if self.command_queue.has_blocking_commands:
             logging.warning(_("Cannot start transcription while another command is queued"))
             return
         dialog = TranscriptionDialog(self.global_options, parent=self.GetMainWindow())
@@ -415,8 +415,7 @@ class GuiInterface(QObject):
             if self.datamodel and self.datamodel.autosave_enabled and self.datamodel.project and self.datamodel.project.needs_writing:
                 self._autosave_timer.start(30000)
 
-        if (isinstance(command, CheckProviderSettings) and command.succeeded and not command.show_provider_settings
-                and self.global_options.get_bool('prewarm_providers', False)):
+        if isinstance(command, CheckProviderSettings) and command.succeeded and not command.show_provider_settings:
             self._warm_translation_providers()
 
         self.commandComplete.emit(command)
@@ -430,6 +429,7 @@ class GuiInterface(QObject):
         self.QueueCommand(WarmupTranslationProvidersCommand(
             self.global_options,
             active_provider=self.datamodel.translation_provider if self.datamodel else None,
+            warm_configured_providers=self.global_options.get_bool('prewarm_providers', False),
         ))
 
     def _perform_autosave(self):
