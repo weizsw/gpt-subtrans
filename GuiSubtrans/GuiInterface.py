@@ -406,6 +406,10 @@ class GuiInterface(QObject):
             elif command.datamodel is None:
                 self.dataModelChanged.emit(None)
 
+        if isinstance(command, WarmupTranslationProvidersCommand) and command.succeeded:
+            for provider_name, provider in command.warmed_providers.items():
+                self.datamodel.provider_cache.setdefault(provider_name, provider)
+
         # Schedule autosave if the command queue is empty and the project has changed
         if not self.command_queue.has_commands:
             if self.datamodel and self.datamodel.autosave_enabled and self.datamodel.project and self.datamodel.project.needs_writing:
@@ -423,7 +427,10 @@ class GuiInterface(QObject):
             return
 
         self._provider_warmup_started = True
-        self.QueueCommand(WarmupTranslationProvidersCommand())
+        self.QueueCommand(WarmupTranslationProvidersCommand(
+            self.global_options,
+            active_provider=self.datamodel.translation_provider if self.datamodel else None,
+        ))
 
     def _perform_autosave(self):
         """

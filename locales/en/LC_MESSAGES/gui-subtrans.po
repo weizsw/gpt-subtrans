@@ -1,8 +1,8 @@
 msgid ""
 msgstr ""
 "Project-Id-Version: LLM-Subtrans\n"
-"POT-Creation-Date: 2026-09-18 16:18+0000\n"
-"PO-Revision-Date: 2026-09-18 16:18+0000\n"
+"POT-Creation-Date: 2026-09-18 18:03+0000\n"
+"PO-Revision-Date: 2026-09-18 18:03+0000\n"
 "Last-Translator: Auto-generated\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
@@ -385,7 +385,7 @@ msgstr ""
 msgid "Auto-Split Batch"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:512
+#: GuiSubtrans/SettingsDialog.py:515
 msgid "Auto-selected model {model} for {provider} to ensure valid configuration"
 msgstr ""
 
@@ -397,7 +397,7 @@ msgstr ""
 msgid "Automatically save the project/translation after each scene is translated"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:92
+#: GuiSubtrans/SettingsDialog.py:91
 msgid "Avoid creating a new batch smaller than this"
 msgstr ""
 
@@ -577,7 +577,7 @@ msgstr ""
 msgid "Configure..."
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:94
+#: GuiSubtrans/SettingsDialog.py:93
 msgid "Consider a new scene to have started after this many seconds without subtitles"
 msgstr ""
 
@@ -721,7 +721,7 @@ msgstr ""
 msgid "Discard transcription?"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:93
+#: GuiSubtrans/SettingsDialog.py:92
 msgid "Divide any batches larger than this into multiple batches"
 msgstr ""
 
@@ -765,7 +765,7 @@ msgstr ""
 msgid "Ensure full-width punctuation is used in Asian languages"
 msgstr ""
 
-#: GuiSubtrans/GuiInterface.py:477
+#: GuiSubtrans/GuiInterface.py:484
 msgid "Error"
 msgstr ""
 
@@ -797,7 +797,7 @@ msgstr ""
 msgid "Error in {command}: {message}"
 msgstr ""
 
-#: PySubtrans/Options.py:246
+#: PySubtrans/Options.py:250
 msgid "Error loading settings from {}"
 msgstr ""
 
@@ -817,7 +817,7 @@ msgstr ""
 msgid "Error reparsing scene {scene} batch {batch}: {error}"
 msgstr ""
 
-#: PySubtrans/Options.py:275
+#: PySubtrans/Options.py:279
 msgid "Error saving settings to {}"
 msgstr ""
 
@@ -925,7 +925,7 @@ msgstr ""
 msgid "Failed to load instructions from {instructions_file}"
 msgstr ""
 
-#: GuiSubtrans/GuiInterface.py:444
+#: GuiSubtrans/GuiInterface.py:451
 msgid "Failed to load project data model."
 msgstr ""
 
@@ -1173,6 +1173,10 @@ msgstr ""
 msgid "Information about the selected transcription provider"
 msgstr ""
 
+#: GuiSubtrans/SettingsDialog.py:101
+msgid "Initialise the active and previously configured translation provider libraries after startup to make switching providers faster"
+msgstr ""
+
 #: GuiSubtrans/Widgets/TorchSetupDialog.py:321 GuiSubtrans/Widgets/TorchSetupDialog.py:378
 msgid "Install CPU-only Torch"
 msgstr ""
@@ -1305,7 +1309,7 @@ msgstr ""
 msgid "Length: {duration}"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:96
+#: GuiSubtrans/SettingsDialog.py:95
 msgid "Limits the number of scene/batch summaries to include as context with each translation batch"
 msgstr ""
 
@@ -1351,10 +1355,6 @@ msgstr ""
 
 #: GuiSubtrans/EditInstructionsDialog.py:50 GuiSubtrans/EditInstructionsDialog.py:165
 msgid "Load Instructions"
-msgstr ""
-
-#: GuiSubtrans/SettingsDialog.py:91
-msgid "Load all installed translation provider libraries after startup to make switching providers faster"
 msgstr ""
 
 #: GuiSubtrans/MainToolbar.py:35
@@ -1437,7 +1437,7 @@ msgstr ""
 msgid "Maximum length of a single line of subtitles"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:97
+#: GuiSubtrans/SettingsDialog.py:96
 msgid "Maximum length of the context summary to include with each translation batch"
 msgstr ""
 
@@ -1677,7 +1677,7 @@ msgstr ""
 msgid "No models available"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:505
+#: GuiSubtrans/SettingsDialog.py:508
 msgid "No models available for {provider}"
 msgstr ""
 
@@ -1789,7 +1789,7 @@ msgstr ""
 msgid "No translation provider configured"
 msgstr ""
 
-#: GuiSubtrans/GuiInterface.py:476 GuiSubtrans/GuiInterface.py:477
+#: GuiSubtrans/GuiInterface.py:483 GuiSubtrans/GuiInterface.py:484
 msgid "No translation providers available. Please install one or more providers."
 msgstr ""
 
@@ -1861,7 +1861,7 @@ msgstr ""
 msgid "Number of seconds gap to consider it a new scene"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:100
+#: GuiSubtrans/SettingsDialog.py:99
 msgid "Number of times to retry a failed translation before giving up"
 msgstr ""
 
@@ -1941,7 +1941,7 @@ msgstr ""
 msgid "Permission denied: {error}"
 msgstr ""
 
-#: GuiSubtrans/GuiInterface.py:499
+#: GuiSubtrans/GuiInterface.py:506
 msgid "Please configure the translation provider settings"
 msgstr ""
 
@@ -2061,7 +2061,7 @@ msgstr ""
 msgid "Provider information"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:703
+#: GuiSubtrans/SettingsDialog.py:706
 msgid "Provider is not set"
 msgstr ""
 
@@ -2341,7 +2341,7 @@ msgstr ""
 msgid "Searching for an existing Torch installation..."
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:101
+#: GuiSubtrans/SettingsDialog.py:100
 msgid "Seconds to wait before retrying a failed translation"
 msgstr ""
 
@@ -2913,7 +2913,7 @@ msgstr ""
 msgid "Transcription produced no subtitles"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:721
+#: GuiSubtrans/SettingsDialog.py:724
 msgid "Transcription provider is not set"
 msgstr ""
 
@@ -3093,7 +3093,7 @@ msgstr ""
 msgid "Unable to load subtitles from {file}"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:636
+#: GuiSubtrans/SettingsDialog.py:639
 msgid "Unable to load transcription provider options: {error}"
 msgstr ""
 
@@ -3101,7 +3101,7 @@ msgstr ""
 msgid "Unable to load transcription providers."
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:578 GuiSubtrans/Widgets/TranscriptionDialog.py:333
+#: GuiSubtrans/SettingsDialog.py:581 GuiSubtrans/Widgets/TranscriptionDialog.py:333
 msgid "Unable to load transcription providers: {error}"
 msgstr ""
 
@@ -3325,11 +3325,11 @@ msgstr ""
 msgid "Validated Torch installation at {path}."
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:98
+#: GuiSubtrans/SettingsDialog.py:97
 msgid "Validator: Maximum number of characters to allow in a single translated line"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:99
+#: GuiSubtrans/SettingsDialog.py:98
 msgid "Validator: Maximum number of newlines to allow in a single translated line"
 msgstr ""
 
@@ -3357,7 +3357,7 @@ msgstr ""
 msgid "Warning: {error}"
 msgstr ""
 
-#: GuiSubtrans/SettingsDialog.py:95
+#: GuiSubtrans/SettingsDialog.py:94
 msgid "Whether to substitute whole words or partial matches, or choose automatically based on input language"
 msgstr ""
 

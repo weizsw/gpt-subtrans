@@ -200,7 +200,11 @@ class Options(SettingsType):
         if not provider:
             return SettingsType()
 
-        return deepcopy(self.provider_settings.get(provider, SettingsType()))
+        provider_settings = self.provider_settings
+        if provider not in provider_settings:
+            return SettingsType()
+
+        return deepcopy(provider_settings[provider])
 
     def GetInstructions(self) -> Instructions:
         """ Construct an Instructions object from the settings """
