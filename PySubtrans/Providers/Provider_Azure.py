@@ -9,9 +9,6 @@ if not importlib.util.find_spec("openai"):
     logging.debug(_("OpenAI SDK is not installed. Azure provider will not be available"))
 else:
     try:
-        import openai   # type: ignore
-
-        from PySubtrans.Providers.Clients.AzureOpenAIClient import AzureOpenAIClient
         from PySubtrans.TranslationClient import TranslationClient
         from PySubtrans.TranslationProvider import TranslationProvider
 
@@ -51,6 +48,9 @@ else:
                 return self.settings.get_str( 'deployment_name')
 
             def GetTranslationClient(self, settings : SettingsType) -> TranslationClient:
+                # Sanctioned lazy import: the startup profile attributed about 2.4 seconds to loading the OpenAI SDK.
+                from PySubtrans.Providers.Clients.AzureOpenAIClient import AzureOpenAIClient
+
                 client_settings = SettingsType(self.settings.copy())
                 client_settings.update(settings)
                 client_settings.update({

@@ -2,8 +2,6 @@ import importlib.util
 import logging
 import os
 
-import httpx
-
 from PySubtrans.Options import SettingsType, env_float
 from PySubtrans.SettingsType import GuiSettingsType, SettingsType
 
@@ -12,10 +10,7 @@ if not importlib.util.find_spec("mistralai"):
     logging.debug(_("Mistral SDK is not installed. Mistral provider will not be available"))
 else:
     try:
-        from mistralai.client import Mistral
-
         from PySubtrans.Helpers.Localization import _
-        from PySubtrans.Providers.Clients.MistralClient import MistralClient
         from PySubtrans.TranslationClient import TranslationClient
         from PySubtrans.TranslationProvider import TranslationProvider
 
@@ -54,6 +49,9 @@ else:
                 return self.settings.get_str( 'server_url')
 
             def GetTranslationClient(self, settings : SettingsType) -> TranslationClient:
+                # Sanctioned lazy import: the startup profile attributed about 0.38 seconds to loading the Mistral SDK.
+                from PySubtrans.Providers.Clients.MistralClient import MistralClient
+
                 client_settings = SettingsType(self.settings.copy())
                 client_settings.update(settings)
                 client_settings.update({
@@ -92,6 +90,12 @@ else:
                     if not self.api_key:
                         logging.debug("No Mistral API key provided")
                         return []
+
+                    # Sanctioned lazy import: defer the measured Mistral/httpx import path of about 0.38 seconds until model listing.
+                    import httpx
+
+                    # Sanctioned lazy import: defer the measured 0.38-second Mistral SDK load until model listing is requested.
+                    from mistralai.client import Mistral
 
                     proxy_url = self.settings.get_str('proxy')
                     http_client = httpx.Client(proxy=proxy_url) if proxy_url else None

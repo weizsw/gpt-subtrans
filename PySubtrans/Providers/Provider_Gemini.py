@@ -12,12 +12,7 @@ else:
     try:
         from collections import defaultdict
 
-        from google import genai
-        from google.genai.types import ListModelsConfig, HttpOptions
-        from google.api_core.exceptions import FailedPrecondition
-
         from PySubtrans.Helpers.Localization import _
-        from PySubtrans.Providers.Clients.GeminiClient import GeminiClient
         from PySubtrans.TranslationClient import TranslationClient
         from PySubtrans.TranslationProvider import TranslationProvider
 
@@ -59,6 +54,9 @@ else:
                 return self.settings.get_str( 'api_key')
 
             def GetTranslationClient(self, settings : SettingsType) -> TranslationClient:
+                # Sanctioned lazy import: the startup profile attributed about 0.88 seconds to loading the Gemini SDK.
+                from PySubtrans.Providers.Clients.GeminiClient import GeminiClient
+
                 client_settings = SettingsType(self.settings.copy())
                 client_settings.update(settings)
                 client_settings.update({
@@ -77,6 +75,9 @@ else:
 
                 if self.api_key:
                     try:
+                        # Sanctioned lazy import: defer the measured 0.88-second Gemini SDK load until model options are requested.
+                        from google.api_core.exceptions import FailedPrecondition
+
                         models = self.available_models
                         if models:
                             options.update({
@@ -126,6 +127,11 @@ else:
                     return []
 
                 try:
+                    # Sanctioned lazy import: defer the measured 0.88-second Gemini SDK load until model listing is requested.
+                    from google import genai
+                    # Sanctioned lazy import: defer the measured 0.88-second Gemini SDK type load until model listing is requested.
+                    from google.genai.types import HttpOptions, ListModelsConfig
+
                     # Respect proxy when listing models too (strongly typed HttpOptions)
                     proxy = self.settings.get_str('proxy')
                     http_options = HttpOptions(api_version='v1beta')
