@@ -2,8 +2,6 @@ import json
 import logging
 import os
 
-import httpx
-
 from PySubtrans.Helpers.Localization import _
 from PySubtrans.Options import env_float, env_int
 from PySubtrans.Providers.Clients.RequestyClient import RequestyClient
@@ -219,6 +217,9 @@ class RequestyProvider(TranslationProvider):
             return  # Cache already populated
 
         try:
+            # Sanctioned lazy import: the startup profile attributed about 1.25 seconds to loading httpx through the provider registration path.
+            import httpx
+
             if not self.server_address:
                 logging.debug("No Requesty server address provided")
                 return

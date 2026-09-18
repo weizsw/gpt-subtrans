@@ -93,6 +93,7 @@ default_settings = {
     'autosplit_on_error': env_bool('AUTOSPLIT_ON_ERROR', False),
     'max_lines': env_int('MAX_LINES', None),
     'max_threads': env_int('MAX_THREADS', 4),
+    'prewarm_providers': env_bool('PREWARM_PROVIDERS', False),
     'max_retries': env_int('MAX_RETRIES', 1),
     'max_summary_length': env_int('MAX_SUMMARY_LENGTH', 240),
     'backoff_time': env_float('BACKOFF_TIME', 3.0),
@@ -199,7 +200,11 @@ class Options(SettingsType):
         if not provider:
             return SettingsType()
 
-        return deepcopy(self.provider_settings.get(provider, SettingsType()))
+        provider_settings = self.provider_settings
+        if provider not in provider_settings:
+            return SettingsType()
+
+        return deepcopy(provider_settings[provider])
 
     def GetInstructions(self) -> Instructions:
         """ Construct an Instructions object from the settings """

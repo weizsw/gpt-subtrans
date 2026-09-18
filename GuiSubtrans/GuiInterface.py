@@ -16,8 +16,9 @@ from GuiSubtrans.Commands.BatchSubtitlesCommand import BatchSubtitlesCommand
 from GuiSubtrans.Commands.LoadSubtitleFile import LoadSubtitleFile
 from GuiSubtrans.Commands.SaveProjectFile import SaveProjectFile
 from GuiSubtrans.Commands.SaveTranslationFile import SaveTranslationFile
+from GuiSubtrans.Commands.WarmupTranslationProvidersCommand import WarmupTranslationProvidersCommand
 from GuiSubtrans.FirstRunOptions import FirstRunOptions
-from GuiSubtrans.GUICommands import ExitProgramCommand
+from GuiSubtrans.GUICommands import CheckProviderSettings, ExitProgramCommand
 from GuiSubtrans.GuiHelpers import LoadStylesheet
 from GuiSubtrans.NewProjectSettings import NewProjectSettings
 from GuiSubtrans.ProjectActions import ProjectActions
@@ -90,6 +91,8 @@ class GuiInterface(QObject):
         self._autosave_timer = QTimer()
         self._autosave_timer.setSingleShot(True)
         self._autosave_timer.timeout.connect(self._perform_autosave)
+
+        self._provider_warmup_started = False
         
         if self.global_options.get('last_used_path'):
             self.action_handler.last_used_path = self.global_options.get_str('last_used_path')
@@ -310,7 +313,7 @@ class GuiInterface(QObject):
         Open the app-modal transcription dialog. On accept, load the
         transcribed project exactly like a freshly loaded subtitle file.
         """
-        if self.command_queue.has_commands:
+        if self.command_queue.has_blocking_commands:
             logging.warning(_("Cannot start transcription while another command is queued"))
             return
         dialog = TranscriptionDialog(self.global_options, parent=self.GetMainWindow())
@@ -403,12 +406,31 @@ class GuiInterface(QObject):
             elif command.datamodel is None:
                 self.dataModelChanged.emit(None)
 
+        if isinstance(command, WarmupTranslationProvidersCommand) and command.succeeded:
+            for provider_name, provider in command.warmed_providers.items():
+                self.datamodel.provider_cache.setdefault(provider_name, provider)
+
         # Schedule autosave if the command queue is empty and the project has changed
         if not self.command_queue.has_commands:
             if self.datamodel and self.datamodel.autosave_enabled and self.datamodel.project and self.datamodel.project.needs_writing:
                 self._autosave_timer.start(30000)
 
+        if isinstance(command, CheckProviderSettings) and command.succeeded and not command.show_provider_settings:
+            self._warm_translation_providers()
+
         self.commandComplete.emit(command)
+
+    def _warm_translation_providers(self) -> None:
+        """Warm deferred provider SDKs after the active provider is validated."""
+        if self._provider_warmup_started:
+            return
+
+        self._provider_warmup_started = True
+        self.QueueCommand(WarmupTranslationProvidersCommand(
+            self.global_options,
+            active_provider=self.datamodel.translation_provider if self.datamodel else None,
+            warm_configured_providers=self.global_options.get_bool('prewarm_providers', False),
+        ))
 
     def _perform_autosave(self):
         """

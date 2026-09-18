@@ -98,6 +98,7 @@ class SettingsDialog(QDialog):
             'max_newlines': (int, _("Validator: Maximum number of newlines to allow in a single translated line")),
             'max_retries': (int, _("Number of times to retry a failed translation before giving up")),
             'backoff_time': (float, _("Seconds to wait before retrying a failed translation")),
+            'prewarm_providers': (bool, _("Load previously used translation providers after startup to make switching providers faster")),
         }
     }
 
@@ -485,7 +486,7 @@ class SettingsDialog(QDialog):
         scrollArea.setWidget(provider_container)
         layout.addRow(QLabel(_("Provider information")), scrollArea)
 
-    def _refresh_provider_options(self):
+    def _refresh_provider_options(self, reset_available_models: bool = True):
         """
         Populate the provider-specific options
         """
@@ -493,10 +494,13 @@ class SettingsDialog(QDialog):
             logging.warning("Translation provider is not configured")
             return
 
-        self.translation_provider.ResetAvailableModels()
-
         provider_settings = self.provider_settings.get_dict(self.translation_provider.name)
         provider_settings = SettingsType(provider_settings)
+
+        combined_settings = self.translation_provider.GetCombinedSettings(provider_settings)
+        if reset_available_models or self.translation_provider.settings != combined_settings:
+            self.translation_provider.ResetAvailableModels()
+
         self.translation_provider.UpdateSettings(provider_settings)
 
         selected_model = provider_settings.get_str('model')
@@ -685,7 +689,7 @@ class SettingsDialog(QDialog):
         if key == 'provider':
             self.settings[key] = value
             self._initialise_translation_provider()
-            self._refresh_provider_options()
+            self._refresh_provider_options(reset_available_models=False)
 
         elif key == 'transcription_provider':
             self.settings[key] = value

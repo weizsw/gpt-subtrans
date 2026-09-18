@@ -13,6 +13,7 @@ from GuiSubtrans.ProjectActions import ProjectActions
 from GuiSubtrans.ProjectDataModel import ProjectDataModel
 from GuiSubtrans.Commands.StartTranslationCommand import StartTranslationCommand
 from GuiSubtrans.Commands.TranslateSceneCommand import TranslateSceneCommand
+from GuiSubtrans.Commands.WarmupTranslationProvidersCommand import WarmupTranslationProvidersCommand
 from PySubtrans.Helpers.Localization import _
 from PySubtrans.Helpers.Resources import GetResourcePath
 
@@ -88,8 +89,8 @@ class MainToolbar(QToolBar):
         Update the toolbar
         """
         self.UpdateBusyStatus()
+        self.UpdateSettingsButton()
         self.UpdateSaveButton()
-        self.UpdateTranscribeButton()
         self.UpdateTranslateButtons()
         self.UpdateTooltips()
 
@@ -258,6 +259,12 @@ class MainToolbar(QToolBar):
         self.SetActionsEnabled([ "Undo" ], no_blocking_commands and command_queue.can_undo)
         self.SetActionsEnabled([ "Redo" ], no_blocking_commands and command_queue.can_redo)
 
+    def UpdateSettingsButton(self) -> None:
+        """Disable settings while provider libraries are being warmed in the background."""
+        command_queue : CommandQueue = self.gui.GetCommandQueue()
+        warming_providers = command_queue.Contains(command_type=WarmupTranslationProvidersCommand)
+        self.SetActionsEnabled(["Settings"], not warming_providers)
+
     def UpdateSaveButton(self):
         """
         Update the save button to indicate whether the project needs saving
@@ -272,14 +279,6 @@ class MainToolbar(QToolBar):
 
         if datamodel and datamodel.project and not datamodel.project.needs_writing:
             self.SetActionsEnabled(["Save Project"], False)
-
-    def UpdateTranscribeButton(self):
-        """
-        Update the transcribe button to disable it while other commands are queued or running
-        """
-        command_queue : CommandQueue = self.gui.GetCommandQueue()
-        if command_queue.has_commands:
-            self.SetActionsEnabled([ "Transcribe Audio" ], False)
 
     def UpdateTranslateButtons(self):
         """

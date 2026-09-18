@@ -1,7 +1,6 @@
 import json
 import logging
 import os
-import httpx
 
 from PySubtrans.Helpers.Localization import _
 from PySubtrans.Options import SettingsType, env_float, env_int
@@ -88,6 +87,9 @@ class DeepSeekProvider(TranslationProvider):
             return []
 
         try:
+            # Sanctioned lazy import: the startup profile attributed about 1.25 seconds to loading httpx through the provider registration path.
+            import httpx
+
             if not self.server_address:
                 logging.debug("No DeepSeek API base URL provided")
                 return []

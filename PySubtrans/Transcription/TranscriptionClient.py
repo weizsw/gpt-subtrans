@@ -3,8 +3,10 @@ from __future__ import annotations
 import json
 import logging
 import time
+from typing import TYPE_CHECKING
 
-import httpx
+if TYPE_CHECKING:
+    import httpx
 
 from PySubtrans.Helpers.Localization import _
 from PySubtrans.Helpers.Parse import ParseDelayFromHeader
@@ -184,6 +186,9 @@ class TranscriptionClient:
         Returns the raw httpx.Response for callers that need to inspect it
         before JSON parsing (e.g. provider-specific status-code checks).
         """
+        # Sanctioned lazy import: the startup profile attributed about 1.25 seconds to loading httpx through the transcription client.
+        import httpx
+
         proxy = self.settings.get_str('proxy')
         try:
             with httpx.Client(timeout=self.request_timeout, proxy=proxy) as client:

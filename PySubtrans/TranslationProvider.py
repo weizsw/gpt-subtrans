@@ -76,6 +76,11 @@ class TranslationProvider:
         """
         raise NotImplementedError
 
+    @classmethod
+    def WarmUp(cls) -> None:
+        """Load any deferred provider dependencies without making network requests."""
+        return
+
     def ValidateSettings(self) -> bool:
         """
         Validate the settings for the provider
