@@ -106,7 +106,7 @@ else:
                     options['use_httpx'] = (bool, _("Use the httpx library for requests. May help if you receive a 307 redirect error with a custom api_base"))
 
                 if self.api_key:
-                    models = self.available_models
+                    models = self.model_list.known
                     if models:
                         options.update({
                             'model': (models, _("AI model to use as the translator") if models else _("Unable to retrieve models")),

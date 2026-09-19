@@ -109,8 +109,9 @@ Also provides methods for preprocessing, auto-batching and data sanitization.
 ### TranslationProvider (Configuration Layer)
 Each `TranslationProvider` subclass serves as the registry entry for a translation service and offers:
 - **`available_models`**: property containing available models that can be selected
+- **`model_list`**: the provider's `ModelList`, exposing `models` (fetch on demand), `known` (never fetch), `resolved`, `pending`, `Store`, `Request` and `Reset`. An async load can be requested so `models` returns the known list without fetching until the load completes.
 - **GetTranslationClient**: creates an appropriate client for API communication
-- **GetOptions**: Defines provider-specific options (API key, endpoints, etc.)
+- **GetOptions**: Defines provider-specific options (API key, endpoints, etc.), built from cached models only
 
 ### TranslationClient (Communication Layer)
 The `TranslationClient` defines the API communication interface:
@@ -246,6 +247,12 @@ For example, `TranslateSceneCommand` subscribes to `SubtitleTranslator` events. 
 **Conditional visibility** – settings can be conditionally shown based on other settings, using a data-driven system defined by the `VISIBILITY_DEPENDENCIES` property.
 
 **Provider pluggability** – the "Provider Settings" tab dynamically populates with options specific to the selected translation provider. Each provider defines its own settings schema via a virtual `GetOptions` method, used to populate the form.
+
+**Async provider models** – listing models can involve a slow network request, so the provider tab is populated immediately and the model list loads on a worker thread.
+Only the model-dependent rows appear when the list arrives.
+The provider decides whether a model request fetches or waits.
+
+**Model reconciliation** – when a model list arrives, `ProviderSettingsForm` keeps a still-available model, replaces an unavailable one with an available model, and leaves the persisted model untouched when the load failed.
 
 ## Extending the System
 

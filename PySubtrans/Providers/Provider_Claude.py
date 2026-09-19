@@ -112,11 +112,10 @@ else:
                 if not self.api_key:
                     return options
 
-                self.RefreshAvailableModels()
-
-                if self.available_models:
+                models = self.model_list.known
+                if models:
                     options.update({
-                        'model': (self.available_models, _("The model to use for translations")),
+                        'model': (models, _("The model to use for translations")),
                         'stream_responses': (bool, _("Stream translations in realtime as they are generated")),
                         'rate_limit': (float, _("The rate limit to use for translations (default 60.0)")),
                         'max_tokens': (int, _("The maximum number of tokens to use for translations")),

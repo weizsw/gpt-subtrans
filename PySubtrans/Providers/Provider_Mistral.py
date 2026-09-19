@@ -69,7 +69,7 @@ else:
                 }
 
                 if self.api_key:
-                    models = self.available_models
+                    models = self.model_list.known
                     if models:
                         options.update({
                             'model': (models, "AI model to use as the translator"),

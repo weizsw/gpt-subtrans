@@ -73,29 +73,24 @@ else:
                     'api_key': (str, _("A Google Gemini API key is required to use this provider (https://makersuite.google.com/app/apikey)"))
                 }
 
-                if self.api_key:
-                    try:
-                        # Sanctioned lazy import: defer the measured 0.88-second Gemini SDK load until model options are requested.
-                        from google.api_core.exceptions import FailedPrecondition
+                if not self.api_key:
+                    return options
 
-                        models = self.available_models
-                        if models:
-                            options.update({
-                                'model': (models, "AI model to use as the translator" if models else "Unable to retrieve models"),
-                                'stream_responses': (bool, _("Stream translations in realtime as they are generated")),
-                                'enable_thinking': (bool, _("Enable reasoning capabilities for more complex translations (increases cost)")),
-                                'temperature': (float, _("Amount of random variance to add to translations. Generally speaking, none is best")),
-                                'rate_limit': (float, _("Maximum API requests per minute."))
-                            })
+                models = self.model_list.known
+                if models:
+                    options.update({
+                        'model': (models, "AI model to use as the translator" if models else "Unable to retrieve models"),
+                        'stream_responses': (bool, _("Stream translations in realtime as they are generated")),
+                        'enable_thinking': (bool, _("Enable reasoning capabilities for more complex translations (increases cost)")),
+                        'temperature': (float, _("Amount of random variance to add to translations. Generally speaking, none is best")),
+                        'rate_limit': (float, _("Maximum API requests per minute."))
+                    })
 
-                            if self.settings.get_bool('enable_thinking', False):
-                                options['thinking_budget'] = (int, _("Token budget for reasoning. Higher values increase cost"))
+                    if self.settings.get_bool('enable_thinking', False):
+                        options['thinking_budget'] = (int, _("Token budget for reasoning. Higher values increase cost"))
 
-                        else:
-                            options['model'] = (["Unable to retrieve models"], _("Check API key is authorized and try again"))
-
-                    except FailedPrecondition as e:
-                        options['model'] = (["Unable to access the Gemini API"], str(e))
+                else:
+                    options['model'] = (["Unable to retrieve models"], _("Check API key is authorized and try again"))
 
                 return options
 

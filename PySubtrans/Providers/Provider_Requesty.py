@@ -116,9 +116,6 @@ class RequestyProvider(TranslationProvider):
             return options
 
         if not settings.get_bool('use_default_model'):
-            # First populate cached models if needed
-            self._populate_model_cache()
-
             if self._cached_models:
                 options.update({
                     'model_family': (self.available_model_families, _( "Model family/provider to choose from")),
@@ -138,7 +135,7 @@ class RequestyProvider(TranslationProvider):
             else:
                 options['model_family'] = ([_("Unable to retrieve models")], _( "Check API key and try again"))
 
-        if self.use_default_model or self.available_models:
+        if self.use_default_model or self.model_list.known:
             options.update({
                 'stream_responses': (bool, _( "Stream translations in realtime as they are generated")),
                 'max_tokens': (int, _( "Maximum number of output tokens to return in the response.")),
@@ -228,7 +225,7 @@ class RequestyProvider(TranslationProvider):
 
             headers = {'Authorization': f"Bearer {self.api_key}"} if self.api_key else {}
 
-            proxy_url = self.settings.get_str('proxy')
+            proxy_url = self.settings.get_str('proxy') or None
             with httpx.Client(timeout=20, proxy=proxy_url) as client:
                 result = client.get(url, headers=headers)
                 if result.is_error:

@@ -1,4 +1,5 @@
 from typing import cast
+from PySubtrans.ModelList import ModelList
 from PySubtrans.Options import Options, SettingsType
 from PySubtrans.SettingsType import GuiSettingsType, SettingsType
 from PySubtrans.TranslationClient import TranslationClient
@@ -10,19 +11,17 @@ class TranslationProvider:
     def __init__(self, name : str, settings : SettingsType):
         self.name : str = name
         self.settings : SettingsType = settings
-        self._available_models : list[str] = []
+        self._models = ModelList(lambda: self.GetAvailableModels())
         self.refresh_when_changed : list[str] = []
         self.validation_message : str|None = None
 
     @property
     def available_models(self) -> list[str]:
         """
-        list of available models for the provider
+        list of available models for the provider.
+        Returns the known list, or fetches it when a load has not been requested.
         """
-        if not self._available_models:
-            self._available_models = self.GetAvailableModels()
-
-        return self._available_models
+        return self._models.models
 
     @property
     def all_available_models(self) -> list[str]:
@@ -30,6 +29,13 @@ class TranslationProvider:
         Returns all available models for the provider, including those currently filtered out
         """
         return self.available_models
+
+    @property
+    def model_list(self) -> ModelList:
+        """
+        The provider's model list state
+        """
+        return self._models
 
     @property
     def selected_model(self) -> str|None:
@@ -54,9 +60,9 @@ class TranslationProvider:
 
     def ResetAvailableModels(self):
         """
-        Reset the available models for the provider
+        Reset the available models for the provider, discarding any pending load
         """
-        self._available_models = []
+        self._models.Reset()
 
     def GetInformation(self) -> str|None:
         """
