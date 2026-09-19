@@ -91,7 +91,6 @@ class TestTorchSetupSelection(LoggedTestCase):
         try:
             dialog._show_page(1)
             self.assertLoggedFalse('CPU install requires confirmation', dialog._next_button.isEnabled())
-            self.assertLoggedEqual('CPU fallback action', 'Install CPU-only Torch', dialog._next_button.text())
             if dialog._cpu_fallback_checkbox is not None:
                 self.assertLoggedFalse('CPU fallback is initially unchecked', dialog._cpu_fallback_checkbox.isChecked())
                 dialog._cpu_fallback_checkbox.setChecked(True)

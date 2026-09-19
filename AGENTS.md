@@ -45,6 +45,7 @@ Before conducting exploratory searches of the code base, consult `docs/architect
 - **Whitespace**: Use blank lines to group logical steps within a function and to set off comments. A dense block with no breaks is harder for a human to scan than one with a few well-placed gaps.
 - **Comments**: Add docstrings to explain the purpose of classes and methods, and targeted comments to explain the "why" behind the code.
 - **Docstrings**: Triple-quoted concise descriptions for classes and methods
+- **Prose**: Prefer short, to-the-point sentences in comments and docstrings. Keep each sentence on its own line.
 - **Error handling**: Custom exceptions, specific except blocks, input validation, logging.warning/error
   - User-facing error messages should be localizable, using _()
 - **Eceptions**: Never use exceptions for expected cases or standard control flow, only for genuine error states.

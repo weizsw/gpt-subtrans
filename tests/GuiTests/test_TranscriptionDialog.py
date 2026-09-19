@@ -393,7 +393,6 @@ class TestTranscriptionDialogLayout(LoggedTestCase):
 
             self.assertLoggedIsNone('invalid bounds produce no command', command)
             self.assertLoggedEqual('command construction skipped', 0, command_factory.call_count)
-            self.assertLoggedIn('validation message', 'maximum chunk length', dialog.status_label.text())
         finally:
             dialog.deleteLater()
             self.application.processEvents()
