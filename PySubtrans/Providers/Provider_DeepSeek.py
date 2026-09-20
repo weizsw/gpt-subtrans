@@ -97,7 +97,7 @@ class DeepSeekProvider(TranslationProvider):
             url = self.server_address.rstrip('/') + '/v1/models'
             headers = {'Authorization': f"Bearer {self.api_key}"} if self.api_key else {}
 
-            proxy_url = self.settings.get_str('proxy')
+            proxy_url = self.settings.get_str_or_none('proxy')
             with httpx.Client(timeout=15, proxy=proxy_url) as client:
                 result = client.get(url, headers=headers)
                 if result.is_error:

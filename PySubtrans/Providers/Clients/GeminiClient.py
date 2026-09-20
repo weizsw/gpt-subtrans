@@ -68,6 +68,10 @@ class GeminiClient(TranslationClient):
         return self.settings.get_str( 'model')
 
     @property
+    def proxy_url(self) -> str|None:
+        return self.settings.get_str_or_none('proxy')
+
+    @property
     def rate_limit(self) -> float|None:
         return self.settings.get_float( 'rate_limit')
 
@@ -132,7 +136,7 @@ class GeminiClient(TranslationClient):
             raise TranslationImpossibleError(_("Content must be a string for Gemini"))
 
         # Configure http options (proxy support for both sync httpx and async aiohttp)
-        proxy = self.settings.get_str('proxy')
+        proxy = self.proxy_url
         client_args = None
         async_client_args = None
         if proxy:

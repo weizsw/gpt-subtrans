@@ -44,16 +44,16 @@ class CustomClient(TranslationClient):
 
     @property
     def server_address(self) -> str|None:
-        return self.settings.get_str('server_address')
+        return self.settings.get_str_or_none('server_address')
 
     @property
     def endpoint(self) -> str|None:
-        return self.settings.get_str('endpoint')
+        return self.settings.get_str_or_none('endpoint')
 
     @property
     def proxy_url(self) -> str|None:
         # An empty proxy setting means "no proxy", not a proxy with an empty URL
-        return self.settings.get_str('proxy')
+        return self.settings.get_str_or_none('proxy')
 
     @property
     def supports_conversation(self) -> bool:

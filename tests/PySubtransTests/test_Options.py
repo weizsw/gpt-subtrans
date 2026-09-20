@@ -604,9 +604,20 @@ class TestSettingsType(LoggedTestCase):
         result = self.test_settings.get_bool('missing_key', True)
         self.assertLoggedTrue("get_bool with custom default True", result)
 
+    def test_stored_none_matches_dict_semantics(self):
+        """A stored None is a value: the getters report it rather than the default.
+
+        Resolving None as unset belongs to the caller that owns the default (a provider
+        falling back to an environment variable), not to the settings type.
+        """
+        settings = SettingsType({'api_key': None, 'max_retries': None})
+
+        self.assertLoggedIsNone("stored None wins over the default", settings.get_str('api_key', 'from-environment'))
+        self.assertLoggedIsNone("stored None wins for ints", settings.get_int('max_retries', 5))
+        self.assertLoggedEqual("absent key uses the default", 5, settings.get_int('missing_key', 5))
+
     def test_get_int(self):
         """Test SettingsType.get_int method"""
-        
         test_cases = [
             ('int_value', 42),
             ('int_str', 123),
@@ -661,6 +672,21 @@ class TestSettingsType(LoggedTestCase):
         # Test custom default
         result = self.test_settings.get_str('missing_key', 'default_string')
         self.assertLoggedEqual("get_str with custom default", 'default_string', result)
+
+    def test_get_str_or_none(self):
+        """A missing, blank or whitespace-only string setting reads as unset."""
+        settings = SettingsType({
+            'blank': '',
+            'spaces': '   ',
+            'set': '  http://localhost:8080  ',
+            'none_value': None,
+        })
+
+        self.assertLoggedIsNone('blank is unset', settings.get_str_or_none('blank'))
+        self.assertLoggedIsNone('whitespace is unset', settings.get_str_or_none('spaces'))
+        self.assertLoggedIsNone('missing is unset', settings.get_str_or_none('missing'))
+        self.assertLoggedIsNone('stored None is unset', settings.get_str_or_none('none_value'))
+        self.assertLoggedEqual('value is trimmed', 'http://localhost:8080', settings.get_str_or_none('set'))
 
     def test_get_timedelta(self):
         """Test SettingsType.get_timedelta method"""

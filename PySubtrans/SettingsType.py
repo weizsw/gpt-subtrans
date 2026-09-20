@@ -87,6 +87,12 @@ class SettingsType(dict[str, SettingType]):
 
         return str(value)
 
+    def get_str_or_none(self, key: str) -> str|None:
+        """Get a string setting, reading a blank value as unset"""
+        value = self.get_str(key) or ''
+
+        return value.strip() or None
+
     def get_timedelta(self, key: str, default: timedelta) -> timedelta:
         """Get a timedelta setting with type safety"""
         value = self.get(key, default)

@@ -1201,6 +1201,32 @@ class TestTranscriptionRetry(LoggedTestCase):
         self.assertLoggedGreaterEqual("custom delay respected", total_slept, 2.0)
 
 
+class TestTranscriptionProxySetting(LoggedTestCase):
+    """A blank proxy must mean "no proxy" - httpx rejects an empty proxy URL with an obscure error."""
+
+    def _post_proxy_kwarg(self, proxy : str) -> str|None:
+        """POST once and return the proxy httpx.Client was constructed with."""
+        client = FakeTranscriptionClient(SettingsType({'proxy': proxy}))
+        response = httpx.Response(200, text='{}')
+
+        with patch('httpx.Client') as mock_client_class:
+            mock_client_class.return_value.__enter__.return_value.post.return_value = response
+            client._PostRequest("http://test/api", json_body={'a': 1})
+
+        return mock_client_class.call_args.kwargs.get('proxy')
+
+    def test_blank_proxy_is_not_passed_to_httpx(self) -> None:
+        """An empty or whitespace-only proxy setting is treated as unset."""
+        for proxy in ["", "   "]:
+            with self.subTest(proxy=proxy):
+                self.assertLoggedIsNone("no proxy passed to httpx", self._post_proxy_kwarg(proxy), input_value=proxy)
+
+    def test_configured_proxy_is_passed_to_httpx(self) -> None:
+        """A configured proxy still reaches httpx."""
+        self.assertLoggedEqual("proxy passed through", "http://localhost:8080",
+                               self._post_proxy_kwarg("http://localhost:8080"))
+
+
 class TestTranscriptionSave(LoggedTestCase):
     def _subtitles(self):
         builder = SubtitleBuilder()

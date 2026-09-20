@@ -44,6 +44,10 @@ class AnthropicClient(TranslationClient):
     @property
     def max_tokens(self) -> int:
         return self.settings.get_int( 'max_tokens') or 0
+
+    @property
+    def proxy_url(self) -> str|None:
+        return self.settings.get_str_or_none('proxy')
     
     @property
     def allow_thinking(self) -> bool:
@@ -75,10 +79,10 @@ class AnthropicClient(TranslationClient):
             self.client = anthropic.Anthropic(api_key=self.api_key)
 
             # Try to add proxy settings if specified
-            proxy = self.settings.get_str( 'proxy')
-            if proxy:
+            proxy_url = self.proxy_url
+            if proxy_url:
                 http_client = anthropic.DefaultHttpxClient(
-                    proxy = proxy
+                    proxy = proxy_url
                 )
                 self.client = self.client.with_options(http_client=http_client)
 
