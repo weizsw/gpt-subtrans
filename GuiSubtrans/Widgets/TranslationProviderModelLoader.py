@@ -13,9 +13,9 @@ class TranslationProviderModelLoader(QObject):
 
     Owns the worker thread and its lifetime.
     The provider's name is reported back so late results for a superseded provider can be ignored.
-    A failed load reports the persisted model, keeping it selectable.
+    The outcome is recorded on the provider's ModelList, so a failure keeps the persisted model selectable.
     """
-    loaded = Signal(str, list)
+    loaded = Signal(str)
     failed = Signal(str, str)
 
     def __init__(self, provider : TranslationProvider, owner : QObject|None = None):
@@ -36,7 +36,7 @@ class TranslationProviderModelLoader(QObject):
         if self._thread is not None:
             return
 
-        self.provider.model_list.Request()
+        self.provider.model_list.BeginLoad()
 
         thread = QThread(self._owner)
         self.moveToThread(thread)
@@ -58,23 +58,22 @@ class TranslationProviderModelLoader(QObject):
         if thread is not None:
             thread.quit()
 
+        # Clear the in-progress state so later callers can resolve the list again
+        self.provider.model_list.Cancel()
+
     @Slot()
     def run(self) -> None:
-        """Resolve the model list, emitting the result back to the caller."""
+        """Resolve the model list on the provider, emitting the outcome back to the caller."""
         provider = self.provider
+        provider.model_list.Resolve()
 
-        try:
-            models = provider.GetAvailableModels()
-            if self._abandoned:
-                return
-            provider.model_list.Store(models)
-            self.loaded.emit(provider.name, models)
-        except Exception as e:
-            if self._abandoned:
-                return
-            persisted_model = provider.selected_model
-            provider.model_list.Store([persisted_model] if persisted_model else [], resolved=False)
-            self.failed.emit(provider.name, str(e))
+        if self._abandoned:
+            return
+
+        if provider.model_list.resolved:
+            self.loaded.emit(provider.name)
+        else:
+            self.failed.emit(provider.name, provider.model_list.error or "")
 
     @Slot()
     def _on_thread_finished(self) -> None:

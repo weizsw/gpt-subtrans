@@ -10,6 +10,7 @@ ConfigureOffscreenPlatform()
 from PySide6.QtWidgets import QApplication
 
 from GuiSubtrans.SettingsDialog import SettingsDialog
+from GuiSubtrans.Widgets.TranslationProviderModelLoader import TranslationProviderModelLoader
 from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.Helpers.Tests import skip_if_debugger_attached
 from PySubtrans.Options import Options
@@ -52,6 +53,14 @@ class FailingModelProvider(FakeModelProvider):
 
     def GetAvailableModels(self) -> list[str]:
         raise RuntimeError("model service unavailable")
+
+
+class EmptyModelProvider(FakeModelProvider):
+    """Provider with no model list, to check an empty result is treated as authoritative."""
+    name = "Empty Model Provider"
+
+    def GetAvailableModels(self) -> list[str]:
+        return []
 
 
 class SlowModelProvider(FakeModelProvider):
@@ -218,6 +227,40 @@ class TestSettingsDialogModelLoading(LoggedTestCase):
         finally:
             provider.release()
             self._await_models(dialog)
+
+
+class TestTranslationProviderModelLoader(LoggedTestCase):
+    application : QApplication
+
+    @classmethod
+    def setUpClass(cls) -> None:
+        super().setUpClass()
+        existing = QApplication.instance()
+        cls.application = existing if isinstance(existing, QApplication) else QApplication([])
+
+    def test_empty_lookup_is_resolved(self) -> None:
+        """An empty lookup is authoritative, since providers raise on a failed lookup."""
+        provider = EmptyModelProvider(SettingsType({'model': 'model-b'}))
+        loader = TranslationProviderModelLoader(provider)
+
+        loader.run()
+
+        self.assertLoggedTrue('empty lookup marked resolved', provider.model_list.resolved)
+        self.assertLoggedFalse('not left pending', provider.model_list.pending)
+
+    def test_abandoned_load_clears_pending(self) -> None:
+        """Abandoning a loader must clear the pending request so later callers can fetch again."""
+        provider = FakeModelProvider(SettingsType({'model': 'model-b'}))
+        provider.model_list.BeginLoad()
+        self.assertLoggedTrue('load pending', provider.model_list.pending)
+
+        loader = TranslationProviderModelLoader(provider)
+        loader.stop()
+
+        self.assertLoggedFalse('pending cleared on abandon', provider.model_list.pending)
+        models = provider.available_models
+        self.assertLoggedEqual('models fetched again after abandon', ['model-a', 'model-b', 'model-c'], models)
+        self.assertLoggedEqual('lookup performed after abandon', 1, provider.lookup_count)
 
 
 if __name__ == '__main__':

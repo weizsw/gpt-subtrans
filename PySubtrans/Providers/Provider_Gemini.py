@@ -125,8 +125,8 @@ else:
                     self.validation_message = _("API Key is required")
                     return False
 
-                if not self.GetAvailableModels():
-                    self.validation_message = "Unable to retrieve models. Gemini API may be unavailable in your region."
+                if not self.available_models:
+                    self.validation_message = _("Unable to retrieve models. Gemini API may be unavailable in your region.")
                     return False
 
                 return True
@@ -158,7 +158,7 @@ else:
 
                 except Exception as e:
                     logging.error(_("Unable to retrieve Gemini model list: {error}").format(error=str(e)))
-                    return []
+                    raise
 
             def _get_true_name(self, name : str|None) -> str:
                 if not self.gemini_models:

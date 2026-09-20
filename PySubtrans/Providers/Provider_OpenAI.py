@@ -181,7 +181,7 @@ else:
 
                 except Exception as e:
                     logging.error(_("Unable to retrieve available AI models: {error}").format(error=str(e)))
-                    return []
+                    raise
 
             def GetInformation(self) -> str:
                 if not self.api_key:

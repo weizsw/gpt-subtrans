@@ -28,9 +28,9 @@ class ProviderSettingsForm(QObject):
         self.widgets : dict[str, OptionWidget] = {}
         self._loaders : list[TranslationProviderModelLoader] = []
 
-        # Mark the load pending before building so the persisted model is shown while it resolves
+        # Mark the load in progress before building so the persisted model is shown until it resolves
         if not self.provider.model_list.resolved:
-            self.provider.model_list.Request()
+            self.provider.model_list.BeginLoad()
 
         self.populate()
         self._start_model_load()
@@ -52,8 +52,8 @@ class ProviderSettingsForm(QObject):
         provider_settings = self.provider.GetCombinedSettings(self.settings)
         schema = dict(self.provider.GetOptions(provider_settings))
 
-        # The model row is shown while the list loads even when the schema omits it
-        if 'model' not in schema and self.provider.model_list.pending:
+        # The model row is shown while the list is not resolved, even when the schema omits it
+        if 'model' not in schema and not self.provider.model_list.resolved:
             schema['model'] = ([], _( "AI model to use as the translator"))
 
         for key, option_definition in schema.items():
@@ -64,11 +64,11 @@ class ProviderSettingsForm(QObject):
         self._add_provider_info()
 
     def _create_field(self, key : str, option_definition, provider_settings : SettingsType) -> OptionWidget:
-        """Create a form field, showing the persisted model while the list loads."""
+        """Create a form field, showing the persisted model until the list is resolved."""
         key_type, tooltip, placeholder = ParseOptionDefinition(option_definition)
         initial_value = provider_settings.get(key)
 
-        if key == 'model' and self.provider.model_list.pending:
+        if key == 'model' and not self.provider.model_list.resolved:
             initial_value = self.settings.get_str('model') or self.provider.selected_model
             key_type = [initial_value] if initial_value else []
 
@@ -106,7 +106,7 @@ class ProviderSettingsForm(QObject):
         loader = TranslationProviderModelLoader(self.provider, owner=self)
         loader.loaded.connect(self._on_models_loaded)
         loader.failed.connect(self._on_models_failed)
-        loader.loaded.connect(lambda _name, _models, loader=loader: self._release_loader(loader))
+        loader.loaded.connect(lambda _name, loader=loader: self._release_loader(loader))
         loader.failed.connect(lambda _name, _message, loader=loader: self._release_loader(loader))
 
         self._loaders.append(loader)
@@ -117,8 +117,8 @@ class ProviderSettingsForm(QObject):
         if loader in self._loaders:
             self._loaders.remove(loader)
 
-    @Slot(str, list)
-    def _on_models_loaded(self, provider_name : str, models : list) -> None:
+    @Slot(str)
+    def _on_models_loaded(self, provider_name : str) -> None:
         """Reconcile the selection once the list arrives, preserving a model edited while loading."""
         if provider_name != self.provider.name:
             return

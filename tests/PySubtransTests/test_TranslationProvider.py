@@ -1,5 +1,6 @@
 from PySubtrans.Helpers.TestCases import DummyProvider, LoggedTestCase
 from PySubtrans.Helpers.Tests import log_input_expected_error, skip_if_debugger_attached
+from PySubtrans.ModelList import ModelListState
 from PySubtrans.Options import Options
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.TranslationProvider import TranslationProvider
@@ -16,6 +17,19 @@ class CountingProvider(TranslationProvider):
     def GetAvailableModels(self) -> list[str]:
         self.lookup_count += 1
         return ['model-a', 'model-b']
+
+
+class RaisingProvider(TranslationProvider):
+    """Provider whose model lookup raises, to check failures become state."""
+    name = "Raising Provider"
+
+    def __init__(self):
+        super().__init__(self.name, SettingsType({'model': 'model-a'}))
+        self.lookup_count = 0
+
+    def GetAvailableModels(self) -> list[str]:
+        self.lookup_count += 1
+        raise RuntimeError("lookup failed")
 
 
 class TranslationProviderTests(LoggedTestCase):
@@ -48,93 +62,70 @@ class TranslationProviderTests(LoggedTestCase):
         self.assertLoggedEqual("options.provider normalized to canonical name", "Dummy Provider", options.provider)
         self.assertLoggedEqual("provider received settings from options", "test-model-xyz", provider.settings.get_str('model'))
 
-    def test_available_models_are_cached_and_resettable(self):
-        """Model lookups are cached until the list is reset."""
+    def test_eager_lookup_resolves_and_caches(self):
+        """The first eager access resolves the list, and it is not fetched again."""
         provider = CountingProvider()
 
-        self.assertLoggedFalse("models not loaded initially", provider.model_list.resolved)
-        self.assertLoggedEqual("first lookup returns models", ['model-a', 'model-b'], provider.available_models)
-        self.assertLoggedEqual("lookup count after first access", 1, provider.lookup_count)
-        self.assertLoggedTrue("models marked loaded", provider.model_list.resolved)
+        self.assertLoggedEqual("state before lookup", ModelListState.Unloaded, provider.model_list.state)
+        self.assertLoggedEqual("models fetched on demand", ['model-a', 'model-b'], provider.available_models)
+        self.assertLoggedEqual("lookup performed", 1, provider.lookup_count)
+        self.assertLoggedEqual("state after lookup", ModelListState.Loaded, provider.model_list.state)
 
-        self.assertLoggedEqual("second lookup returns cached models", ['model-a', 'model-b'], provider.available_models)
+        self.assertLoggedEqual("second access returns cached models", ['model-a', 'model-b'], provider.available_models)
         self.assertLoggedEqual("lookup count unchanged", 1, provider.lookup_count)
 
+    def test_reset_returns_to_unloaded(self):
+        """Resetting discards the list and allows another lookup."""
+        provider = CountingProvider()
+        provider.available_models
+
         provider.ResetAvailableModels()
-        self.assertLoggedFalse("reset clears loaded state", provider.model_list.resolved)
+
+        self.assertLoggedEqual("state after reset", ModelListState.Unloaded, provider.model_list.state)
         self.assertLoggedEqual("lookup after reset refetches", ['model-a', 'model-b'], provider.available_models)
         self.assertLoggedEqual("lookup count after reset", 2, provider.lookup_count)
 
-    def test_set_available_models_marks_loaded(self):
-        """An explicitly set list, even empty, is not looked up again."""
+    def test_begin_load_defers_eager_fetch(self):
+        """While a load is in progress the known models are returned without fetching."""
         provider = CountingProvider()
 
-        provider.model_list.Store([])
+        provider.model_list.BeginLoad()
 
-        self.assertLoggedTrue("empty list is loaded", provider.model_list.resolved)
-        self.assertLoggedEqual("empty list returned", [], provider.available_models)
-        self.assertLoggedEqual("no lookup performed", 0, provider.lookup_count)
+        self.assertLoggedEqual("state while loading", ModelListState.Loading, provider.model_list.state)
+        self.assertLoggedEqual("no models known yet", [], provider.available_models)
+        self.assertLoggedEqual("provider did not fetch", 0, provider.lookup_count)
 
-    def test_available_models_can_be_fetched_eagerly(self):
-        """Without an async request the provider fulfils a direct model request itself."""
+    def test_resolve_records_loaded_state(self):
+        """Resolving runs the lookup and records the loaded state."""
         provider = CountingProvider()
+        provider.model_list.BeginLoad()
 
-        models = provider.available_models
+        provider.model_list.Resolve()
 
-        self.assertLoggedEqual("models fetched on demand", ['model-a', 'model-b'], models)
+        self.assertLoggedEqual("state after resolve", ModelListState.Loaded, provider.model_list.state)
+        self.assertLoggedEqual("models available", ['model-a', 'model-b'], provider.available_models)
         self.assertLoggedEqual("lookup performed", 1, provider.lookup_count)
-        self.assertLoggedFalse("no async request recorded", provider.model_list.pending)
 
-    def test_requested_load_defers_to_async_population(self):
-        """Once an async load is requested the provider stops fetching on its own."""
+    def test_cancel_returns_to_unloaded(self):
+        """Cancelling an in-progress load returns to unloaded so it can be retried."""
         provider = CountingProvider()
+        provider.model_list.BeginLoad()
 
-        provider.model_list.Request()
+        provider.model_list.Cancel()
+
+        self.assertLoggedEqual("state after cancel", ModelListState.Unloaded, provider.model_list.state)
+        self.assertLoggedEqual("eager access fetches again", ['model-a', 'model-b'], provider.available_models)
+        self.assertLoggedEqual("lookup performed after cancel", 1, provider.lookup_count)
+
+    def test_failed_lookup_is_recorded_as_state(self):
+        """A failed lookup is recorded as state rather than raised, and stays retryable."""
+        provider = RaisingProvider()
+
         models = provider.available_models
 
-        self.assertLoggedTrue("async load requested", provider.model_list.pending)
-        self.assertLoggedEqual("no models returned while loading", [], models)
-        self.assertLoggedEqual("provider did not fetch", 0, provider.lookup_count)
-        self.assertLoggedFalse("not marked loaded", provider.model_list.resolved)
+        self.assertLoggedEqual("failed lookup returns no models", [], models)
+        self.assertLoggedEqual("state after failure", ModelListState.Failed, provider.model_list.state)
+        self.assertLoggedIsNotNone("error recorded", provider.model_list.error)
 
-    def test_set_available_models_completes_requested_load(self):
-        """Completing a requested load clears the request and marks the list resolved."""
-        provider = CountingProvider()
-        provider.model_list.Request()
-
-        provider.model_list.Store(['model-a', 'model-b', 'model-c'])
-
-        self.assertLoggedFalse("request cleared", provider.model_list.pending)
-        self.assertLoggedTrue("models marked loaded", provider.model_list.resolved)
-        self.assertLoggedEqual("models available", ['model-a', 'model-b', 'model-c'], provider.available_models)
-        self.assertLoggedEqual("provider did not fetch", 0, provider.lookup_count)
-
-    def test_load_in_flight_does_not_block_eager_access(self):
-        """An in-flight async load returns the known models without blocking, and a setter completes it."""
-        provider = CountingProvider()
-        provider.model_list.Store(['persisted-model'])
-        provider.model_list.Request()
-
-        # e.g. ProjectDataModel.available_models while the dialog is still loading
-        self.assertLoggedEqual("known models returned while loading", ['persisted-model'], provider.available_models)
-        self.assertLoggedEqual("provider did not block with a fetch", 0, provider.lookup_count)
-
-        # The loader then completes the request
-        provider.model_list.Store(['model-a', 'model-b'])
-        self.assertLoggedEqual("resolved models returned after load", ['model-a', 'model-b'], provider.available_models)
-        self.assertLoggedTrue("models marked loaded", provider.model_list.resolved)
-
-    def test_failed_requested_load_allows_retry(self):
-        """A failed async load keeps the persisted model but stays unresolved for a retry."""
-        provider = CountingProvider()
-        provider.model_list.Request()
-
-        provider.model_list.Store(['model-a'], resolved=False)
-
-        self.assertLoggedFalse("request completed", provider.model_list.pending)
-        self.assertLoggedFalse("not marked loaded", provider.model_list.resolved)
-        self.assertLoggedEqual("known model retained", ['model-a'], provider.model_list.known)
-
-        # A later eager access can still fetch
-        self.assertLoggedEqual("retry fetches models", ['model-a', 'model-b'], provider.available_models)
-        self.assertLoggedEqual("lookup performed on retry", 1, provider.lookup_count)
+        provider.available_models
+        self.assertLoggedEqual("lookup retried", 2, provider.lookup_count)

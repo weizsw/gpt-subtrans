@@ -234,9 +234,8 @@ class OpenRouterProvider(TranslationProvider):
             with httpx.Client(timeout=20, proxy=proxy_url) as client:
                 result = client.get(url, headers=headers)
                 if result.is_error:
-                    logging.error(_("Error fetching models: {status} {text}").format(
+                    raise ValueError(_("Error fetching models: {status} {text}").format(
                         status=result.status_code, text=result.text))
-                    return
 
                 try:
                     data = result.json()
@@ -270,12 +269,11 @@ class OpenRouterProvider(TranslationProvider):
                     self._model_cache_filtered = use_model_filter
 
                 except json.JSONDecodeError:
-                    logging.error(_("Unable to parse server response as JSON: {response_text}").format(response_text=result.text))
-                    return
+                    raise ValueError(_("Unable to parse server response as JSON: {response_text}").format(response_text=result.text))
 
         except Exception as e:
             logging.error(_("Unable to retrieve available models: {error}").format(error=str(e)))
-            return
+            raise
 
     def _get_model_name(self, model : dict) -> tuple[str, str]:
         """

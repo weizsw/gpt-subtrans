@@ -109,7 +109,8 @@ Also provides methods for preprocessing, auto-batching and data sanitization.
 ### TranslationProvider (Configuration Layer)
 Each `TranslationProvider` subclass serves as the registry entry for a translation service and offers:
 - **`available_models`**: property containing available models that can be selected
-- **`model_list`**: the provider's `ModelList`, exposing `models` (fetch on demand), `known` (never fetch), `resolved`, `pending`, `Store`, `Request` and `Reset`. An async load can be requested so `models` returns the known list without fetching until the load completes.
+- **`model_list`**: the provider's `ModelList`, a state machine with `Unloaded`, `Loading`, `Loaded` and `Failed` states. `BeginLoad()` marks an async lookup, `Resolve()` runs it and records the outcome, `Cancel()` abandons it, and `models`/`known`/`resolved`/`pending`/`error` expose the result. A failed lookup is recorded as state rather than raised to callers.
+- **`GetAvailableModels`**: returns the provider's models, or raises on a failed lookup. `ModelList.Resolve()` turns that into `Loaded` or `Failed` state, so an empty list means "no models" rather than "lookup failed".
 - **GetTranslationClient**: creates an appropriate client for API communication
 - **GetOptions**: Defines provider-specific options (API key, endpoints, etc.), built from cached models only
 

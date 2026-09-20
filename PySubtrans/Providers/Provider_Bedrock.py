@@ -143,7 +143,7 @@ else:
                     logging.error(_("Unable to retrieve available AI models: {error}").format(
                         error=str(e)
                     ))
-                    return []
+                    raise
 
             def ValidateSettings(self) -> bool:
                 """

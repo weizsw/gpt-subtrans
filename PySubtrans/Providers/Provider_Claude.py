@@ -98,9 +98,6 @@ else:
 
                 return models
 
-            def RefreshAvailableModels(self):
-                self._available_models = self.GetAvailableModels()
-
             def GetInformation(self):
                 return self.information if self.api_key else self.information_noapikey
 
@@ -166,7 +163,7 @@ else:
                     logging.error(_("Unable to retrieve Claude model list: {error}").format(
                         error=str(e)
                     ))
-                    return []
+                    raise
 
             def _get_thinking_capabilities(self, model_id : str) -> SettingsType|None:
                 """
