@@ -1,6 +1,6 @@
 from PySubtrans.Helpers.TestCases import DummyProvider, LoggedTestCase
 from PySubtrans.Helpers.Tests import log_input_expected_error, skip_if_debugger_attached
-from PySubtrans.ModelList import ModelListState
+from PySubtrans.ModelList import ModelList, ModelListState
 from PySubtrans.Options import Options
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.TranslationProvider import TranslationProvider
@@ -129,3 +129,29 @@ class TranslationProviderTests(LoggedTestCase):
 
         provider.available_models
         self.assertLoggedEqual("lookup retried", 2, provider.lookup_count)
+
+    def test_superseded_request_is_not_recorded(self):
+        """A lookup that has been superseded cannot record its result over a newer one."""
+        models = ['new']
+        model_list = ModelList(lambda: list(models))
+
+        stale_request = model_list.BeginLoad()
+        current_request = model_list.BeginLoad()
+
+        self.assertLoggedTrue("newer request recorded", model_list.Resolve(current_request))
+        self.assertLoggedEqual("newer models recorded", ['new'], model_list.models)
+
+        models = ['stale']
+        self.assertLoggedFalse("stale request discarded", model_list.Resolve(stale_request))
+        self.assertLoggedEqual("newer result retained", ['new'], model_list.models)
+
+    def test_cancelled_request_is_not_recorded(self):
+        """A cancelled lookup cannot record its result, and the list stays retryable."""
+        model_list = ModelList(lambda: ['late'])
+
+        request = model_list.BeginLoad()
+        model_list.Cancel()
+
+        self.assertLoggedFalse("cancelled request discarded", model_list.Resolve(request))
+        self.assertLoggedEqual("state after cancel", ModelListState.Unloaded, model_list.state)
+        self.assertLoggedEqual("no models recorded", [], model_list.known)

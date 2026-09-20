@@ -24,7 +24,7 @@ class TranslationProviderModelLoader(QObject):
         self.provider = provider
         self._owner = owner
         self._thread : QThread|None = None
-        self._abandoned : bool = False
+        self._request : int = 0
 
     @property
     def running(self) -> bool:
@@ -36,7 +36,7 @@ class TranslationProviderModelLoader(QObject):
         if self._thread is not None:
             return
 
-        self.provider.model_list.BeginLoad()
+        self._request = self.provider.model_list.BeginLoad()
 
         thread = QThread(self._owner)
         self.moveToThread(thread)
@@ -51,23 +51,22 @@ class TranslationProviderModelLoader(QObject):
 
     def stop(self) -> None:
         """Release the loader without blocking the GUI thread.
-        The worker finishes on its own and its result is ignored, since a request cannot be interrupted.
+        The worker finishes on its own and its result is discarded, since a request cannot be interrupted.
         """
-        self._abandoned = True
+        # Cancelling makes the request stale, so the worker cannot record its result
+        self.provider.model_list.Cancel()
+
         thread = self._thread
         if thread is not None:
             thread.quit()
-
-        # Clear the in-progress state so later callers can resolve the list again
-        self.provider.model_list.Cancel()
 
     @Slot()
     def run(self) -> None:
         """Resolve the model list on the provider, emitting the outcome back to the caller."""
         provider = self.provider
-        provider.model_list.Resolve()
 
-        if self._abandoned:
+        if not provider.model_list.Resolve(self._request):
+            # A superseded or cancelled lookup has nothing to report
             return
 
         if provider.model_list.resolved:

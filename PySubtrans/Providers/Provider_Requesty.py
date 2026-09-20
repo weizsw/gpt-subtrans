@@ -284,8 +284,13 @@ class RequestyProvider(TranslationProvider):
         if not display_name:
             return display_name
 
-        # Ensure cache is populated
-        self._populate_model_cache()
+        # A failed lookup must not block translation: an unresolvable name is
+        # passed through unchanged, so an already valid model ID still works.
+        try:
+            self._populate_model_cache()
+        except Exception as e:
+            logging.debug(_("Unable to resolve model ID for {model}: {error}").format(model=display_name, error=str(e)))
+            return display_name
 
         for models in self._cached_models.values():
             if display_name in models:

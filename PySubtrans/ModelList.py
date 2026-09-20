@@ -1,5 +1,6 @@
 from collections.abc import Callable
 from enum import Enum, auto
+from threading import RLock
 
 
 class ModelListState(Enum):
@@ -16,12 +17,16 @@ class ModelList:
 
     Holds the known models and tracks the lifecycle of a lookup.
     A failed lookup is recorded as state rather than raised to callers.
+    Each lookup is identified by a request token, so a superseded lookup cannot
+    record its result over a newer one.
     """
     def __init__(self, fetch : Callable[[], list[str]]):
         self._fetch = fetch
         self._models : list[str] = []
         self._state : ModelListState = ModelListState.Unloaded
         self._error : str|None = None
+        self._request : int = 0
+        self._lock = RLock()
 
     @property
     def state(self) -> ModelListState:
@@ -68,37 +73,68 @@ class ModelList:
         """
         return self._error
 
-    def BeginLoad(self) -> None:
+    def BeginLoad(self) -> int:
         """
         Mark an asynchronous lookup as in progress
-        """
-        if self._state != ModelListState.Loading:
-            self._state = ModelListState.Loading
 
-    def Resolve(self) -> None:
+        Returns a request token identifying this lookup.
+        A later lookup, or a cancel, makes the token stale.
+        """
+        with self._lock:
+            self._state = ModelListState.Loading
+            self._request += 1
+            return self._request
+
+    def Resolve(self, request : int|None = None) -> bool:
         """
         Run the lookup and record the outcome as state. Never raises.
+
+        The request token from BeginLoad identifies the lookup that produced the
+        result, and a stale token is discarded so a superseded lookup cannot
+        overwrite a newer result.
+        Without a token the outcome is always recorded.
+        Returns whether the outcome was recorded.
         """
-        self._state = ModelListState.Loading
         try:
-            self._models = list(self._fetch())
-            self._error = None
-            self._state = ModelListState.Loaded
-        except Exception as error:
-            self._error = str(error)
-            self._state = ModelListState.Failed
+            models = list(self._fetch())
+            error = None
+        except Exception as failure:
+            models = []
+            error = str(failure)
+
+        with self._lock:
+            if request is not None and request != self._request:
+                return False
+
+            if error is not None:
+                self._error = error
+                self._state = ModelListState.Failed
+            else:
+                self._models = models
+                self._error = None
+                self._state = ModelListState.Loaded
+
+            return True
 
     def Cancel(self) -> None:
         """
         Abandon an in-progress lookup so it can be retried
+
+        The abandoned lookup's result is discarded.
         """
-        if self._state == ModelListState.Loading:
-            self._state = ModelListState.Unloaded
+        with self._lock:
+            if self._state == ModelListState.Loading:
+                self._state = ModelListState.Unloaded
+            self._request += 1
 
     def Reset(self) -> None:
         """
         Discard the known models and any lifecycle state
+
+        Also discards the result of any lookup already in progress.
         """
-        self._models = []
-        self._state = ModelListState.Unloaded
-        self._error = None
+        with self._lock:
+            self._models = []
+            self._state = ModelListState.Unloaded
+            self._error = None
+            self._request += 1

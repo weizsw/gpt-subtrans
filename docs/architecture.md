@@ -255,6 +255,10 @@ The provider decides whether a model request fetches or waits.
 
 **Model reconciliation** – when a model list arrives, `ProviderSettingsForm` keeps a still-available model, replaces an unavailable one with an available model, and leaves the persisted model untouched when the load failed.
 
+**Superseded model lookups** – each lookup carries a request token from `ModelList.BeginLoad`, and a result whose token is stale is discarded.
+A loader cancelled in favour of a newer request therefore cannot record a stale model list over the newer result.
+Resolving a model ID also tolerates a model list failure, so a saved model ID stays usable instead of aborting translation startup.
+
 **Provider information** – the "Provider Settings" and "Transcription Settings" tabs both render their read-only provider information through the shared `InformationOptionWidget` (schema type `INFO_OPTION`), so the two tabs stay consistent and neither lets a text editor claim the remaining space.
 
 ## Extending the System

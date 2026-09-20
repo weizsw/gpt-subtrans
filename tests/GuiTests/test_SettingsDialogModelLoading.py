@@ -82,6 +82,26 @@ class SlowModelProvider(FakeModelProvider):
         self._release.set()
 
 
+class GatedModelProvider(FakeModelProvider):
+    """Provider whose lookup blocks until released, so a request can be superseded mid-flight."""
+    name = 'Gated Model Provider'
+
+    def __init__(self, settings : SettingsType):
+        super().__init__(settings)
+        self.credentials = 'old'
+        self.lookup_started = Event()
+        self._release = Event()
+
+    def GetAvailableModels(self) -> list[str]:
+        self.lookup_started.set()
+        self._release.wait(5)
+        return ['model-from-' + self.credentials]
+
+    def release(self) -> None:
+        """Let the pending lookup finish."""
+        self._release.set()
+
+
 class TestSettingsDialogModelLoading(LoggedTestCase):
     application : QApplication
 
@@ -135,6 +155,33 @@ class TestSettingsDialogModelLoading(LoggedTestCase):
                 return field
 
         return None
+
+    def test_superseded_loader_cannot_overwrite_a_newer_result(self) -> None:
+        """A loader superseded by a newer request cannot record its result."""
+        provider = GatedModelProvider(SettingsType({'model': 'model-b'}))
+
+        stale = TranslationProviderModelLoader(provider)
+        stale.start()
+        self.assertLoggedTrue('stale lookup started', provider.lookup_started.wait(2))
+        self.assertLoggedTrue('list pending during lookup', provider.model_list.pending)
+
+        # Supersede the in-flight request, then let the abandoned lookup finish
+        stale.stop()
+        provider.credentials = 'new'
+        provider.release()
+
+        deadline = time.monotonic() + 2
+        while stale.running and time.monotonic() < deadline:
+            self.application.processEvents()
+            time.sleep(0.01)
+        self.assertLoggedFalse('stale loader finished', stale.running)
+
+        self.assertLoggedEqual('stale result discarded', [], provider.model_list.known)
+        self.assertLoggedFalse('list left unresolved', provider.model_list.resolved)
+
+        # The list stays retryable, and a fresh lookup sees the new credentials
+        self.assertLoggedEqual('retry resolves with new credentials',
+                               ['model-from-new'], provider.model_list.models)
 
     def test_provider_information_uses_the_shared_widget_in_both_tabs(self) -> None:
         """Provider information renders through the same widget in both settings tabs."""
