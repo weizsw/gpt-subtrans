@@ -18,6 +18,15 @@ class TestProviderImportGuard(LoggedTestCase):
         with patch.object(sys, 'meta_path', [guard, *sys.meta_path]):
             for package in guard.PACKAGES:
                 with self.subTest(package=package):
+                    # A unit test module that imported a provider at module scope leaves the
+                    # package cached, so the import below returns it instead of raising and this
+                    # check fails with a misleading 'RuntimeError not raised'. Fail loudly instead.
+                    self.assertLoggedFalse(
+                        f'{package} not already imported by a unit test module',
+                        package in sys.modules,
+                        msg=f'{package} is already in sys.modules: a unit test module imported a '
+                            f'concrete provider at module scope. Move that check to tests/IntegrationTests.')
+
                     with self.assertRaises(RuntimeError) as context:
                         importlib.import_module(package)
                     self.assertLoggedIn('actionable error', 'tests/integration_tests.py', str(context.exception))
