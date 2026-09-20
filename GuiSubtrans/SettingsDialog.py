@@ -646,6 +646,8 @@ class SettingsDialog(QDialog):
             logging.error(_("Unable to load transcription provider options: {error}").format(error=str(e)))
             return
 
+        provider_name = self.transcription_provider.name
+
         for key, option_definition in schema.items():
             key_type, tooltip, placeholder = ParseOptionDefinition(option_definition)
 
@@ -661,7 +663,8 @@ class SettingsDialog(QDialog):
                 key_type,
                 tooltip=tooltip,
                 placeholder=placeholder)
-            field.contentChanged.connect(lambda setting=field: self._on_setting_changed(section_name, setting.key, setting.GetValue()))
+            # Bind the provider name so a superseded form cannot write into another provider's settings
+            field.contentChanged.connect(lambda setting=field, name=provider_name: self._on_transcription_provider_setting_changed(name, setting.key, setting.GetValue()))
             layout.addRow(field.name, field)
             self.widgets[key] = field
 
@@ -722,17 +725,28 @@ class SettingsDialog(QDialog):
                 logging.error(_("Transcription provider is not set"))
                 return
 
-            namespace = self._get_transcription_provider_settings(provider)
-            namespace[key] = value
-
-            # The language hint is validated in the provider information, so it refreshes like a key change
-            if self.transcription_provider and (key == 'language' or key in self.transcription_provider.refresh_when_changed):
-                self._refresh_transcription_provider_options()
+            self._on_transcription_provider_setting_changed(provider, key, value)
 
         else:
             self.settings[key] = value
             self._update_section_visibility()
             self._update_setting_visibility()
+
+    def _on_transcription_provider_setting_changed(self, provider_name : str, key : str, value) -> None:
+        """
+        Apply a transcription provider setting change and refresh the form when it affects the options.
+        """
+        provider = self.transcription_provider
+        if not provider or provider.name != provider_name:
+            # Ignore changes from a form for a provider that is no longer selected
+            return
+
+        namespace = self._get_transcription_provider_settings(provider_name)
+        namespace[key] = value
+
+        # The language hint is validated in the provider information, so it refreshes like a key change
+        if key == 'language' or key in provider.refresh_when_changed:
+            self._refresh_transcription_provider_options()
 
     def _update_instruction_file(self):
         """
