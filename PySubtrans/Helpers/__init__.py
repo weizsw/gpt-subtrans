@@ -152,3 +152,19 @@ def FormatErrorMessages(errors : list[SubtitleError|str]) -> str:
     Extract error messages from a list of errors
     """
     return ", ".join([ error.message or str(error) if isinstance(error, SubtitleError) else str(error) for error in errors ])
+
+def DescribeError(error : BaseException|None) -> str:
+    """
+    Describe an exception for logging, always naming the exception type.
+
+    Some causes are only identifiable by type - an empty message, or a bare
+    decoder message like "Expecting value: line 1 column 1", means nothing
+    without knowing what raised it.
+    """
+    if error is None:
+        return ""
+
+    detail = str(error).strip()
+    name = type(error).__name__
+
+    return f"{name}: {detail}" if detail else name
