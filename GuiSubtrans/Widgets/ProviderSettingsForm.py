@@ -1,11 +1,12 @@
 import logging
 
 from PySide6.QtCore import QObject, Qt, Signal, Slot
-from PySide6.QtWidgets import QFormLayout, QLabel, QSizePolicy
+from PySide6.QtWidgets import QFormLayout
 
 from GuiSubtrans.Widgets.OptionsWidgets import CreateOptionWidget, OptionWidget, ParseOptionDefinition
 from GuiSubtrans.Widgets.TranslationProviderModelLoader import TranslationProviderModelLoader
 from PySubtrans.Helpers.Localization import _
+from PySubtrans.Options import INFO_OPTION
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.TranslationProvider import TranslationProvider
 
@@ -82,17 +83,11 @@ class ProviderSettingsForm(QObject):
         if not provider_info:
             return
 
-        info_label = QLabel(provider_info)
-        info_label.setWordWrap(True)
-        info_label.setTextFormat(Qt.TextFormat.RichText)
-        info_label.setOpenExternalLinks(True)
-        info_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
-        info_label.setMinimumWidth(400)
-        info_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-
-        # Top-align row labels so the label lines up with the tall information block
+        # Top-align row labels so the label lines up with the multi-line information block
         self.layout.setLabelAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
-        self.layout.addRow(QLabel(_("Provider information")), info_label)
+
+        field = CreateOptionWidget('provider_info', provider_info, INFO_OPTION)
+        self.layout.addRow(_("Provider information"), field)
 
     def _start_model_load(self) -> None:
         """Load the model list off-thread when it has not been resolved."""

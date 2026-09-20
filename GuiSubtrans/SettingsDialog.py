@@ -1,14 +1,14 @@
 import logging
 from collections.abc import Callable
-from PySide6.QtCore import Qt, QThread, Slot
-from PySide6.QtWidgets import (QDialog, QVBoxLayout, QTabWidget, QDialogButtonBox, QWidget, QFormLayout, QFrame, QLabel, QScrollArea)
+from PySide6.QtCore import QThread, Slot
+from PySide6.QtWidgets import (QDialog, QVBoxLayout, QTabWidget, QDialogButtonBox, QWidget, QFormLayout, QFrame)
 from GuiSubtrans.GuiHelpers import ClearForm, GetThemeNames
 
 from GuiSubtrans.Widgets.OptionsWidgets import CreateOptionWidget, OptionWidget, ParseOptionDefinition
 from GuiSubtrans.Widgets.ProviderSettingsForm import ProviderSettingsForm
 from GuiSubtrans.Widgets.TranscriptionProviderLoader import TranscriptionProviderLoader
 from PySubtrans.Helpers.InstructionsHelpers import GetInstructionsFiles, LoadInstructions
-from PySubtrans.Options import ConfigActionOption, Options
+from PySubtrans.Options import ConfigActionOption, INFO_OPTION, Options
 from GuiSubtrans.Widgets.TorchSetupDialog import TorchSetupDialog
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.Substitutions import Substitutions
@@ -59,7 +59,7 @@ class SettingsDialog(QDialog):
             'transcription_provider': ([], _("The transcription service to use")),
             'transcription_provider_settings': TranscriptionProvider,
             'postprocess_transcription': (bool, _("Clean transcribed lines with the same normalizations used for loaded subtitles (dashes, filler words, line breaks)")),
-            'provider_info': (str, _("Information about the selected transcription provider")),
+            'provider_info': (INFO_OPTION, _("Information about the selected transcription provider")),
             'ffmpeg_path': (str, _(
                 "Optional path to the ffmpeg executable. Leave blank to use ffmpeg and ffprobe from the system PATH"
             ), _("Leave blank to use ffmpeg and ffprobe from the system PATH")),
@@ -498,38 +498,22 @@ class SettingsDialog(QDialog):
             if provider not in self.provider_settings or not self.provider_settings[provider]:
                 self.provider_settings[provider] = self.translation_provider.settings.copy()
 
-    def _add_provider_info(self, section_name : str, layout : QFormLayout):
+    def _add_provider_info(self, section_name : str, layout : QFormLayout) -> None:
         """
-        Add a read-only field for provider information to the form
+        Add the read-only provider information row to the form
         """
-        if section_name == self.TRANSCRIPTION_SECTION and self.transcription_provider:
-            provider_info = self.transcription_provider.GetInformation(
-                ffmpeg_available=self.ffmpeg_available, torch_device=self.torch_device,
-                display_language=self.settings.get_str('ui_language'))
-        else:
+        if section_name != self.TRANSCRIPTION_SECTION or not self.transcription_provider:
             return
 
-        if provider_info:
-            self._add_provider_info_widget(layout, provider_info)
+        provider_info = self.transcription_provider.GetInformation(
+            ffmpeg_available=self.ffmpeg_available, torch_device=self.torch_device,
+            display_language=self.settings.get_str('ui_language'))
 
-    def _add_provider_info_widget(self, layout, provider_info):
-        """
-        Create a rich text widget for provider information and add it to the layout
-        """
-        provider_container = QWidget()
-        provider_layout = QVBoxLayout(provider_container)
-        infoLabel = QLabel(provider_info)
-        infoLabel.setWordWrap(True)
-        infoLabel.setTextFormat(Qt.TextFormat.RichText)
-        infoLabel.setOpenExternalLinks(True)
-        provider_layout.addWidget(infoLabel)
-        provider_layout.addStretch(1)
+        if not provider_info:
+            return
 
-        scrollArea = QScrollArea()
-        scrollArea.setWidgetResizable(True)
-        scrollArea.setSizeAdjustPolicy(QScrollArea.SizeAdjustPolicy.AdjustToContents)
-        scrollArea.setWidget(provider_container)
-        layout.addRow(QLabel(_("Provider information")), scrollArea)
+        field = CreateOptionWidget('provider_info', provider_info, INFO_OPTION)
+        layout.addRow(_("Provider information"), field)
 
     def _get_section_layout(self, section_name : str) -> QFormLayout:
         """

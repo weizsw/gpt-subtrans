@@ -7,15 +7,17 @@ from tests.GuiTestSupport import ConfigureOffscreenPlatform
 
 ConfigureOffscreenPlatform()
 
-from PySide6.QtWidgets import QApplication
+from PySide6.QtWidgets import QApplication, QFormLayout, QLabel, QSizePolicy
 
 from GuiSubtrans.SettingsDialog import SettingsDialog
+from GuiSubtrans.Widgets.OptionsWidgets import InformationOptionWidget
 from GuiSubtrans.Widgets.TranslationProviderModelLoader import TranslationProviderModelLoader
 from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.Helpers.Tests import skip_if_debugger_attached
 from PySubtrans.Options import Options
 from PySubtrans.SettingsType import GuiSettingsType, SettingsType
 from PySubtrans.TranslationProvider import TranslationProvider
+from tests.PySubtransTests.test_Transcription import FakeTranscriptionProvider
 
 
 class FakeModelProvider(TranslationProvider):
@@ -118,6 +120,47 @@ class TestSettingsDialogModelLoading(LoggedTestCase):
     def _model_field(self, dialog : SettingsDialog):
         form = dialog.provider_form
         return form.widgets.get('model') if form else None
+
+    def _information_field(self, dialog : SettingsDialog, section : str):
+        """Return the provider information field of a settings section, if present."""
+        section_widget = dialog._sections.get(section)
+        layout = section_widget.layout() if section_widget else None
+        if not isinstance(layout, QFormLayout):
+            return None
+
+        for row in range(layout.rowCount()):
+            item = layout.itemAt(row, QFormLayout.ItemRole.FieldRole)
+            field = item.widget() if item is not None else None
+            if getattr(field, 'key', None) == 'provider_info':
+                return field
+
+        return None
+
+    def test_provider_information_uses_the_shared_widget_in_both_tabs(self) -> None:
+        """Provider information renders through the same widget in both settings tabs."""
+        provider = FakeModelProvider(SettingsType({'model': 'model-b'}))
+        dialog = self._open_dialog(provider, 'model-b')
+        self._await_models(dialog)
+
+        # The transcription tab is populated on demand, so supply a provider directly
+        dialog.transcription_provider = FakeTranscriptionProvider()
+        transcription_layout = dialog._sections[SettingsDialog.TRANSCRIPTION_SECTION].layout()
+        dialog._populate_form(SettingsDialog.TRANSCRIPTION_SECTION, transcription_layout)
+
+        translation_field = self._information_field(dialog, SettingsDialog.PROVIDER_SECTION)
+        transcription_field = self._information_field(dialog, SettingsDialog.TRANSCRIPTION_SECTION)
+
+        self.assertLoggedIsInstance('provider tab information field', translation_field, InformationOptionWidget)
+        self.assertLoggedIsInstance('transcription tab information field', transcription_field, InformationOptionWidget)
+
+        # Neither tab should hand the row to a space-filling text editor
+        for description, field in (('provider tab', translation_field), ('transcription tab', transcription_field)):
+            label = getattr(field, 'info_label', None)
+            self.assertLoggedIsInstance(f'{description} information label', label, QLabel)
+            if isinstance(label, QLabel):
+                self.assertLoggedTrue(f'{description} information wraps', label.wordWrap())
+                self.assertLoggedFalse(f'{description} information does not fill the form',
+                                       label.sizePolicy().verticalPolicy() == QSizePolicy.Policy.Expanding)
 
     def test_valid_model_is_preserved(self) -> None:
         """A persisted model that is still available stays selected."""

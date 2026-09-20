@@ -255,6 +255,8 @@ The provider decides whether a model request fetches or waits.
 
 **Model reconciliation** – when a model list arrives, `ProviderSettingsForm` keeps a still-available model, replaces an unavailable one with an available model, and leaves the persisted model untouched when the load failed.
 
+**Provider information** – the "Provider Settings" and "Transcription Settings" tabs both render their read-only provider information through the shared `InformationOptionWidget` (schema type `INFO_OPTION`), so the two tabs stay consistent and neither lets a text editor claim the remaining space.
+
 ## Extending the System
 
 - **New file formats** → `PySubtrans/Formats/` (add file handler, extend `SubtitleFileHandler`, add import to `__init__.py`)

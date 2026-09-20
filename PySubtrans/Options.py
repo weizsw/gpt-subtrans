@@ -17,6 +17,7 @@ from PySubtrans.SettingsType import SettingType, SettingsType
 from PySubtrans.version import __version__
 
 MULTILINE_OPTION = 'multiline'
+INFO_OPTION = 'information'
 
 class ConfigActionOption:
     """Sentinel base for settings that need an action button."""
