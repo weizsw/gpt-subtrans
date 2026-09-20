@@ -71,7 +71,7 @@ try:
                 'torch_installation_directory': settings.get_str('torch_installation_directory', ''),
             }))
 
-            self.refresh_when_changed = ['allow_cpu_fallback', 'torch_installation_directory']
+            self.refresh_when_changed = ['allow_cpu_fallback', 'torch_installation_directory', 'language']
 
         def GetAvailableModels(self) -> list[str]:
             """ASR checkpoints served by this provider."""

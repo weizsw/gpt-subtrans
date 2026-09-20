@@ -83,7 +83,7 @@ else:
                     'rate_limit': settings.get_float('rate_limit', env_float('GEMINI_TRANSCRIPTION_RATE_LIMIT')),
                 }))
 
-                self.refresh_when_changed = ['api_key']
+                self.refresh_when_changed = ['api_key', 'language']
 
             def GetAvailableModels(self) -> list[str]:
                 """Transcription models served by this provider."""

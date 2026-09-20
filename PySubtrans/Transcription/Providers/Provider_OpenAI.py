@@ -49,7 +49,7 @@ class OpenAITranscriptionProvider(TranscriptionProvider):
             'proxy': settings.get_str('proxy') or os.getenv('OPENAI_PROXY'),
         }))
 
-        self.refresh_when_changed = ['api_key']
+        self.refresh_when_changed = ['api_key', 'language']
 
     def GetAvailableModels(self) -> list[str]:
         """Timed transcription models served by this provider."""

@@ -744,8 +744,7 @@ class SettingsDialog(QDialog):
         namespace = self._get_transcription_provider_settings(provider_name)
         namespace[key] = value
 
-        # The language hint is validated in the provider information, so it refreshes like a key change
-        if key == 'language' or key in provider.refresh_when_changed:
+        if key in provider.refresh_when_changed:
             self._refresh_transcription_provider_options()
 
     def _update_instruction_file(self):
