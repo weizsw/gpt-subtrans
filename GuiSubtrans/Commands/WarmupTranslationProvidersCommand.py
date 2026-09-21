@@ -4,6 +4,7 @@ from typing import cast
 
 from GuiSubtrans.Command import Command
 from PySubtrans.Helpers.ImportGuard import UsingOriginalImport
+from PySubtrans.Helpers.Localization import _
 from PySubtrans.Options import Options
 from PySubtrans.TranslationProvider import TranslationProvider
 
@@ -30,7 +31,7 @@ class WarmupTranslationProvidersCommand(Command):
         provider_lookup_start = time.perf_counter()
         available_providers = TranslationProvider.get_providers()
         provider_lookup_elapsed = time.perf_counter() - provider_lookup_start
-        logging.info("Starting background translation-provider warm-up")
+        logging.info(_("Warming up translation provider"))
         logging.debug("Located %d translation providers in %.3f seconds",
                       len(available_providers), provider_lookup_elapsed)
 
@@ -46,7 +47,7 @@ class WarmupTranslationProvidersCommand(Command):
 
         for provider_name in provider_names:
             if self.aborted:
-                logging.info("Aborted background translation-provider warm-up")
+                logging.info(_("Aborted translation provider warm-up"))
                 return True
 
             try:
@@ -61,7 +62,7 @@ class WarmupTranslationProvidersCommand(Command):
                               provider_name, warmup_elapsed)
 
                 if self.aborted:
-                    logging.info("Aborted background translation-provider warm-up")
+                    logging.info(_("Aborted translation provider warm-up"))
                     return True
 
                 construction_start = time.perf_counter()
@@ -83,10 +84,10 @@ class WarmupTranslationProvidersCommand(Command):
                 logging.warning("Unable to warm %s provider: %s", provider_name, error)
 
             if self.aborted:
-                logging.info("Aborted background translation-provider warm-up")
+                logging.info(_("Aborted translation provider warm-up"))
                 return True
 
         command_elapsed = time.perf_counter() - command_start
-        logging.info("Completed background translation-provider warm-up (%d providers)", warmed_providers)
-        logging.debug("Background translation-provider warm-up took %.3f seconds", command_elapsed)
+        logging.info(_("Completed translation provider warm-up (%d providers)"), warmed_providers)
+        logging.debug("Background translation provider warm-up took %.3f seconds", command_elapsed)
         return True
