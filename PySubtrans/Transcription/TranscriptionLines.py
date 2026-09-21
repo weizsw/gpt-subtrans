@@ -282,16 +282,22 @@ class TranscriptionLineBuilder:
         """
         Group lines into runs that belong together.
 
-        A fragment joins the run in front of it. A fragment opening the list
-        has nothing in front, so it joins the run behind it instead.
+        Merging rescues material too brief to read, so only a fragment can
+        take one on: a line long enough to read already keeps to itself.
+
+        A fragment joins the fragment in front of it. One left standing alone,
+        because what came before it was a full line, takes the line behind it
+        instead, whatever that line's length.
         """
         runs : list[list[TranscriptionSegment]] = [[lines[0]]]
 
         for line in lines[1:]:
             run = runs[-1]
-            opening_fragment = len(runs) == 1 and len(run) == 1 and self._is_sliver(run[0])
+            stranded = len(run) == 1
 
-            if (self._is_sliver(line) or opening_fragment) and self._merge_eligible(run, line):
+            if (self._is_sliver(run[-1])
+                    and (self._is_sliver(line) or stranded)
+                    and self._merge_eligible(run, line)):
                 run.append(line)
             else:
                 runs.append([line])

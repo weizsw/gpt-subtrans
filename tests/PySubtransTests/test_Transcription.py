@@ -432,14 +432,24 @@ class TestWordGrouping(LoggedTestCase):
         self.assertLoggedEqual("second end", timedelta(seconds=111.3), lines[1].end)
         self.assertLoggedEqual("second text", "So...", lines[1].text)
 
-    def test_sliver_after_short_pause_merges(self):
-        """A fragment hard on the heels of the previous line still folds in."""
+    def test_readable_line_does_not_absorb_a_trailing_fragment(self):
+        """A line already long enough to read keeps to itself, however close the next fragment."""
         words = [_word("yes", 0.0, 1.0, "A"), _word("um", 1.2, 1.4, "B")]
         lines = self._scene_lines(self._builder(), "yes um", words)
 
-        self.assertLoggedEqual("line count", 1, len(lines))
-        self.assertLoggedEqual("merged span", timedelta(seconds=101.4), lines[0].end)
-        self.assertLoggedEqual("merged text", "- yes\n- um", lines[0].text)
+        self.assertLoggedEqual("line count", 2, len(lines))
+        self.assertLoggedEqual("readable line kept its own span", timedelta(seconds=101), lines[0].end)
+        self.assertLoggedEqual("fragment text", "um", lines[1].text)
+
+    def test_stranded_fragment_takes_the_line_behind_it(self):
+        """A fragment a full line will not host adopts its follower instead of standing alone."""
+        words = [_word("yes", 0.0, 1.0, "A"), _word("um", 1.2, 1.4, "B"),
+                 _word("indeed", 1.5, 2.6, "B")]
+        lines = self._scene_lines(self._builder(), "yes um indeed", words)
+
+        self.assertLoggedEqual("line count", 2, len(lines))
+        self.assertLoggedEqual("readable line kept its own span", timedelta(seconds=101), lines[0].end)
+        self.assertLoggedEqual("fragment joined its follower", "um indeed", lines[1].text)
 
     def test_three_speaker_slivers_keep_all_dialogue_turns(self):
         """Merging a third speaker keeps earlier dialogue markers and attribution."""
