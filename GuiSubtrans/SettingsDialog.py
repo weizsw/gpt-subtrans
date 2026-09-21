@@ -225,6 +225,8 @@ class SettingsDialog(QDialog):
         return self.settings.get_dict('provider_settings')
 
     def accept(self):
+        self._stop_provider_model_load()
+
         try:
             for section_name in self.SECTIONS.keys():
                 section_widget = self._tabs.findChild(QWidget, section_name)
@@ -282,6 +284,10 @@ class SettingsDialog(QDialog):
         except Exception as e:
             logging.error(f"Error in settings dialog handler: {e}")
             self.reject()
+
+    def reject(self):
+        self._stop_provider_model_load()
+        super().reject()
 
     def _get_provider_settings(self, provider : str) -> dict[str, SettingsType]:
         """ Get the settings for a specific provider """
@@ -684,14 +690,18 @@ class SettingsDialog(QDialog):
 
         return lambda current_value: None
 
+    def _stop_provider_model_load(self) -> None:
+        """Prevent late provider model results from mutating settings after the dialog closes."""
+        if self.provider_form is not None:
+            self.provider_form.Stop()
+
     def closeEvent(self, event) -> None:
         """Stop the background loaders if the dialog closes early."""
         if self.loader_thread is not None and self.loader_thread.isRunning():
             self.loader_thread.quit()
             self.loader_thread.wait(5000)
 
-        if self.provider_form is not None:
-            self.provider_form.Stop()
+        self._stop_provider_model_load()
 
         super().closeEvent(event)
 

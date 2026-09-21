@@ -264,6 +264,27 @@ class TestSettingsDialogModelLoading(LoggedTestCase):
             self.assertLoggedEqual('persisted model preserved after load', 'model-c', field.GetValue())
             self.assertLoggedEqual('setting preserved after load', 'model-c', dialog.provider_settings.get_dict(provider.name).get_str('model'))
 
+    def test_late_model_load_cannot_change_accepted_settings(self) -> None:
+        """A model result queued after acceptance cannot mutate the accepted settings."""
+        provider = FakeModelProvider(SettingsType({'model': 'retired-model'}))
+        dialog = self._open_dialog(provider, 'retired-model')
+
+        form = dialog.provider_form
+        self.assertLoggedIsNotNone('provider form created', form)
+        if form is None:
+            return
+
+        dialog.accept()
+
+        request = provider.model_list.BeginLoad()
+        provider.model_list.Resolve(request)
+        form._on_models_loaded(provider.name)
+
+        self.assertLoggedEqual(
+            'accepted model remains unchanged after late load',
+            'retired-model',
+            dialog.provider_settings.get_dict(provider.name).get_str('model'))
+
     def test_provider_selector_switches_provider(self) -> None:
         """The provider selector remains available and switches the shown models."""
         provider_a = FakeModelProvider(SettingsType({'model': 'model-b'}))

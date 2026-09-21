@@ -28,6 +28,7 @@ class ProviderSettingsForm(QObject):
         self.layout = layout
         self.widgets : dict[str, OptionWidget] = {}
         self._loaders : list[TranslationProviderModelLoader] = []
+        self._active : bool = True
 
         # Mark the load in progress before building so the persisted model is shown until it resolves
         if not self.provider.model_list.resolved:
@@ -44,6 +45,8 @@ class ProviderSettingsForm(QObject):
 
     def Stop(self) -> None:
         """Stop any background model load."""
+        self._active = False
+
         for loader in list(self._loaders):
             loader.stop()
 
@@ -115,7 +118,7 @@ class ProviderSettingsForm(QObject):
     @Slot(str)
     def _on_models_loaded(self, provider_name : str) -> None:
         """Reconcile the selection once the list arrives, preserving a model edited while loading."""
-        if provider_name != self.provider.name:
+        if not self._active or provider_name != self.provider.name:
             return
 
         display_model = self.GetModel()
@@ -128,7 +131,7 @@ class ProviderSettingsForm(QObject):
     @Slot(str, str)
     def _on_models_failed(self, provider_name : str, message : str) -> None:
         """Keep the persisted model when the model list cannot be loaded."""
-        if provider_name != self.provider.name:
+        if not self._active or provider_name != self.provider.name:
             return
 
         logging.warning(_("Unable to load models for {provider}: {error}").format(provider=provider_name, error=message))
