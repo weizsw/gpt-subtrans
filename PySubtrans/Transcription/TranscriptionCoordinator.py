@@ -16,7 +16,7 @@ from PySubtrans.Transcription.AudioChunker import AudioChunker, AudioChunk
 from PySubtrans.Transcription.AudioExtractor import AudioExtractor, AudioTrack, CheckFfmpegAvailable
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionEvents import TranscriptionEvents
-from PySubtrans.Transcription.TranscriptionLines import SpanLabel, TranscriptionLineBuilder
+from PySubtrans.Transcription.TranscriptionLines import NO_SPEAKER_MAX_GAP_SECONDS, SpanLabel, TranscriptionLineBuilder
 from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionOutcome, TranscriptionStatus
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionRun import TranscriptionRun
@@ -49,7 +49,10 @@ class TranscriptionCoordinator:
         self.line_builder : TranscriptionLineBuilder = TranscriptionLineBuilder(
             max_line_chars=self.settings.get_int('max_characters') or 120,
             max_line_seconds=self.settings.get_float('max_line_duration') or 4.0,
-            min_split_chars=self.settings.get_int('min_split_chars') or 3)
+            min_split_chars=self.settings.get_int('min_split_chars') or 3,
+            min_line_seconds=self.settings.get_float('min_line_duration') or 0.8,
+            max_gap_for_merge=self.settings.get_float('max_gap_for_merge') or NO_SPEAKER_MAX_GAP_SECONDS,
+            max_newlines=self.settings.get_int('max_newlines') or 2)
 
         self.events : TranscriptionEvents = TranscriptionEvents()
         self._active_client : TranscriptionClient|None = None

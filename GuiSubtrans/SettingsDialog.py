@@ -75,6 +75,7 @@ class SettingsDialog(QDialog):
             'seconds_per_character': (float, _("Minimum reading time per visible character in seconds")),
             'min_gap': (float, _("Minimum gap between consecutive subtitles, in seconds, used when preprocess_subtitles, extend_short_subtitles, or prevent_overlapping_times is enabled")),
             'merge_line_duration': (float, _("Merge lines with a duration less than this with the previous line")),
+            'max_gap_for_merge': (float, _("Maximum gap between lines for them to be considered part of the same utterance")),
             'min_split_chars': (int, _("Minimum number of characters to split a line at")),
             'break_dialog_on_one_line': (bool, _("Add line breaks to text with dialog markers")),
             'normalise_dialog_tags': (bool, _("Ensure dialog markers match in multi-line subtitles")),

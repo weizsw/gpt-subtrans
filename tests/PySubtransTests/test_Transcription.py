@@ -350,12 +350,38 @@ class TestWordGrouping(LoggedTestCase):
 
     def test_speaker_change_splits_lines(self):
         """Speaker turns break subtitle lines and label them."""
-        words = [_word("yes", 0.0, 0.5, "A"), _word("no", 0.6, 1.0, "B")]
+        words = [_word("yes", 0.0, 1.0, "A"), _word("no", 1.1, 2.1, "B")]
         lines = self._scene_lines(self._builder(), "yes no", words)
 
         self.assertLoggedEqual("line count", 2, len(lines))
         self.assertLoggedEqual("first speaker", "A", lines[0].speaker)
         self.assertLoggedEqual("second speaker", "B", lines[1].speaker)
+
+    def test_brief_speaker_turns_combine_into_dialogue(self):
+        """Two turns too short to read on their own share a line rather than flicker past."""
+        words = [_word("yes", 0.0, 0.5, "A"), _word("no", 0.6, 1.0, "B")]
+        lines = self._scene_lines(self._builder(), "yes no", words)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("dialogue text", "- yes\n- no", lines[0].text)
+        self.assertLoggedEqual("mixed speaker attribution", None, lines[0].speaker)
+
+    def test_same_speaker_continues_across_moderate_pause(self):
+        """One speaker pausing mid-clause keeps a single line instead of two fragments."""
+        words = [_word("以为自己", 0.0, 0.559, "0"), _word("是只鬼。", 1.28, 2.08, "0")]
+        lines = self._scene_lines(self._builder(), "以为自己是只鬼。", words)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("merged text", "以为自己是只鬼。", lines[0].text)
+        self.assertLoggedEqual("merged start", timedelta(seconds=100), lines[0].start)
+        self.assertLoggedEqual("merged end", timedelta(seconds=102.08), lines[0].end)
+
+    def test_unknown_speaker_keeps_tighter_pause_limit(self):
+        """Without speaker information the same pause is treated as a real break."""
+        words = [_word("以为自己", 0.0, 0.559), _word("是只鬼。", 1.28, 2.08)]
+        lines = self._scene_lines(self._builder(), "以为自己是只鬼。", words)
+
+        self.assertLoggedEqual("line count", 2, len(lines))
 
     def test_sliver_across_pause_stays_separate(self):
         """A short interjection after seconds of silence keeps its own line."""
@@ -405,6 +431,47 @@ class TestWordGrouping(LoggedTestCase):
         self.assertLoggedEqual("line count", 1, len(lines))
         self.assertLoggedEqual("merged start", timedelta(seconds=100), lines[0].start)
         self.assertLoggedEqual("merged end", timedelta(seconds=101.4), lines[0].end)
+
+
+class TestSliverMergeLimits(LoggedTestCase):
+    """A run of fragments divides into readable pieces instead of one dense block."""
+
+    def _turns(self, texts : list[str], speakers : list[str]) -> list[TranscriptionSegment]:
+        """Half-second turns a fifth of a second apart, so every one is a fragment."""
+        lines : list[TranscriptionSegment] = []
+        for index, (text, speaker) in enumerate(zip(texts, speakers)):
+            start = index * 0.7
+            lines.append(TranscriptionSegment(start=timedelta(seconds=start),
+                                              end=timedelta(seconds=start + 0.5),
+                                              text=text, speaker=speaker))
+        return lines
+
+    def test_four_turns_divide_into_pairs(self):
+        """Four turns make a pair of pairs rather than three turns and an orphan."""
+        lines = self._turns(["够了。", "蛤？", "够了？", "不适了？"], ["0", "1", "0", "1"])
+        merged = _default_builder().MergeSlivers(lines)
+
+        self.assertLoggedEqual("line count", 2, len(merged))
+        self.assertLoggedEqual("first pair", "- 够了。\n- 蛤？", merged[0].text)
+        self.assertLoggedEqual("second pair", "- 够了？\n- 不适了？", merged[1].text)
+
+    def test_five_turns_respect_the_newline_limit(self):
+        """A five turn scramble divides rather than stacking onto one subtitle."""
+        lines = self._turns(["我死我死", "早生啊！", "我死", "打你啊！", "點樣啊？"],
+                            ["0", "1", "0", "1", "0"])
+        merged = _default_builder().MergeSlivers(lines)
+
+        self.assertLoggedEqual("line count", 2, len(merged))
+        self.assertLoggedEqual("first piece", "- 我死我死\n- 早生啊！\n- 我死", merged[0].text)
+        self.assertLoggedEqual("second piece", "- 打你啊！\n- 點樣啊？", merged[1].text)
+
+    def test_one_speaker_fragments_join_as_continuous_text(self):
+        """One speaker's broken up sentence carries no turn markers to limit."""
+        lines = self._turns(["我", "不", "知", "道", "啊"], ["0"] * 5)
+        merged = _default_builder().MergeSlivers(lines)
+
+        self.assertLoggedEqual("line count", 1, len(merged))
+        self.assertLoggedEqual("continuous text", "我不知道啊", merged[0].text)
 
 
 class TestOverlongUtteranceSplitting(LoggedTestCase):
@@ -552,6 +619,34 @@ class TestOverlongSpans(LoggedTestCase):
 
         self.assertLoggedEqual("line count", 1, len(lines))
         self.assertLoggedEqual("flagged", False, builder.WarnIfOverlong(lines[0]))
+
+    def test_same_speaker_part_fragments_merge(self):
+        """Fragments the provider segmented for us are still reunited when one speaker owns both."""
+        chunk = AudioChunk(start=timedelta(seconds=100), end=timedelta(seconds=160))
+        parts = [TranscriptionSegment(start=timedelta(seconds=0), end=timedelta(seconds=0.559),
+                                      text="以为自己", speaker="0"),
+                 TranscriptionSegment(start=timedelta(seconds=1.28), end=timedelta(seconds=2.08),
+                                      text="是只鬼。", speaker="0")]
+        segment = TranscriptionSegment(start=chunk.start, end=chunk.end, text="以为自己是只鬼。",
+                                       language="Chinese", parts=parts)
+        lines = self._builder().LinesForSegment(segment)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("merged text", "以为自己是只鬼。", lines[0].text)
+        self.assertLoggedEqual("merged end", timedelta(seconds=102.08), lines[0].end)
+
+    def test_distinct_speaker_parts_keep_tighter_pause_limit(self):
+        """The same pause that joins one speaker's fragments is a real break between two."""
+        chunk = AudioChunk(start=timedelta(seconds=100), end=timedelta(seconds=160))
+        parts = [TranscriptionSegment(start=timedelta(seconds=0), end=timedelta(seconds=0.559),
+                                      text="你是谁", speaker="0"),
+                 TranscriptionSegment(start=timedelta(seconds=1.28), end=timedelta(seconds=2.08),
+                                      text="我是警察", speaker="1")]
+        segment = TranscriptionSegment(start=chunk.start, end=chunk.end, text="你是谁我是警察",
+                                       language="Chinese", parts=parts)
+        lines = self._builder().LinesForSegment(segment)
+
+        self.assertLoggedEqual("line count", 2, len(lines))
 
     def test_whole_chunk_fallback_flags_warning(self):
         """A flat-text chunk span is flagged when it runs long."""

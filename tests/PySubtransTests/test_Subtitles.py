@@ -156,6 +156,9 @@ class SubtitleProcessorTests(LoggedTestCase):
     example_line_9 = "9\n00:01:00,000 --> 00:01:05,000\nUmm, this subtitle has some, err, filler words that should be removed."
     example_line_10 = "227\n00:22:53,260 --> 00:23:01,472\n不过，满清对浙江很注意，派过去的都是他们的能源，你处处有性命之忧,"
     example_line_11 = "345\n00:49:03,294 --> 00:49:06,005\nNo escape\u2014I have one condition"
+    example_line_12 = "1\n00:00:10,000 --> 00:00:11,000\nFirst part"
+    example_line_13 = "2\n00:00:11,200 --> 00:00:11,500\nsecond part"
+    example_line_14 = "2\n00:00:11,800 --> 00:00:12,100\nsecond part"
 
     preprocess_cases = [
         ([example_line_1, example_line_2], {}, [example_line_1, example_line_2]),  # No changes
@@ -193,7 +196,16 @@ class SubtitleProcessorTests(LoggedTestCase):
             "228\n00:22:56,246 --> 00:22:59,182\n派过去的都是他们的能源，",
             "229\n00:22:59,232 --> 00:23:01,472\n你处处有性命之忧,"
             ]),
-        ([example_line_11], { "convert_wide_dashes": True }, [ "345\n00:49:03,294 --> 00:49:06,005\nNo escape - I have one condition" ])
+        ([example_line_11], { "convert_wide_dashes": True }, [ "345\n00:49:03,294 --> 00:49:06,005\nNo escape - I have one condition" ]),
+        # A brief line close on the heels of its predecessor is a fragment of it
+        ([example_line_12, example_line_13], { "merge_line_duration": 0.5, "max_gap_for_merge": 0.5 },
+            [ "1\n00:00:10,000 --> 00:00:11,500\nFirst part\nsecond part" ]),
+        # The same brief line stands alone when a real pause separates them
+        ([example_line_12, example_line_14], { "merge_line_duration": 0.5, "max_gap_for_merge": 0.5 },
+            [
+                "1\n00:00:10,000 --> 00:00:11,000\nFirst part",
+                "2\n00:00:11,800 --> 00:00:12,100\nsecond part"
+            ])
     ]
 
     def test_Preprocess(self):

@@ -81,6 +81,7 @@ default_settings = {
     'seconds_per_character': env_float('SECONDS_PER_CHARACTER', 0.1),
     'min_gap': env_float('MIN_GAP', 0.05),
     'merge_line_duration': env_float('MERGE_LINE_DURATION', 0.0),
+    'max_gap_for_merge': env_float('MAX_GAP_FOR_MERGE', 0.5),
     'min_split_chars': env_int('MIN_SPLIT_CHARS', 3),
     'normalise_dialog_tags': env_bool('NORMALISE_DIALOG_TAGS', True),
     'remove_filler_words': env_bool('REMOVE_FILLER_WORDS', True),

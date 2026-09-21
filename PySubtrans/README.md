@@ -331,6 +331,7 @@ A provider can be constructed once and then used to initalise multiple `Subtitle
 
 **Duration and timing adjustments:**
 - `merge_line_duration`: Merge lines with very short durations into the previous line
+- `max_gap_for_merge`: Maximum gap between lines for them to be considered part of the same utterance
 - `max_line_duration`: Split lines longer than specified duration (using punctuation as a guide)
 - `min_split_chars`: Minimum characters required for splitting lines
 - `min_line_duration`: Minimum duration for split lines
