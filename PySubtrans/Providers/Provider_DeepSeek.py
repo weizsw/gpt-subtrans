@@ -16,7 +16,6 @@ class DeepSeekProvider(TranslationProvider):
 
     information = """
     <p>Select the <a href="https://api-docs.deepseek.com/quick_start/pricing">model</a> to use as a translator.</p>
-    <p>Not that reasoning models are not generally recommended as translators.</p>
     """
 
     information_noapikey = """
