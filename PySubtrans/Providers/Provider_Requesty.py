@@ -116,9 +116,6 @@ class RequestyProvider(TranslationProvider):
             return options
 
         if not settings.get_bool('use_default_model'):
-            # First populate cached models if needed
-            self._populate_model_cache()
-
             if self._cached_models:
                 options.update({
                     'model_family': (self.available_model_families, _( "Model family/provider to choose from")),
@@ -138,7 +135,7 @@ class RequestyProvider(TranslationProvider):
             else:
                 options['model_family'] = ([_("Unable to retrieve models")], _( "Check API key and try again"))
 
-        if self.use_default_model or self.available_models:
+        if self.use_default_model or self.model_list.known:
             options.update({
                 'stream_responses': (bool, _( "Stream translations in realtime as they are generated")),
                 'max_tokens': (int, _( "Maximum number of output tokens to return in the response.")),
@@ -228,13 +225,12 @@ class RequestyProvider(TranslationProvider):
 
             headers = {'Authorization': f"Bearer {self.api_key}"} if self.api_key else {}
 
-            proxy_url = self.settings.get_str('proxy')
+            proxy_url = self.settings.get_str('proxy') or None
             with httpx.Client(timeout=20, proxy=proxy_url) as client:
                 result = client.get(url, headers=headers)
                 if result.is_error:
-                    logging.error(_("Error fetching models: {status} {text}").format(
+                    raise ValueError(_("Error fetching models: {status} {text}").format(
                         status=result.status_code, text=result.text))
-                    return
 
                 try:
                     data = result.json()
@@ -264,12 +260,11 @@ class RequestyProvider(TranslationProvider):
                     self._cached_models = model_cache
 
                 except json.JSONDecodeError:
-                    logging.error(_("Unable to parse server response as JSON: {response_text}").format(response_text=result.text))
-                    return
+                    raise ValueError(_("Unable to parse server response as JSON: {response_text}").format(response_text=result.text))
 
         except Exception as e:
             logging.error(_("Unable to retrieve available models: {error}").format(error=str(e)))
-            return
+            raise
 
     def _get_model_name(self, model : dict) -> tuple[str, str]:
         """
@@ -289,8 +284,13 @@ class RequestyProvider(TranslationProvider):
         if not display_name:
             return display_name
 
-        # Ensure cache is populated
-        self._populate_model_cache()
+        # A failed lookup must not block translation: an unresolvable name is
+        # passed through unchanged, so an already valid model ID still works.
+        try:
+            self._populate_model_cache()
+        except Exception as e:
+            logging.debug(_("Unable to resolve model ID for {model}: {error}").format(model=display_name, error=str(e)))
+            return display_name
 
         for models in self._cached_models.values():
             if display_name in models:

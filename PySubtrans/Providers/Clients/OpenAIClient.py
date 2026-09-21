@@ -48,7 +48,11 @@ class OpenAIClient(TranslationClient):
     @property
     def model(self) -> str|None:
         return self.settings.get_str( 'model')
-    
+
+    @property
+    def proxy_url(self) -> str|None:
+        return self.settings.get_str_or_none('proxy')
+
     @property
     def reuse_client(self) -> bool:
         return self.settings.get_bool( 'reuse_client', True)
@@ -177,9 +181,9 @@ class OpenAIClient(TranslationClient):
     def _create_client(self) -> None:
         http_client = None
 
-        proxy = self.settings.get_str( 'proxy')
-        if proxy:
-            http_client = openai.DefaultHttpxClient(proxy=proxy)
+        proxy_url = self.proxy_url
+        if proxy_url:
+            http_client = openai.DefaultHttpxClient(proxy=proxy_url)
 
         elif self.settings.get_bool( 'use_httpx'):
             if self.api_base is None:

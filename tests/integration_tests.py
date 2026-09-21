@@ -10,6 +10,7 @@ _root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_root))
 
 from PySubtrans.Helpers.ImportGuard import CaptureOriginalImport
+from PySubtrans.Helpers.Tests import ReportBlockedTempFailures
 from tests.GuiTestSupport import ConfigureOffscreenPlatform
 
 # Must happen before PySide6 is imported anywhere in this process; see PySubtrans.Helpers.ImportGuard.
@@ -22,8 +23,13 @@ def _discover(directory : str) -> unittest.TestSuite:
         str(_root / 'tests' / directory), pattern='test_*.py', top_level_dir=str(_root))
 
 
-def _run(suite : unittest.TestSuite) -> bool:
-    return unittest.TextTestRunner(verbosity=1).run(suite).wasSuccessful()
+def _run(suite : unittest.TestSuite, label : str) -> bool:
+    result = unittest.TextTestRunner(verbosity=1).run(suite)
+
+    # Distinguish environmental failures before they are read as regressions
+    ReportBlockedTempFailures(label, result)
+
+    return result.wasSuccessful()
 
 
 def _gui_dependencies_available() -> bool:
@@ -48,7 +54,7 @@ def Main() -> int:
     if non_gui_suite.countTestCases() == 0:
         print('No integration tests discovered.', file=sys.stderr)
         return 1
-    non_gui_ok = _run(non_gui_suite)
+    non_gui_ok = _run(non_gui_suite, 'Integration')
 
     # GUI tests run last: a nicer default ordering (the heavier, more fragile
     # suite trails the faster one), not a requirement for correctness -- the
@@ -56,7 +62,7 @@ def Main() -> int:
     # ImportGuard, scoped to the exact call site that needs it.
     ConfigureOffscreenPlatform()
     if _gui_dependencies_available():
-        gui_ok = _run(_discover('GuiIntegrationTests'))
+        gui_ok = _run(_discover('GuiIntegrationTests'), 'GUI integration')
     else:
         print('Skipping GUI integration tests: PySide6 dependencies are unavailable.', file=sys.stderr)
         gui_ok = True

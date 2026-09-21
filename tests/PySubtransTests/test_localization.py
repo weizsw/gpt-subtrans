@@ -1,3 +1,6 @@
+import os
+import subprocess
+import sys
 import unittest
 from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.Helpers.Tests import skip_if_debugger_attached
@@ -74,6 +77,27 @@ class TestLocalization(LoggedTestCase):
         )
         self.assertIsInstance(name, str)
         self.assertGreater(len(name), 0)
+
+    def test_display_names_avoid_heavy_babel_import(self):
+        """Resolving display names must not import babel.dates/localtime/pytz.
+
+        Also enforces that every shipped locale has an explicit endonym.
+        A missing entry falls back to Babel and imports the heavy modules.
+        """
+        repo_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        script = (
+            "import sys; "
+            "from PySubtrans.Helpers.Localization import get_locale_display_items; "
+            "items = get_locale_display_items(); "
+            "heavy = [m for m in ('babel.dates', 'babel.localtime', 'pytz') if m in sys.modules]; "
+            "assert not heavy, heavy; "
+            "print(len(items))"
+        )
+        result = subprocess.run([sys.executable, '-c', script], cwd=repo_root,
+                                capture_output=True, text=True, timeout=120)
+
+        self.assertLoggedEqual("light locale imports", 0, result.returncode,
+                               input_value=(result.stderr or "")[-2000:])
 
 
 if __name__ == '__main__':

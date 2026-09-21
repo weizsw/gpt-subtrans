@@ -86,7 +86,7 @@ else:
                     options['aws_region'] = (regions, "The AWS region to use for requests.")
 
                 if self.access_key and self.secret_access_key and self.aws_region:
-                    models = self.available_models or ["Unable to retrieve model list"]
+                    models = self.model_list.known or ["Unable to retrieve model list"]
                     options.update({
                         'model': (models, "AI model to use as the translator. Model access must be enabled in the AWS Console. Some models may not translate the subtitles."),
                         'max_tokens': (int, _("The maximum number of tokens to generate in a single request")),
@@ -143,7 +143,7 @@ else:
                     logging.error(_("Unable to retrieve available AI models: {error}").format(
                         error=str(e)
                     ))
-                    return []
+                    raise
 
             def ValidateSettings(self) -> bool:
                 """

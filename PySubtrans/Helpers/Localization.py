@@ -21,6 +21,15 @@ _translator: gettext.NullTranslations|None = None
 _domain = 'gui-subtrans'
 _cached_locales: list[str] = []  # Cache for available locales
 
+# Endonyms for the locales the project ships.
+# Babel can provide these, but loading its locale data imports babel.dates and pytz.
+# Add an entry when a new locale is added to the locales directory.
+_LOCALE_ENDONYMS : dict[str, str] = {
+    'cs': 'čeština',
+    'en': 'English',
+    'es': 'español',
+}
+
 def _get_locale_dir() -> str:
     # Locale directory is resolved via resource path helper so it works in dev and bundled builds
     return GetResourcePath('locales')
@@ -106,18 +115,29 @@ def get_available_locales() -> list[str]:
 
 def get_locale_display_name(locale_code: str) -> str:
     """
-    Get the human-readable display name for a locale code using Babel.
-    Falls back to the locale code if Babel is not available or lookup fails.
+    Get the human-readable display name for a locale code.
+
+    Language-only codes come from the explicit endonym map, avoiding Babel's locale data and pytz.
+    Territory or script codes fall back to Babel.
+    Unknown codes fall back to the code itself.
     """
-    if Locale is None or not locale_code:
-        return locale_code or ''
+    if not locale_code:
+        return ''
+
+    normalized = locale_code.replace('-', '_')
+    endonym = _LOCALE_ENDONYMS.get(normalized.split('_')[0])
+    if endonym and '_' not in normalized:
+        return endonym
+
+    if Locale is None:
+        return endonym or locale_code
+
     try:
-        # Normalize hyphen to underscore for Babel and parse the locale string
-        loc = Locale.parse(locale_code.replace('-', '_'))  # type: ignore[attr-defined]
-        return loc.display_name  # type: ignore[return-value]
+        loc = Locale.parse(normalized)  # type: ignore[attr-defined]
+        return loc.display_name or endonym or locale_code  # type: ignore[return-value]
     except Exception:
         # Fallback to locale code if Babel is not available or lookup fails
-        return locale_code
+        return endonym or locale_code
 
 
 def get_locales_with_names() -> list[tuple[str, str]]:
@@ -154,4 +174,3 @@ def get_locale_display_items() -> list[LocaleDisplayItem]:
     """
     locales_with_names = get_locales_with_names()
     return [LocaleDisplayItem(code, name) for code, name in locales_with_names]
-

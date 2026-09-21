@@ -61,7 +61,8 @@ def DescribeLineCount(line_count : int, translated_count : int) -> str:
 
 def ClearForm(layout : QFormLayout):
     """
-    Clear the widgets from a layout
+    Clear the widgets from a layout.
+    Widgets are hidden and unparented immediately, then deleted once the event loop runs, so a rebuild in the same cycle cannot leave stale widgets painted.
     """
     while layout.rowCount():
         result = layout.takeRow(0)  # Pylance: TakeRowResult missing attrs in stubs
@@ -71,4 +72,6 @@ def ClearForm(layout : QFormLayout):
                 continue
             widget = item.widget()
             if widget:
+                widget.hide()
+                widget.setParent(None)
                 widget.deleteLater()

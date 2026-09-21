@@ -98,9 +98,6 @@ else:
 
                 return models
 
-            def RefreshAvailableModels(self):
-                self._available_models = self.GetAvailableModels()
-
             def GetInformation(self):
                 return self.information if self.api_key else self.information_noapikey
 
@@ -112,11 +109,10 @@ else:
                 if not self.api_key:
                     return options
 
-                self.RefreshAvailableModels()
-
-                if self.available_models:
+                models = self.model_list.known
+                if models:
                     options.update({
-                        'model': (self.available_models, _("The model to use for translations")),
+                        'model': (models, _("The model to use for translations")),
                         'stream_responses': (bool, _("Stream translations in realtime as they are generated")),
                         'rate_limit': (float, _("The rate limit to use for translations (default 60.0)")),
                         'max_tokens': (int, _("The maximum number of tokens to use for translations")),
@@ -167,7 +163,7 @@ else:
                     logging.error(_("Unable to retrieve Claude model list: {error}").format(
                         error=str(e)
                     ))
-                    return []
+                    raise
 
             def _get_thinking_capabilities(self, model_id : str) -> SettingsType|None:
                 """

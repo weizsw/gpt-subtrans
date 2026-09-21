@@ -13,7 +13,7 @@ import unittest
 base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, base_path)
 
-from PySubtrans.Helpers.Tests import create_logfile, end_logfile, separator
+from PySubtrans.Helpers.Tests import ReportBlockedTempFailures, create_logfile, end_logfile, separator
 from tests.unit_tests import discover_tests
 
 total_run = 0
@@ -222,9 +222,11 @@ def run_unit_tests(results_path: str) -> bool:
     
     logging.info("Running PySubtrans unit tests...")
     py_result = runner.run(py_tests)
+    ReportBlockedTempFailures('PySubtrans', py_result)
 
     logging.info("Running GuiSubtrans unit tests...")
     gui_result = runner.run(gui_tests)
+    ReportBlockedTempFailures('GuiSubtrans', gui_result)
 
     def summarize(label: str, result: unittest.TestResult) -> dict:
         return {

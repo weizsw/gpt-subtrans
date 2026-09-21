@@ -1,13 +1,14 @@
 import logging
 from collections.abc import Callable
-from PySide6.QtCore import Qt, QThread, Slot
-from PySide6.QtWidgets import (QDialog, QVBoxLayout, QTabWidget, QDialogButtonBox, QWidget, QFormLayout, QFrame, QLabel, QScrollArea)
+from PySide6.QtCore import QThread, Slot
+from PySide6.QtWidgets import (QDialog, QVBoxLayout, QTabWidget, QDialogButtonBox, QWidget, QFormLayout, QFrame)
 from GuiSubtrans.GuiHelpers import ClearForm, GetThemeNames
 
 from GuiSubtrans.Widgets.OptionsWidgets import CreateOptionWidget, OptionWidget, ParseOptionDefinition
+from GuiSubtrans.Widgets.ProviderSettingsForm import ProviderSettingsForm
 from GuiSubtrans.Widgets.TranscriptionProviderLoader import TranscriptionProviderLoader
 from PySubtrans.Helpers.InstructionsHelpers import GetInstructionsFiles, LoadInstructions
-from PySubtrans.Options import ConfigActionOption, Options
+from PySubtrans.Options import ConfigActionOption, INFO_OPTION, Options
 from GuiSubtrans.Widgets.TorchSetupDialog import TorchSetupDialog
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.Substitutions import Substitutions
@@ -58,7 +59,7 @@ class SettingsDialog(QDialog):
             'transcription_provider': ([], _("The transcription service to use")),
             'transcription_provider_settings': TranscriptionProvider,
             'postprocess_transcription': (bool, _("Clean transcribed lines with the same normalizations used for loaded subtitles (dashes, filler words, line breaks)")),
-            'provider_info': (str, _("Information about the selected transcription provider")),
+            'provider_info': (INFO_OPTION, _("Information about the selected transcription provider")),
             'ffmpeg_path': (str, _(
                 "Optional path to the ffmpeg executable. Leave blank to use ffmpeg and ffprobe from the system PATH"
             ), _("Leave blank to use ffmpeg and ffprobe from the system PATH")),
@@ -153,6 +154,7 @@ class SettingsDialog(QDialog):
         self.transcription_provider : TranscriptionProvider|None = None
         self.transcription_provider_names : list[str] = []
         self.loader_thread : QThread|None = None
+        self.provider_form : ProviderSettingsForm|None = None
         self.provider_cache = provider_cache or {}
         self.settings : SettingsType = options.GetSettings()
         self.widgets = {}
@@ -196,6 +198,9 @@ class SettingsDialog(QDialog):
             tab_label = _(section_name)
             self._tabs.addTab(section_widget, tab_label)
 
+        # The provider tab builds its form and loads models off-thread
+        self._populate_provider_tab()
+
         if focus_provider_settings:
             self._tabs.setCurrentWidget(self._sections[self.PROVIDER_SECTION])
 
@@ -220,6 +225,8 @@ class SettingsDialog(QDialog):
         return self.settings.get_dict('provider_settings')
 
     def accept(self):
+        self._stop_provider_model_load()
+
         try:
             for section_name in self.SECTIONS.keys():
                 section_widget = self._tabs.findChild(QWidget, section_name)
@@ -243,12 +250,9 @@ class SettingsDialog(QDialog):
 
                     key = getattr(field, 'key')
                     if section_name == self.PROVIDER_SECTION:
+                        # Provider option fields live in the ProviderSettingsForm and are written as they change
                         if key == 'provider':
                             self.settings[key] = field.GetValue()
-                        else:
-                            provider = self.settings.get_str('provider') or 'Unknown'
-                            provider_settings = self._get_provider_settings(provider)
-                            provider_settings[key] = field.GetValue()
                     elif section_name == self.TRANSCRIPTION_SECTION:
                         if key == 'transcription_provider':
                             # Skip if providers haven't loaded yet (dropdown empty)
@@ -280,6 +284,10 @@ class SettingsDialog(QDialog):
         except Exception as e:
             logging.error(f"Error in settings dialog handler: {e}")
             self.reject()
+
+    def reject(self):
+        self._stop_provider_model_load()
+        super().reject()
 
     def _get_provider_settings(self, provider : str) -> dict[str, SettingsType]:
         """ Get the settings for a specific provider """
@@ -329,6 +337,74 @@ class SettingsDialog(QDialog):
 
         return section_widget
 
+    def _populate_provider_tab(self, provider_form : ProviderSettingsForm|None = None) -> None:
+        """
+        Rebuild the provider tab with the provider selector and the current provider's options
+        """
+        layout = self._get_section_layout(self.PROVIDER_SECTION)
+        ClearForm(layout)
+
+        provider = self.translation_provider
+        if not provider:
+            logging.warning("Translation provider is not configured")
+            return
+
+        provider_key = 'provider'
+        key_type, tooltip, placeholder = ParseOptionDefinition(self.SECTIONS[self.PROVIDER_SECTION][provider_key])
+        selector = CreateOptionWidget(
+            provider_key,
+            self.settings.get(provider_key),
+            key_type,
+            tooltip=tooltip,
+            placeholder=placeholder)
+        selector.contentChanged.connect(lambda field=selector: self._on_setting_changed(self.PROVIDER_SECTION, field.key, field.GetValue()))
+        layout.addRow(selector.name, selector)
+        self.widgets[provider_key] = selector
+
+        if provider_form is not None:
+            # Reuse the form that loaded the models, just repopulate its rows
+            self.provider_form = provider_form
+            provider_form.populate()
+            return
+
+        # Stop and detach any previous form before replacing it
+        if self.provider_form is not None:
+            self.provider_form.Stop()
+            self.provider_form.settingChanged.disconnect()
+            self.provider_form.modelsResolved.disconnect()
+
+        self.provider_form = ProviderSettingsForm(provider, self.provider_settings.get_dict(provider.name), layout)
+        # Bind the provider name so a superseded form cannot write into another provider's settings
+        self.provider_form.settingChanged.connect(lambda key, value, name=provider.name: self._on_provider_setting_changed(name, key, value))
+        self.provider_form.modelsResolved.connect(self._on_provider_models_resolved)
+
+    def _on_provider_models_resolved(self) -> None:
+        """
+        Rebuild the provider rows once the model list has arrived, reusing the form that loaded it
+        """
+        self._populate_provider_tab(self.provider_form)
+
+    def _on_provider_setting_changed(self, provider_name : str, key : str, value) -> None:
+        """
+        Apply a provider setting change and refresh the form when it affects the options
+        """
+        provider = self.translation_provider
+        if not provider or provider.name != provider_name:
+            # Ignore changes from a form for a provider that is no longer selected
+            return
+
+        provider_settings = self.provider_settings.get_dict(provider.name)
+        provider_settings[key] = value
+
+        if key in provider.refresh_when_changed:
+            # Selecting a different model does not change the model list
+            reset_available_models = key != 'model'
+            if reset_available_models:
+                provider.ResetAvailableModels()
+                self._populate_provider_tab()
+            else:
+                provider.UpdateSettings(SettingsType(provider_settings))
+
     def _populate_form(self, section_name : str, layout : QFormLayout):
         """
         Create the form fields for the options
@@ -340,7 +416,10 @@ class SettingsDialog(QDialog):
         for key, option_definition in options.items():
             key_type, tooltip, placeholder = ParseOptionDefinition(option_definition)
             if key_type == TranslationProvider:
-                self._add_provider_options(section_name, layout)
+                pass
+            elif key == 'provider' and section_name == self.PROVIDER_SECTION:
+                # The provider selector is built by _populate_provider_tab
+                pass
             elif key_type == TranscriptionProvider:
                 self._add_transcription_provider_options(section_name, layout)
             elif key == 'provider_info':
@@ -425,102 +504,36 @@ class SettingsDialog(QDialog):
             if provider not in self.provider_settings or not self.provider_settings[provider]:
                 self.provider_settings[provider] = self.translation_provider.settings.copy()
 
-    def _add_provider_options(self, section_name : str, layout : QFormLayout):
+    def _add_provider_info(self, section_name : str, layout : QFormLayout) -> None:
         """
-        Add the options for a translation provider to a form
+        Add the read-only provider information row to the form
         """
-        if not self.translation_provider:
-            logging.warning("Translation provider is not configured")
+        if section_name != self.TRANSCRIPTION_SECTION or not self.transcription_provider:
             return
 
-        saved_settings = self.provider_settings.get_dict(self.translation_provider.name)
-        provider_settings = self.translation_provider.GetCombinedSettings(saved_settings)
-        provider_options = self.translation_provider.GetOptions(provider_settings)
+        provider_info = self.transcription_provider.GetInformation(
+            ffmpeg_available=self.ffmpeg_available, torch_device=self.torch_device,
+            display_language=self.settings.get_str('ui_language'))
 
-        for key, option_definition in provider_options.items():
-            key_type, tooltip, placeholder = ParseOptionDefinition(option_definition)
-            field = CreateOptionWidget(
-                key,
-                provider_settings.get(key),
-                key_type,
-                tooltip=tooltip,
-                placeholder=placeholder)
-            field.contentChanged.connect(lambda setting=field: self._on_setting_changed(section_name, setting.key, setting.GetValue()))
-            layout.addRow(field.name, field)
-            self.widgets[key] = field
-
-        self._add_provider_info(section_name, layout)
-
-    def _add_provider_info(self, section_name : str, layout : QFormLayout):
-        """
-        Add a read-only field for provider information to the form
-        """
-        if section_name == self.TRANSCRIPTION_SECTION and self.transcription_provider:
-            provider_info = self.transcription_provider.GetInformation(
-                ffmpeg_available=self.ffmpeg_available, torch_device=self.torch_device,
-                display_language=self.settings.get_str('ui_language'))
-        elif section_name == self.PROVIDER_SECTION and self.translation_provider:
-            provider_info = self.translation_provider.GetInformation()
-        else:
+        if not provider_info:
             return
 
-        if provider_info:
-            self._add_provider_info_widget(layout, provider_info)
+        field = CreateOptionWidget('provider_info', provider_info, INFO_OPTION)
+        layout.addRow(_("Provider information"), field)
 
-    def _add_provider_info_widget(self, layout, provider_info):
+    def _get_section_layout(self, section_name : str) -> QFormLayout:
         """
-        Create a rich text widget for provider information and add it to the layout
+        Return the form layout for a section
         """
-        provider_container = QWidget()
-        provider_layout = QVBoxLayout(provider_container)
-        infoLabel = QLabel(provider_info)
-        infoLabel.setWordWrap(True)
-        infoLabel.setTextFormat(Qt.TextFormat.RichText)
-        infoLabel.setOpenExternalLinks(True)
-        provider_layout.addWidget(infoLabel)
-        provider_layout.addStretch(1)
-
-        scrollArea = QScrollArea()
-        scrollArea.setWidgetResizable(True)
-        scrollArea.setSizeAdjustPolicy(QScrollArea.SizeAdjustPolicy.AdjustToContents)
-        scrollArea.setWidget(provider_container)
-        layout.addRow(QLabel(_("Provider information")), scrollArea)
-
-    def _refresh_provider_options(self, reset_available_models: bool = True):
-        """
-        Populate the provider-specific options
-        """
-        if not self.translation_provider:
-            logging.warning("Translation provider is not configured")
-            return
-
-        provider_settings = self.provider_settings.get_dict(self.translation_provider.name)
-        provider_settings = SettingsType(provider_settings)
-
-        combined_settings = self.translation_provider.GetCombinedSettings(provider_settings)
-        if reset_available_models or self.translation_provider.settings != combined_settings:
-            self.translation_provider.ResetAvailableModels()
-
-        self.translation_provider.UpdateSettings(provider_settings)
-
-        selected_model = provider_settings.get_str('model')
-        if not self.translation_provider.available_models:
-            logging.warning(_("No models available for {provider}").format(provider = self.translation_provider.name))
-        elif not selected_model or selected_model not in self.translation_provider.available_models:
-            # Auto-select an available model
-            selected_model = self.translation_provider.available_models[0]
-            provider_settings['model'] = selected_model
-            self.translation_provider.UpdateSettings(provider_settings)
-            self.provider_settings.get_dict(self.translation_provider.name)['model'] = self.translation_provider.selected_model
-            logging.info(_("Auto-selected model {model} for {provider} to ensure valid configuration").format(
-                provider=self.translation_provider.name,
-                model=selected_model))
-
-        section_name = self.PROVIDER_SECTION
         section_widget = self._sections.get(section_name)
-        if section_widget:
-            section_layout = section_widget.layout()
-            self._populate_form(section_name, section_layout)
+        if not section_widget:
+            raise ValueError(f"Section {section_name} is not available")
+
+        layout = section_widget.layout()
+        if not isinstance(layout, QFormLayout):
+            raise ValueError(f"Section {section_name} layout is not a QFormLayout")
+
+        return layout
 
     def _refresh_transcription_providers(self) -> None:
         """
@@ -639,6 +652,8 @@ class SettingsDialog(QDialog):
             logging.error(_("Unable to load transcription provider options: {error}").format(error=str(e)))
             return
 
+        provider_name = self.transcription_provider.name
+
         for key, option_definition in schema.items():
             key_type, tooltip, placeholder = ParseOptionDefinition(option_definition)
 
@@ -654,7 +669,8 @@ class SettingsDialog(QDialog):
                 key_type,
                 tooltip=tooltip,
                 placeholder=placeholder)
-            field.contentChanged.connect(lambda setting=field: self._on_setting_changed(section_name, setting.key, setting.GetValue()))
+            # Bind the provider name so a superseded form cannot write into another provider's settings
+            field.contentChanged.connect(lambda setting=field, name=provider_name: self._on_transcription_provider_setting_changed(name, setting.key, setting.GetValue()))
             layout.addRow(field.name, field)
             self.widgets[key] = field
 
@@ -674,11 +690,18 @@ class SettingsDialog(QDialog):
 
         return lambda current_value: None
 
+    def _stop_provider_model_load(self) -> None:
+        """Prevent late provider model results from mutating settings after the dialog closes."""
+        if self.provider_form is not None:
+            self.provider_form.Stop()
+
     def closeEvent(self, event) -> None:
-        """Stop the provider loader if the dialog closes early."""
+        """Stop the background loaders if the dialog closes early."""
         if self.loader_thread is not None and self.loader_thread.isRunning():
             self.loader_thread.quit()
             self.loader_thread.wait(5000)
+
+        self._stop_provider_model_load()
 
         super().closeEvent(event)
 
@@ -689,7 +712,7 @@ class SettingsDialog(QDialog):
         if key == 'provider':
             self.settings[key] = value
             self._initialise_translation_provider()
-            self._refresh_provider_options(reset_available_models=False)
+            self._populate_provider_tab()
 
         elif key == 'transcription_provider':
             self.settings[key] = value
@@ -699,18 +722,6 @@ class SettingsDialog(QDialog):
         elif key == 'instruction_file':
             self.settings[key] = value
             self._update_instruction_file()
-
-        elif section_name == self.PROVIDER_SECTION:
-            provider = self.settings.get_str('provider')
-            if not provider:
-                logging.error(_("Provider is not set"))
-                return
-
-            provider_settings = self._get_provider_settings(provider)
-            provider_settings[key] = value
-
-            if self.translation_provider and key in self.translation_provider.refresh_when_changed:
-                self._refresh_provider_options()
 
         elif section_name == self.TRANSCRIPTION_SECTION:
             if self._is_root_setting(section_name, key):
@@ -724,17 +735,27 @@ class SettingsDialog(QDialog):
                 logging.error(_("Transcription provider is not set"))
                 return
 
-            namespace = self._get_transcription_provider_settings(provider)
-            namespace[key] = value
-
-            # The language hint is validated in the provider information, so it refreshes like a key change
-            if self.transcription_provider and (key == 'language' or key in self.transcription_provider.refresh_when_changed):
-                self._refresh_transcription_provider_options()
+            self._on_transcription_provider_setting_changed(provider, key, value)
 
         else:
             self.settings[key] = value
             self._update_section_visibility()
             self._update_setting_visibility()
+
+    def _on_transcription_provider_setting_changed(self, provider_name : str, key : str, value) -> None:
+        """
+        Apply a transcription provider setting change and refresh the form when it affects the options.
+        """
+        provider = self.transcription_provider
+        if not provider or provider.name != provider_name:
+            # Ignore changes from a form for a provider that is no longer selected
+            return
+
+        namespace = self._get_transcription_provider_settings(provider_name)
+        namespace[key] = value
+
+        if key in provider.refresh_when_changed:
+            self._refresh_transcription_provider_options()
 
     def _update_instruction_file(self):
         """

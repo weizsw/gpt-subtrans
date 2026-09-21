@@ -69,7 +69,7 @@ else:
                 }
 
                 if self.api_key:
-                    models = self.available_models
+                    models = self.model_list.known
                     if models:
                         options.update({
                             'model': (models, "AI model to use as the translator"),
@@ -127,7 +127,7 @@ else:
 
                 except Exception as e:
                     logging.error(_("Unable to retrieve available AI models: {error}").format(error=str(e)))
-                    return []
+                    raise
 
             def GetInformation(self) -> str:
                 if not self.api_key:

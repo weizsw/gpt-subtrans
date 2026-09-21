@@ -3,6 +3,8 @@ import functools
 import logging
 import os
 import sys
+import tempfile
+import unittest
 from datetime import datetime
 from typing import Any
 
@@ -88,6 +90,67 @@ def skip_if_debugger_attached(test_method):
         else:
             return test_method(self, *args, **kwargs)
     return wrapper
+
+def _mentions_temp_path(text : str, temp_root : str) -> bool:
+    """
+    Whether a traceback mentions the temporary directory.
+
+    Tracebacks escape Windows path separators, so doubled backslashes are
+    collapsed before comparing.
+    """
+    return temp_root.lower() in text.replace('\\\\', '\\').lower()
+
+def DescribeBlockedTempFailures(result : unittest.TestResult) -> str|None:
+    """
+    Describe test errors caused by a file sandbox denying access to the temporary directory.
+
+    A test that cannot create or clean up its temporary files never reaches its
+    assertions, so these errors say nothing about the code under test. Reporting them
+    separately stops them being read as regressions.
+
+    Returns a message to log, or None when no error looks like a sandbox restriction.
+    """
+    if not result.errors:
+        return None
+
+    temp_root = tempfile.gettempdir()
+    blocked = [
+        (test, traceback) for test, traceback in result.errors
+        if 'PermissionError' in traceback and _mentions_temp_path(traceback, temp_root)
+    ]
+
+    if not blocked:
+        return None
+
+    examples = ', '.join(test.id().split('.')[-1] for test, _traceback in blocked[:3])
+
+    return (
+        f"{len(blocked)} of {len(result.errors)} errors are PermissionError against the temporary directory:\n"
+        f"  {temp_root}\n"
+        "The tests could not create or clean up temporary files, so they never ran their assertions.\n"
+        "This is almost always a file sandbox restriction rather than a code failure - re-run with\n"
+        "unrestricted file access to verify them. Affected tests include: "
+        f"{examples}"
+    )
+
+def ReportBlockedTempFailures(label : str, result : unittest.TestResult) -> bool:
+    """
+    Report any test errors caused by a file sandbox denying access to the temporary directory.
+
+    Printed and logged, because a runner may only do one of the two. Returns True when
+    such errors were found, so callers can qualify their own summary.
+    """
+    message = DescribeBlockedTempFailures(result)
+
+    if not message:
+        return False
+
+    print(separator)
+    print(f"{label}: {message}")
+    print(separator)
+    log_error(f"{label}: {message}")
+
+    return True
 
 def create_logfile(results_dir : str, log_name : str, log_level = logging.DEBUG) -> logging.FileHandler:
     """

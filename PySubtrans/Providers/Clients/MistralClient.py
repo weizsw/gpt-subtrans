@@ -30,7 +30,7 @@ class MistralClient(TranslationClient):
         ))
 
         # Configure proxy if specified
-        proxy_url = self.settings.get_str('proxy')
+        proxy_url = self.proxy_url
         http_client = httpx.Client(proxy=proxy_url) if proxy_url else None
 
         self.client = Mistral(api_key=self.api_key, server_url=self.server_url, client=http_client)
@@ -42,6 +42,10 @@ class MistralClient(TranslationClient):
     @property
     def server_url(self) -> str|None:
         return self.settings.get_str( 'server_url')
+
+    @property
+    def proxy_url(self) -> str|None:
+        return self.settings.get_str_or_none('proxy')
 
     @property
     def model(self) -> str|None:

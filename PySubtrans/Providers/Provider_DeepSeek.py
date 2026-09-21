@@ -63,7 +63,7 @@ class DeepSeekProvider(TranslationProvider):
         }
 
         if self.api_key:
-            models = self.available_models
+            models = self.model_list.known
             if models:
                 options.update({
                     'model': (models, _("AI model to use as the translator")),
@@ -97,25 +97,23 @@ class DeepSeekProvider(TranslationProvider):
             url = self.server_address.rstrip('/') + '/v1/models'
             headers = {'Authorization': f"Bearer {self.api_key}"} if self.api_key else {}
 
-            proxy_url = self.settings.get_str('proxy')
+            proxy_url = self.settings.get_str_or_none('proxy')
             with httpx.Client(timeout=15, proxy=proxy_url) as client:
                 result = client.get(url, headers=headers)
                 if result.is_error:
-                    logging.error(_("Error fetching models: {status} {text}").format(
+                    raise ValueError(_("Error fetching models: {status} {text}").format(
                         status=result.status_code, text=result.text))
-                    return []
 
                 try:
                     data = result.json()
                     models = [m['id'] for m in data.get('data', [])]
                     return sorted(models)
                 except json.JSONDecodeError:
-                    logging.error(_("Unable to parse server response as JSON: {response_text}").format(response_text=result.text))
-                    return []
+                    raise ValueError(_("Unable to parse server response as JSON: {response_text}").format(response_text=result.text))
 
         except Exception as e:
             logging.error(_("Unable to retrieve available models: {error}").format(error=str(e)))
-            return []
+            raise
 
     def GetInformation(self) -> str:
         if not self.api_key:

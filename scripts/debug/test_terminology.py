@@ -7,15 +7,15 @@ model ever tries to override an existing translation.  Use this to evaluate and
 iterate on the terminology prompt.
 
 Usage:
-    ./envsubtrans/Scripts/python.exe scripts/test_terminology.py subtitles.srt \\
+    ./envsubtrans/Scripts/python.exe scripts/debug/test_terminology.py subtitles.srt \\
         --provider Gemini --model gemini-2.5-flash --language Japanese
 
     # Save a full JSON report for later analysis:
-    ./envsubtrans/Scripts/python.exe scripts/test_terminology.py subtitles.srt \\
+    ./envsubtrans/Scripts/python.exe scripts/debug/test_terminology.py subtitles.srt \\
         --provider OpenRouter --language French --output report.json
 
     # Analyze an existing report in one pass:
-    ./envsubtrans/Scripts/python.exe scripts/test_terminology.py \\
+    ./envsubtrans/Scripts/python.exe scripts/debug/test_terminology.py \\
         --analyze-report report.json --analysis-json-out analysis.json
 
 The API key and any other provider-specific settings are read from .env when

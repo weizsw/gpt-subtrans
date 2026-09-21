@@ -2,12 +2,15 @@ import json
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+import httpx
+
 from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.Helpers.Tests import log_input_expected_error, skip_if_debugger_attached
 from PySubtrans.Providers.Clients.CustomClient import CustomClient
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleError import (
     ClientResponseError,
+    ServerResponseError,
     TranslationImpossibleError,
     TranslationResponseError,
 )
@@ -158,6 +161,76 @@ class TestCustomClientErrorHandling(LoggedTestCase):
                     pass
 
         self.assertLoggedTrue("response.read() was called", mock_resp.read.called)
+
+
+class TestCustomClientFailureReporting(LoggedTestCase):
+    """Failures must identify the cause - a generic message leaves the user with nothing to act on."""
+
+    @skip_if_debugger_attached
+    def test_unexpected_exception_reports_its_type_and_message(self) -> None:
+        """An unforeseen failure names the exception instead of reporting an anonymous error."""
+        client = CustomClient(_create_test_settings())
+
+        mock_httpx_client = MagicMock()
+        mock_httpx_client.post.side_effect = RuntimeError("connection object is corrupt")
+
+        with patch('httpx.Client', return_value=mock_httpx_client):
+            with self.assertRaises(TranslationImpossibleError) as ctx:
+                client._make_request(_create_test_request(), temperature=0.0)
+
+        rendered = str(ctx.exception)
+        self.assertLoggedIn("exception type named", "RuntimeError", rendered)
+        self.assertLoggedIn("exception message reported", "connection object is corrupt", rendered)
+
+    @skip_if_debugger_attached
+    def test_streaming_transport_error_reports_the_cause(self) -> None:
+        """A streaming connection failure retains the transport error that caused it."""
+        client = CustomClient(_create_test_settings(streaming=True))
+        mock_resp = _mock_response(200, "")
+        mock_resp.iter_lines.side_effect = httpx.ReadTimeout("stream timed out")
+
+        mock_httpx_client = MagicMock()
+        mock_httpx_client.stream.return_value.__enter__ = MagicMock(return_value=mock_resp)
+        mock_httpx_client.stream.return_value.__exit__ = MagicMock(return_value=False)
+
+        with patch('httpx.Client', return_value=mock_httpx_client):
+            with self.assertRaises(TranslationImpossibleError) as ctx:
+                client._make_request(_create_test_request(streaming=True), temperature=0.0)
+
+        self.assertLoggedIsInstance("transport error retained", ctx.exception.error, httpx.ReadTimeout)
+
+    @skip_if_debugger_attached
+    def test_non_json_response_reports_the_body(self) -> None:
+        """A response that cannot be decoded reports what the server actually returned."""
+        client = CustomClient(_create_test_settings())
+        mock_resp = _mock_response(200, "<html><body>Proxy blocked the request</body></html>")
+        mock_resp.json.side_effect = ValueError("Expecting value: line 1 column 1 (char 0)")
+
+        mock_httpx_client = MagicMock()
+        mock_httpx_client.post.return_value = mock_resp
+
+        with patch('httpx.Client', return_value=mock_httpx_client):
+            with self.assertRaises(TranslationResponseError) as ctx:
+                client._make_request(_create_test_request(), temperature=0.0)
+
+        self.assertLoggedIn("response body reported", "Proxy blocked the request", str(ctx.exception))
+
+    @skip_if_debugger_attached
+    def test_exhausted_retries_report_the_last_error(self) -> None:
+        """Exhausting retries reports the last failure, not just a retry count."""
+        client = CustomClient(_create_test_settings())
+        mock_resp = _mock_response(500, '{"error": {"message": "model temporarily unavailable"}}')
+
+        mock_httpx_client = MagicMock()
+        mock_httpx_client.post.return_value = mock_resp
+
+        with patch('httpx.Client', return_value=mock_httpx_client):
+            with self.assertLogs(level='WARNING'):
+                with self.assertRaises(TranslationImpossibleError) as ctx:
+                    client._make_request(_create_test_request(), temperature=0.0)
+
+        self.assertLoggedIn("server message reported", "model temporarily unavailable", str(ctx.exception))
+        self.assertLoggedIsInstance("last error retained", ctx.exception.error, ServerResponseError)
 
 
 class TestCustomClientProcessApiResponse(LoggedTestCase):

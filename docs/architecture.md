@@ -109,8 +109,10 @@ Also provides methods for preprocessing, auto-batching and data sanitization.
 ### TranslationProvider (Configuration Layer)
 Each `TranslationProvider` subclass serves as the registry entry for a translation service and offers:
 - **`available_models`**: property containing available models that can be selected
+- **`model_list`**: the provider's `ModelList`, a state machine with `Unloaded`, `Loading`, `Loaded` and `Failed` states. `BeginLoad()` marks an async lookup, `Resolve()` runs it and records the outcome, `Cancel()` abandons it, and `models`/`known`/`resolved`/`pending`/`error` expose the result. A failed lookup is recorded as state rather than raised to callers.
+- **`GetAvailableModels`**: returns the provider's models, or raises on a failed lookup. `ModelList.Resolve()` turns that into `Loaded` or `Failed` state, so an empty list means "no models" rather than "lookup failed".
 - **GetTranslationClient**: creates an appropriate client for API communication
-- **GetOptions**: Defines provider-specific options (API key, endpoints, etc.)
+- **GetOptions**: Defines provider-specific options (API key, endpoints, etc.), built from cached models only
 
 ### TranslationClient (Communication Layer)
 The `TranslationClient` defines the API communication interface:
@@ -246,6 +248,18 @@ For example, `TranslateSceneCommand` subscribes to `SubtitleTranslator` events. 
 **Conditional visibility** – settings can be conditionally shown based on other settings, using a data-driven system defined by the `VISIBILITY_DEPENDENCIES` property.
 
 **Provider pluggability** – the "Provider Settings" tab dynamically populates with options specific to the selected translation provider. Each provider defines its own settings schema via a virtual `GetOptions` method, used to populate the form.
+
+**Async provider models** – listing models can involve a slow network request, so the provider tab is populated immediately and the model list loads on a worker thread.
+Only the model-dependent rows appear when the list arrives.
+The provider decides whether a model request fetches or waits.
+
+**Model reconciliation** – when a model list arrives, `ProviderSettingsForm` keeps a still-available model, replaces an unavailable one with an available model, and leaves the persisted model untouched when the load failed.
+
+**Superseded model lookups** – each lookup carries a request token from `ModelList.BeginLoad`, and a result whose token is stale is discarded.
+A loader cancelled in favour of a newer request therefore cannot record a stale model list over the newer result.
+Resolving a model ID also tolerates a model list failure, so a saved model ID stays usable instead of aborting translation startup.
+
+**Provider information** – the "Provider Settings" and "Transcription Settings" tabs both render their read-only provider information through the shared `InformationOptionWidget` (schema type `INFO_OPTION`), so the two tabs stay consistent and neither lets a text editor claim the remaining space.
 
 ## Extending the System
 

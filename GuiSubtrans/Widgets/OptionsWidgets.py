@@ -4,13 +4,13 @@ import json
 from datetime import datetime
 from typing import Any, cast
 
-from PySide6.QtCore import Signal, QSignalBlocker
-from PySide6.QtWidgets import (QWidget, QLineEdit, QPushButton, QSpinBox, QDoubleSpinBox, QComboBox, QCheckBox, QTextEdit, QSizePolicy, QHBoxLayout, QVBoxLayout)
+from PySide6.QtCore import Qt, Signal, QSignalBlocker
+from PySide6.QtWidgets import (QWidget, QLabel, QLineEdit, QPushButton, QSpinBox, QDoubleSpinBox, QComboBox, QCheckBox, QTextEdit, QSizePolicy, QHBoxLayout, QVBoxLayout)
 from PySide6.QtGui import QTextOption
 
 from PySubtrans.Helpers import GetValueFromName, GetValueName
 from PySubtrans.Helpers.Localization import LocaleDisplayItem, _
-from PySubtrans.Options import MULTILINE_OPTION
+from PySubtrans.Options import INFO_OPTION, MULTILINE_OPTION
 
 class OptionWidget(QWidget):
     contentChanged = Signal()
@@ -129,6 +129,45 @@ class MultilineTextOptionWidget(OptionWidget):
 
     def _encode_content(self, obj):
         return str(obj)
+
+class InformationOptionWidget(OptionWidget):
+    """Read-only rich text block describing a setting or provider.
+
+    The content is rendered as a word-wrapped label that grows with the text,
+    so it never claims the remaining space of the form the way a text editor does.
+    """
+
+    def __init__(self, key, initial_value, tooltip = None):
+        super().__init__(key, initial_value, tooltip=tooltip)
+
+        self._layout = QVBoxLayout(self)
+        self._layout.setContentsMargins(0, 0, 0, 0)
+
+        self.info_label = QLabel(self)
+        self.info_label.setWordWrap(True)
+        self.info_label.setTextFormat(Qt.TextFormat.RichText)
+        self.info_label.setOpenExternalLinks(True)
+        self.info_label.setAlignment(Qt.AlignmentFlag.AlignTop | Qt.AlignmentFlag.AlignLeft)
+        self.info_label.setSizePolicy(QSizePolicy.Policy.Expanding, QSizePolicy.Policy.Minimum)
+        self.info_label.setMinimumWidth(400)
+        self.SetValue(initial_value)
+
+        self._layout.addWidget(self.info_label)
+
+    def GetValue(self):
+        return self.info_label.text()
+
+    def SetValue(self, value : Any):
+        if not isinstance(value, str):
+            value = str(value)
+
+        self.info_label.setText(value)
+
+    def SetEnabled(self, enabled : bool):
+        self.info_label.setEnabled(enabled)
+
+    def SetVisible(self, is_visible : bool):
+        self.info_label.setVisible(is_visible)
 
 class IntegerOptionWidget(OptionWidget):
     def __init__(self, key, initial_value, tooltip = None):
@@ -358,6 +397,8 @@ def CreateOptionWidget(key, initial_value, key_type, tooltip = None, placeholder
         return DropdownOptionWidget(key, key_type, initial_value, tooltip=tooltip)
     elif key_type == MULTILINE_OPTION:
         return MultilineTextOptionWidget(key, initial_value, tooltip=tooltip)
+    elif key_type == INFO_OPTION:
+        return InformationOptionWidget(key, initial_value, tooltip=tooltip)
     elif key_type == str:
         return TextOptionWidget(key, initial_value, tooltip=tooltip, placeholder=placeholder)
     elif key_type == int:

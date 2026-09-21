@@ -66,6 +66,11 @@ class TranscriptionClient:
         """Spoken language hint resolved by the provider, or None to auto-detect."""
         return self.settings.get_str('language') or None
 
+    @property
+    def proxy_url(self) -> str|None:
+        """Proxy to route HTTP requests through, or None when unset."""
+        return self.settings.get_str_or_none('proxy')
+
     def TranscribeChunk(self, audio_bytes : bytes, audio_format : str) -> TranscriptionResult:
         """
         Transcribe a single audio chunk and return its text.
@@ -189,7 +194,7 @@ class TranscriptionClient:
         # Sanctioned lazy import: the startup profile attributed about 1.25 seconds to loading httpx through the transcription client.
         import httpx
 
-        proxy = self.settings.get_str('proxy')
+        proxy = self.proxy_url
         try:
             with httpx.Client(timeout=self.request_timeout, proxy=proxy) as client:
                 if json_body is not None:

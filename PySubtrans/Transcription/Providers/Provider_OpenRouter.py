@@ -52,7 +52,7 @@ class OpenRouterTranscriptionProvider(TranscriptionProvider):
             'proxy': settings.get_str('proxy') or os.getenv('OPENROUTER_PROXY'),
         }))
 
-        self.refresh_when_changed = ['api_key']
+        self.refresh_when_changed = ['api_key', 'language']
 
     def GetAvailableModels(self) -> list[str]:
         """

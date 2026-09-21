@@ -8,8 +8,9 @@ from typing import TYPE_CHECKING, Any
 if TYPE_CHECKING:
     import httpx
 
-from PySubtrans.Helpers import FormatMessages
+from PySubtrans.Helpers import DescribeError, FormatMessages
 from PySubtrans.Helpers.Parse import ParseErrorMessageFromText, TryParseNonNegative
+from PySubtrans.Helpers.Text import CompressWhitespace
 from PySubtrans.Helpers.Localization import _
 from PySubtrans.Options import SettingsType
 from PySubtrans.SubtitleError import ClientResponseError, ServerResponseError, TranslationImpossibleError, TranslationResponseError
@@ -43,15 +44,16 @@ class CustomClient(TranslationClient):
 
     @property
     def server_address(self) -> str|None:
-        return self.settings.get_str( 'server_address')
+        return self.settings.get_str_or_none('server_address')
 
     @property
     def endpoint(self) -> str|None:
-        return self.settings.get_str( 'endpoint')
+        return self.settings.get_str_or_none('endpoint')
 
     @property
     def proxy_url(self) -> str|None:
-        return self.settings.get_str('proxy')
+        # An empty proxy setting means "no proxy", not a proxy with an empty URL
+        return self.settings.get_str_or_none('proxy')
 
     @property
     def supports_conversation(self) -> bool:
@@ -114,6 +116,8 @@ class CustomClient(TranslationClient):
         # Sanctioned lazy import: the startup profile attributed about 1.25 seconds to loading httpx through the shared translation client.
         import httpx
 
+        last_error : Exception|None = None
+
         for retry in range(self.max_retries + 1):
             if self.aborted:
                 return None
@@ -141,6 +145,7 @@ class CustomClient(TranslationClient):
 
             except ServerResponseError as e:
                 # Server errors (5xx) are potentially transient, allow retry
+                last_error = e
                 if not self.aborted:
                     self._emit_error(str(e))
 
@@ -148,36 +153,43 @@ class CustomClient(TranslationClient):
                 raise
 
             except httpx.ConnectError as e:
+                last_error = e
                 if not self.aborted:
-                    self._emit_error(_("Failed to connect to server at {server_address}{endpoint}").format(
-                        server_address=self.server_address, endpoint=self.endpoint
+                    self._emit_error(_("Failed to connect to server at {server_address}{endpoint}: {error}").format(
+                        server_address=self.server_address, endpoint=self.endpoint, error=e
                     ))
 
             except httpx.NetworkError as e:
+                last_error = e
                 if not self.aborted:
                     self._emit_error(_("Network error communicating with server: {error}").format(
-                        error=str(e)
+                        error=e
                     ))
 
-            except httpx.ReadTimeout as e:
+            except httpx.TimeoutException as e:
+                # Covers connect, read, write and pool timeouts, all of which may succeed on retry
+                last_error = e
                 if not self.aborted:
                     self._emit_error(_("Request to server timed out: {error}").format(
-                        error=str(e)
+                        error=e
                     ))
 
             except TranslationImpossibleError:
                 raise
 
             except Exception as e:
-                raise TranslationImpossibleError(_("Unexpected error communicating with server"), error=e)
+                # Name the exception type: a bare transport or decoder message does not identify the cause
+                raise TranslationImpossibleError(_("Unexpected error communicating with server: {error}").format(
+                    error=DescribeError(e)
+                ), error=e) from e
 
             if self.aborted:
                 return None
 
             if retry == self.max_retries:
-                raise TranslationImpossibleError(_("Failed to communicate with server after {max_retries} retries").format(
-                    max_retries=self.max_retries
-                ))
+                raise TranslationImpossibleError(_("Failed to communicate with server after {max_retries} retries: {error}").format(
+                    max_retries=self.max_retries, error=DescribeError(last_error)
+                ), error=last_error)
 
             sleep_time = self.backoff_time * 2.0**retry
             self._emit_warning(_("Retrying in {sleep_time} seconds...").format(
@@ -209,11 +221,44 @@ class CustomClient(TranslationClient):
 
         logging.debug(f"Response:\n{result.text}")
 
-        content = result.json()
+        content = self._decode_response_body(result)
         return self._process_api_response(content, result)
+
+    def _decode_response_body(self, result : httpx.Response) -> dict[str, Any]:
+        """
+        Decode a JSON response body, reporting the body itself when it cannot be decoded.
+
+        A misconfigured proxy or intercepted request returns HTML with a 200 status,
+        which would otherwise fail as an anonymous JSON decoder error.
+        """
+        try:
+            content = result.json()
+        except ValueError as e:
+            raise TranslationResponseError(_("Server returned an invalid response: {text}").format(
+                text=self._summarise_body(result.text)
+            ), response=result) from e
+
+        if not isinstance(content, dict):
+            raise TranslationResponseError(_("Server returned an unexpected response format: {text}").format(
+                text=self._summarise_body(result.text)
+            ), response=result)
+
+        return content
+
+    def _summarise_body(self, text : str|None, max_length : int = 500) -> str:
+        """
+        Compress a response body to a single short line for logging.
+        """
+        summary = CompressWhitespace(text or "").strip()
+
+        return f"{summary[:max_length]}..." if len(summary) > max_length else summary
 
     def _handle_streaming_request(self, request: TranslationRequest, request_body: dict[str, Any]) -> dict[str, Any]|None:
         """Handle streaming HTTP request using Server-Sent Events"""
+        # Sanctioned lazy import: httpx is not imported at module scope (see _make_request),
+        # but the exception types below are evaluated when a streaming error occurs
+        import httpx
+
         assert self.client is not None
         assert self.endpoint is not None
 
@@ -266,12 +311,14 @@ class CustomClient(TranslationClient):
 
                         self._process_streaming_chunk(request, chunk_data, accumulated_response)
 
-            except (ConnectionError, httpx.ReadTimeout) as e:
+            except (ConnectionError, httpx.TransportError) as e:
+                # TransportError covers protocol errors and timeouts: providers that
+                # close a stream abruptly should not discard the chunks already received
                 if chunks_processed == 0:
                     # No data received at all, treat as connection failure
                     raise TranslationImpossibleError(_("Failed to establish streaming connection: {error}").format(
-                        error=str(e)
-                    ))
+                        error=DescribeError(e)
+                    ), error=e) from e
                 else:
                     # Some data received, try to return partial response
                     self._emit_warning(f"Streaming connection interrupted after {chunks_processed} chunks: {e}")
@@ -380,7 +427,10 @@ class CustomClient(TranslationClient):
 
         choices = content.get('choices')
         if not choices:
-            raise TranslationResponseError(_("No choices returned in the response"), response=result)
+            # Providers sometimes report a failure in the body of a 200 response
+            raise TranslationResponseError(_("No choices returned in the response: {text}").format(
+                text=self._describe_response_error(result)
+            ), response=result)
 
         for choice in choices:
             # Try to extract translation from the response choice
@@ -401,9 +451,19 @@ class CustomClient(TranslationClient):
                 break
 
         if not response.get('text'):
-            raise TranslationResponseError(_("No text returned in the response"), response=result)
+            raise TranslationResponseError(_("No text returned in the response: {text}").format(
+                text=self._describe_response_error(result)
+            ), response=result)
 
         return response
+
+    def _describe_response_error(self, result : httpx.Response) -> str:
+        """
+        Prefer the provider's own error message from the response body, falling back to the raw body.
+        """
+        parsed_message = ParseErrorMessageFromText(result.text)
+
+        return parsed_message or self._summarise_body(result.text)
 
     def _update_usage(self, response: dict[str, Any], usage: Any) -> None:
         """Copy provider usage fields, including OpenRouter's reported cost."""

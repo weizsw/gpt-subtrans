@@ -9,11 +9,30 @@ class SubtitleError(Exception):
         self.message = message
 
     def __str__(self) -> str:
-        if self.error:
-            return str(self.error)
-        elif self.message:
-            return self.message
-        return super().__str__()
+        """
+        Render the error, appending the underlying cause when it adds information.
+
+        A wrapped error like "Unexpected error communicating with server" is
+        useless on its own - the cause is what the user needs to act on.
+        """
+        detail = self._error_detail()
+
+        if not self.message:
+            return detail or super().__str__()
+
+        if detail and detail not in self.message:
+            return f"{self.message}: {detail}"
+
+        return self.message
+
+    def _error_detail(self) -> str:
+        """
+        Describe the underlying error, falling back to its type name when it has no message.
+        """
+        if not self.error:
+            return ""
+
+        return str(self.error).strip() or type(self.error).__name__
 
 class NoProviderError(SubtitleError):
     def __init__(self):
@@ -42,7 +61,8 @@ class TranslationAbortedError(TranslationError):
 class TranslationImpossibleError(TranslationError):
     """ No chance of retry succeeding """
     def __init__(self, message : str, error : Exception|None = None):
-        super().__init__(message, error)
+        # Pass error by keyword: TranslationError's second parameter is the translation, not the cause
+        super().__init__(message, error=error)
 
 class TranslationResponseError(TranslationError):
     def __init__(self, message : str, response : Any):
