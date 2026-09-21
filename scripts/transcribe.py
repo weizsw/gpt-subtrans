@@ -98,7 +98,9 @@ def main() -> int:
         'transcription_align': args.align,
         'max_characters': options.get_int('max_characters'),
         'max_line_duration': options.get_float('max_line_duration'),
+        'min_line_duration': options.get_float('min_line_duration'),
         'min_split_chars': options.get_int('min_split_chars'),
+        'max_newlines': options.get_int('max_newlines'),
     })
     # Drop unset values so provider recommendations apply
     if args.min_chunk is not None:

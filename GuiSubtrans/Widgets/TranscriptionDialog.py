@@ -649,7 +649,9 @@ class TranscriptionDialog(QDialog):
             'ffmpeg_path': self.global_options.get_str('ffmpeg_path'),
             'max_characters': self.global_options.get_int('max_characters'),
             'max_line_duration': self.global_options.get_float('max_line_duration'),
+            'min_line_duration': self.global_options.get_float('min_line_duration'),
             'min_split_chars': self.global_options.get_int('min_split_chars'),
+            'max_newlines': self.global_options.get_int('max_newlines'),
         })
 
         output_format = str(self.fields['output_format'].GetValue() or '.srt').lstrip('.')

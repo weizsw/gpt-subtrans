@@ -503,6 +503,15 @@ class TestSliverMergeLimits(LoggedTestCase):
         self.assertLoggedEqual("first piece", "- 我死我死\n- 早生啊！\n- 我死", merged[0].text)
         self.assertLoggedEqual("second piece", "- 打你啊！\n- 點樣啊？", merged[1].text)
 
+    def test_a_turn_arriving_in_fragments_stays_one_turn(self):
+        """A speaker resuming after an interruption is one turn, not two dialogue lines."""
+        lines = self._turns(["够了。", "蛤？", "不适了？"], ["0", "1", "1"])
+        merged = _default_builder().MergeSlivers(lines)
+
+        self.assertLoggedEqual("line count", 1, len(merged))
+        self.assertLoggedEqual("two turns, not three", "- 够了。\n- 蛤？不适了？", merged[0].text)
+        self.assertLoggedEqual("mixed speaker attribution", None, merged[0].speaker)
+
     def test_one_speaker_fragments_join_as_continuous_text(self):
         """One speaker's broken up sentence carries no turn markers to limit."""
         lines = self._turns(["我", "不", "知", "道", "啊"], ["0"] * 5)
@@ -672,6 +681,41 @@ class TestOverlongSpans(LoggedTestCase):
         self.assertLoggedEqual("line count", 1, len(lines))
         self.assertLoggedEqual("merged text", "以为自己是只鬼。", lines[0].text)
         self.assertLoggedEqual("merged end", timedelta(seconds=102.08), lines[0].end)
+
+    def test_continuation_after_a_turn_keeps_the_same_speaker_gap(self):
+        """A run holding two speakers still judges the next line against the turn it follows."""
+        chunk = AudioChunk(start=timedelta(seconds=100), end=timedelta(seconds=160))
+        parts = [TranscriptionSegment(start=timedelta(seconds=0), end=timedelta(seconds=0.5),
+                                      text="够了", speaker="A"),
+                 TranscriptionSegment(start=timedelta(seconds=0.6), end=timedelta(seconds=1.0),
+                                      text="蛤", speaker="B"),
+                 # 0.7s after B's own turn: too long for a speaker change, not for a continuation
+                 TranscriptionSegment(start=timedelta(seconds=1.7), end=timedelta(seconds=2.1),
+                                      text="不适了", speaker="B")]
+        segment = TranscriptionSegment(start=chunk.start, end=chunk.end, text="够了蛤不适了",
+                                       language="Chinese", parts=parts)
+        lines = self._builder().LinesForSegment(segment)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("one turn per speaker", "- 够了\n- 蛤不适了", lines[0].text)
+
+    def test_one_speaker_repeating_costs_no_extra_newline(self):
+        """Consecutive fragments from one speaker join as text, so only the turn change breaks a line."""
+        builder = TranscriptionLineBuilder(max_line_chars=120, max_line_seconds=4.0, min_split_chars=3,
+                                           max_newlines=1)
+        chunk = AudioChunk(start=timedelta(seconds=100), end=timedelta(seconds=160))
+        parts = [TranscriptionSegment(start=timedelta(seconds=0), end=timedelta(seconds=0.4),
+                                      text="够了", speaker="A"),
+                 TranscriptionSegment(start=timedelta(seconds=0.5), end=timedelta(seconds=0.9),
+                                      text="真的", speaker="A"),
+                 TranscriptionSegment(start=timedelta(seconds=1.0), end=timedelta(seconds=1.4),
+                                      text="蛤", speaker="B")]
+        segment = TranscriptionSegment(start=chunk.start, end=chunk.end, text="够了真的蛤",
+                                       language="Chinese", parts=parts)
+        lines = builder.LinesForSegment(segment)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("one turn break only", "- 够了真的\n- 蛤", lines[0].text)
 
     def test_distinct_speaker_parts_keep_tighter_pause_limit(self):
         """The same pause that joins one speaker's fragments is a real break between two."""

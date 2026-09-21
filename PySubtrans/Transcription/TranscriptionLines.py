@@ -302,11 +302,10 @@ class TranscriptionLineBuilder:
         """
         Whether a line belongs with a run, by speaker and by the pause before it.
 
-        A run carries at most one known speaker when turn merging is disabled,
-        so the run's speaker is enough to judge the next line against.
+        The pause is measured from the end of the run, so it is the speaker of
+        the turn ending there that the line either continues or interrupts.
         """
-        speakers = {part.speaker for part in run if part.speaker is not None}
-        speaker = speakers.pop() if len(speakers) == 1 else None
+        speaker = run[-1].speaker
 
         if not self.can_merge_different_speakers and speaker is not None and line.speaker is not None:
             if speaker != line.speaker:
@@ -328,19 +327,21 @@ class TranscriptionLineBuilder:
         return [[line] for line in run]
 
     def _chunk_fits(self, chunk : list[TranscriptionSegment]) -> bool:
-        """Whether merging a chunk would stay within the limits a line is held to."""
-        if (max(part.end for part in chunk) - chunk[0].start).total_seconds() > self.max_line_seconds:
+        """
+        Whether merging a chunk would stay within the limits a line is held to.
+
+        The merge is performed and measured rather than predicted: how many
+        turns render as dialogue depends on the order they fold together in.
+        """
+        merged = self._merge_run(chunk)
+
+        if (merged.end - merged.start).total_seconds() > self.max_line_seconds:
             return False
 
-        if len(JoinWords([part.text for part in chunk])) > self.max_line_chars:
+        if len(merged.text) > self.max_line_chars:
             return False
 
-        # Only a change of speaker forces a turn onto its own line; one speaker's
-        # fragments join as continuous text and add no newlines
-        known_speakers = {part.speaker for part in chunk if part.speaker is not None}
-        turn_breaks = len(chunk) - 1 if len(known_speakers) > 1 else 0
-        newlines = sum(part.text.count('\n') for part in chunk) + turn_breaks
-        return newlines <= self.max_newlines
+        return merged.text.count('\n') <= self.max_newlines
 
     @staticmethod
     def _split_evenly(run : list[TranscriptionSegment], count : int) -> list[list[TranscriptionSegment]]:
@@ -357,25 +358,41 @@ class TranscriptionLineBuilder:
         return chunks
 
     def _merge_run(self, run : list[TranscriptionSegment]) -> TranscriptionSegment:
-        """Fold a run of lines into one, a pair at a time."""
-        merged = run[0]
-        for line in run[1:]:
-            merged = self._merge_pair(merged, line)
+        """
+        Combine a run of lines into one, grouping consecutive lines by speaker.
 
-        return merged
+        A turn becomes one piece of text however many fragments it arrived in,
+        so only a change of speaker puts a dialogue marker on a new line.
+        """
+        turns : list[list[TranscriptionSegment]] = []
+        for line in run:
+            if turns and self._same_turn(turns[-1][-1], line):
+                turns[-1].append(line)
+            else:
+                turns.append([line])
 
-    def _merge_pair(self, first : TranscriptionSegment, second : TranscriptionSegment) -> TranscriptionSegment:
-        """Combine two adjacent lines, formatting as dialogue when speakers differ."""
-        mixed = (self._is_dialogue(first) or self._is_dialogue(second)
-                 or (first.speaker is not None and second.speaker is not None
-                     and first.speaker != second.speaker))
-        if mixed:
-            first_text = first.text if first.text.startswith('- ') else f'- {first.text}'
-            second_text = second.text if second.text.startswith('- ') else f'- {second.text}'
-            text = f'{first_text}\n{second_text}'
+        texts = [JoinWords([line.text for line in turn]) for turn in turns]
+        dialogue = len(turns) > 1
+
+        if dialogue:
+            text = '\n'.join(turn if turn.startswith('- ') else f'- {turn}' for turn in texts)
         else:
-            text = JoinWords([first.text, second.text])
+            text = texts[0]
+
+        speakers = {line.speaker for line in run if line.speaker is not None}
         return TranscriptionSegment(
-            start=first.start, end=max(first.end, second.end), text=text,
-            speaker=None if mixed else first.speaker or second.speaker,
-            language=first.language or second.language)
+            start=run[0].start, end=max(line.end for line in run), text=text,
+            speaker=None if dialogue else (speakers.pop() if speakers else None),
+            language=next((line.language for line in run if line.language), None))
+
+    def _same_turn(self, first : TranscriptionSegment, second : TranscriptionSegment) -> bool:
+        """
+        Whether two adjacent lines belong to one speaker's turn.
+
+        A line that already carries dialogue markers stands on its own,
+        whatever its speaker: it is more than one turn by itself.
+        """
+        if self._is_dialogue(first) or self._is_dialogue(second):
+            return False
+
+        return first.speaker is None or second.speaker is None or first.speaker == second.speaker
