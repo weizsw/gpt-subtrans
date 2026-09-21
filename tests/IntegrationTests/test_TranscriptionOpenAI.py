@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.SettingsType import SettingsType
+from PySubtrans.Transcription.TranscriptionProvider import OptionsScope
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Transcription.Providers.Clients.OpenAITranscriptionClient import (
@@ -52,13 +53,32 @@ class TestOpenAIRegistered(LoggedTestCase):
         for key in ('api_key', 'model', 'language', 'request_timeout', 'rate_limit'):
             self.assertLoggedIn(f"{key} option", key, options)
 
-    def test_advanced_settings_match_schema(self):
-        """Advanced keys must exist in the options schema, or filtering silently misses."""
-        provider = OpenAITranscriptionProvider(SettingsType({'api_key': 'k'}))
-        options = provider.GetOptions(provider.settings)
+    def test_line_assembly_options_follow_the_selected_model(self):
+        """OpenAI has no diarize flag; only the diarize model labels speakers."""
+        whisper = OpenAITranscriptionProvider(SettingsType({'api_key': 'k', 'model': 'whisper-1'}))
+        options = whisper.GetOptions(whisper.settings)
 
-        unknown = [key for key in provider.advanced_settings if key not in options]
-        self.assertLoggedEqual("no stale advanced keys", [], unknown)
+        self.assertLoggedFalse("whisper does not diarize", whisper.supports_diarization)
+        self.assertLoggedIn("gap always offered", 'merge_eligible_gap', options)
+        self.assertLoggedNotIn("no speaker merge toggle", 'can_merge_different_speakers', options)
+
+        diarizing = OpenAITranscriptionProvider(
+            SettingsType({'api_key': 'k', 'model': 'gpt-4o-transcribe-diarize'}))
+        options = diarizing.GetOptions(diarizing.settings)
+
+        self.assertLoggedTrue("diarize model labels speakers", diarizing.supports_diarization)
+        self.assertLoggedIn("speaker merge toggle offered", 'can_merge_different_speakers', options)
+
+    def test_per_run_scope_offers_only_per_job_choices(self):
+        """Settings decided once stay out of the schema the Transcribe dialog asks for."""
+        provider = OpenAITranscriptionProvider(SettingsType({'api_key': 'k'}))
+        options = provider.GetOptions(provider.settings, OptionsScope.PER_RUN)
+
+        for key in ('model', 'language'):
+            self.assertLoggedIn(f"{key} offered per run", key, options)
+
+        for key in ('request_timeout', 'rate_limit', 'merge_eligible_gap'):
+            self.assertLoggedNotIn(f"{key} withheld per run", key, options)
 
     def test_language_resolves_to_iso_code(self):
         """Whisper takes ISO 639-1 codes: names and regional tags reduce to the language."""

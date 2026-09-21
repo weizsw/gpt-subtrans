@@ -6,6 +6,9 @@ from unittest.mock import Mock, patch
 
 from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.SettingsType import SettingsType
+from PySubtrans.Transcription.TranscriptionLines import (DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
+                                                         DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS)
+from PySubtrans.Transcription.TranscriptionProvider import OptionsScope
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Transcription.Providers.Provider_Muse import (
@@ -53,13 +56,46 @@ class TestMuseRegistered(LoggedTestCase):
         for key in ('api_key', 'model', 'language', 'diarize', 'request_timeout', 'rate_limit'):
             self.assertLoggedIn(f"{key} option", key, options)
 
-    def test_advanced_settings_match_schema(self):
-        """Advanced keys must exist in the options schema, or filtering silently misses."""
-        provider = MuseTranscriptionProvider(SettingsType({'api_key': 'k'}))
-        options = provider.GetOptions(provider.settings)
+    def test_line_assembly_options_follow_diarization(self):
+        """The speaker settings appear only when the provider will label speakers."""
+        without = MuseTranscriptionProvider(SettingsType({'api_key': 'k', 'diarize': False}))
+        options = without.GetOptions(without.settings)
 
-        unknown = [key for key in provider.advanced_settings if key not in options]
-        self.assertLoggedEqual("no stale advanced keys", [], unknown)
+        self.assertLoggedIn("gap always offered", 'merge_eligible_gap', options)
+        self.assertLoggedNotIn("no same-speaker gap", 'same_speaker_merge_eligible_gap', options)
+        self.assertLoggedNotIn("no speaker merge toggle", 'can_merge_different_speakers', options)
+
+        with_speakers = MuseTranscriptionProvider(SettingsType({'api_key': 'k', 'diarize': True}))
+        options = with_speakers.GetOptions(with_speakers.settings)
+
+        self.assertLoggedIn("same-speaker gap offered", 'same_speaker_merge_eligible_gap', options)
+        self.assertLoggedIn("speaker merge toggle offered", 'can_merge_different_speakers', options)
+
+    def test_line_assembly_settings_are_always_present(self):
+        """Every provider declares the line assembly settings, at the shared defaults."""
+        provider = MuseTranscriptionProvider(SettingsType({'api_key': 'k'}))
+
+        self.assertLoggedEqual("merge gap", DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
+                               provider.settings.get_float('merge_eligible_gap'))
+        self.assertLoggedEqual("same speaker gap", DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS,
+                               provider.settings.get_float('same_speaker_merge_eligible_gap'))
+
+    def test_saved_line_assembly_settings_win(self):
+        """A stored value beats the default."""
+        provider = MuseTranscriptionProvider(SettingsType({'api_key': 'k', 'merge_eligible_gap': 0.3}))
+
+        self.assertLoggedEqual("saved gap", 0.3, provider.settings.get_float('merge_eligible_gap'))
+
+    def test_per_run_scope_offers_only_per_job_choices(self):
+        """Settings decided once stay out of the schema the Transcribe dialog asks for."""
+        provider = MuseTranscriptionProvider(SettingsType({'api_key': 'k'}))
+        options = provider.GetOptions(provider.settings, OptionsScope.PER_RUN)
+
+        for key in ('model', 'language', 'diarize'):
+            self.assertLoggedIn(f"{key} offered per run", key, options)
+
+        for key in ('request_timeout', 'rate_limit', 'merge_eligible_gap'):
+            self.assertLoggedNotIn(f"{key} withheld per run", key, options)
 
     def test_information_exposed(self):
         """GetInformation() composes the ffmpeg paragraph with provider text."""

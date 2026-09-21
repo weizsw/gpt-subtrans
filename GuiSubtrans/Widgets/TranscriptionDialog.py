@@ -46,7 +46,7 @@ from PySubtrans.Transcription.AudioChunker import AudioChunker
 from PySubtrans.Transcription.AudioExtractor import AudioTrack, SUPPORTED_MEDIA_EXTENSIONS, CheckFfmpegAvailable
 from PySubtrans.Transcription.TranscriptionCoordinator import TranscriptionCoordinator
 from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionStatus
-from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
+from PySubtrans.Transcription.TranscriptionProvider import OptionsScope, TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionSegment
 
 
@@ -441,15 +441,12 @@ class TranscriptionDialog(QDialog):
             return
 
         try:
-            schema = self.provider.GetOptions(self.provider.settings)
+            schema = self.provider.GetOptions(self.provider.settings, OptionsScope.PER_RUN)
         except Exception as e:
             logging.error(_("Unable to load provider options: {error}").format(error=str(e)))
             return
 
         for key, option_definition in schema.items():
-            if key in self.provider.advanced_settings:
-                continue
-
             field = self._create_option_field(
                 key,
                 self.provider.settings.get(key),

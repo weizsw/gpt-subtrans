@@ -16,12 +16,11 @@ SENTENCE_END_CHARS = frozenset('。！？!?\n…')
 # a good place to break an over-long utterance
 CLAUSE_END_CHARS = frozenset('.,;:，、；：-–—')
 
-# A pause this long starts a new line when the speaker is unknown or changes
-NO_SPEAKER_MAX_GAP_SECONDS = 0.5
+# Widest gap that can fall within a line when the speaker is unknown or changes
+DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS = 0.5
 
-# Known continuation of the same speaker earns a longer leash before a pause
-# is treated as a real break
-SAME_SPEAKER_MAX_GAP_SECONDS = 1.0
+# A pause within one speaker's turn is not a break, so it is given more room
+DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS = 1.0
 
 # Split-point scoring for over-long utterances: the pause at a boundary is
 # the primary signal, weighted by how central the boundary is. The floor
@@ -50,14 +49,17 @@ class TranscriptionLineBuilder:
     neighbours. No provider or audio dependencies.
     """
     def __init__(self, max_line_chars : int, max_line_seconds : float, min_split_chars : int = 3,
-                 min_line_seconds : float = 0.8, max_gap_for_merge : float = NO_SPEAKER_MAX_GAP_SECONDS,
-                 max_newlines : int = 2):
+                 min_line_seconds : float = 0.8, merge_eligible_gap : float = DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
+                 same_speaker_merge_eligible_gap : float = DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS,
+                 max_newlines : int = 2, can_merge_different_speakers : bool = True):
         self.max_line_chars : int = max_line_chars
         self.max_line_seconds : float = max_line_seconds
         self.min_split_chars : int = min_split_chars
         self.min_line_seconds : float = min_line_seconds
-        self.max_gap_for_merge : float = max_gap_for_merge
+        self.merge_eligible_gap : float = merge_eligible_gap
+        self.same_speaker_merge_eligible_gap : float = same_speaker_merge_eligible_gap
         self.max_newlines : int = max_newlines
+        self.can_merge_different_speakers : bool = can_merge_different_speakers
 
     def LinesForSegment(self, segment : TranscriptionSegment) -> list[TranscriptionSegment]:
         """
@@ -76,8 +78,8 @@ class TranscriptionLineBuilder:
         if segment.parts:
             rebased = [self._rebase_part(part, segment) for part in segment.parts if part.text.strip()]
 
-            # Providers that segment for us still strand fragments, and a fragment
-            # translated on its own becomes a sentence nobody said
+            # Providers that segment for us still strand fragments, which
+            # translate badly in isolation
             merged = self.MergeSlivers(rebased)
             for line in merged:
                 self.WarnIfOverlong(line)
@@ -104,8 +106,7 @@ class TranscriptionLineBuilder:
         """
         Merge brief adjacent lines, preserving pauses and dialogue turns.
 
-        A run of fragments that would overflow a readable subtitle is divided
-        into even pieces rather than filled to the brim and left with an orphan.
+        A run too long for one subtitle is divided into even pieces.
         """
         if len(lines) < 2:
             return lines
@@ -147,23 +148,19 @@ class TranscriptionLineBuilder:
 
         return utterances
 
-    def _max_gap(self, first_speaker : str|None, second_speaker : str|None) -> float:
-        """
-        How long a pause may be before it counts as a real break.
-        A pause known to fall within one speaker's turn earns a longer leash,
-        because a speaker pausing for breath is not the same as a change of turn.
-        """
+    def _eligible_gap(self, first_speaker : str|None, second_speaker : str|None) -> float:
+        """The widest gap that still leaves two lines eligible to be one."""
         if first_speaker is not None and first_speaker == second_speaker:
-            return max(self.max_gap_for_merge, SAME_SPEAKER_MAX_GAP_SECONDS)
+            return self.same_speaker_merge_eligible_gap
 
-        return min(self.max_gap_for_merge, NO_SPEAKER_MAX_GAP_SECONDS)
+        return self.merge_eligible_gap
 
     def _is_hard_boundary(self, previous : WordTiming, word : WordTiming) -> bool:
         """A long pause, a speaker change or the end of a sentence always starts a new line."""
         gap = (word.start - previous.end).total_seconds()
         speaker_changed = (word.speaker is not None and previous.speaker is not None
                            and word.speaker != previous.speaker)
-        return (gap >= self._max_gap(previous.speaker, word.speaker)
+        return (gap >= self._eligible_gap(previous.speaker, word.speaker)
                 or speaker_changed
                 or bool(previous.text and previous.text[-1] in SENTENCE_END_CHARS))
 
@@ -284,8 +281,9 @@ class TranscriptionLineBuilder:
     def _sliver_runs(self, lines : list[TranscriptionSegment]) -> list[list[TranscriptionSegment]]:
         """
         Group lines into runs that belong together.
-        A fragment joins the run in front of it, and a fragment that opens the
-        list joins the run behind it, having nothing in front to belong to.
+
+        A fragment joins the run in front of it. A fragment opening the list
+        has nothing in front, so it joins the run behind it instead.
         """
         runs : list[list[TranscriptionSegment]] = [[lines[0]]]
 
@@ -293,25 +291,32 @@ class TranscriptionLineBuilder:
             run = runs[-1]
             opening_fragment = len(runs) == 1 and len(run) == 1 and self._is_sliver(run[0])
 
-            if (self._is_sliver(line) or opening_fragment) and self._run_reaches(run, line):
+            if (self._is_sliver(line) or opening_fragment) and self._merge_eligible(run, line):
                 run.append(line)
             else:
                 runs.append([line])
 
         return runs
 
-    def _run_reaches(self, run : list[TranscriptionSegment], line : TranscriptionSegment) -> bool:
-        """Whether a line follows closely enough on a run to be part of it."""
-        end = max(part.end for part in run)
+    def _merge_eligible(self, run : list[TranscriptionSegment], line : TranscriptionSegment) -> bool:
+        """
+        Whether a line belongs with a run, by speaker and by the pause before it.
+
+        A run carries at most one known speaker when turn merging is disabled,
+        so the run's speaker is enough to judge the next line against.
+        """
         speakers = {part.speaker for part in run if part.speaker is not None}
         speaker = speakers.pop() if len(speakers) == 1 else None
-        return (line.start - end).total_seconds() < self._max_gap(speaker, line.speaker)
+
+        if not self.can_merge_different_speakers and speaker is not None and line.speaker is not None:
+            if speaker != line.speaker:
+                return False
+
+        end = max(part.end for part in run)
+        return (line.start - end).total_seconds() < self._eligible_gap(speaker, line.speaker)
 
     def _balanced_chunks(self, run : list[TranscriptionSegment]) -> list[list[TranscriptionSegment]]:
-        """
-        Divide a run into the fewest pieces that each read comfortably,
-        keeping the pieces as even as possible so none is left a stray turn.
-        """
+        """Divide a run into the fewest even pieces that each read comfortably."""
         if len(run) < 2 or self._chunk_fits(run):
             return [run]
 

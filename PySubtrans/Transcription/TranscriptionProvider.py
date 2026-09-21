@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 import logging
+from enum import Enum
 from typing import cast
 
 from babel import Locale
@@ -14,6 +15,12 @@ from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 
 
+class OptionsScope(str, Enum):
+    """Which of a provider's options a caller is asking it to describe."""
+    ALL = "all"
+    PER_RUN = "per_run"
+
+
 class TranscriptionProvider:
     """
     Base class for transcription service providers.
@@ -23,10 +30,6 @@ class TranscriptionProvider:
     from translation ones. API keys are shared at the Options level instead
     (see ResolveProviderSettings).
     """
-    # Settings hidden from the Transcribe dialog (stable choices that belong
-    # in Settings): the dialog shows the rest for per-run tweaks.
-    advanced_settings : list[str] = []
-
     # Optional no-key walkthrough; keyed providers define information_noapikey
     information_noapikey : str|None = None
 
@@ -104,6 +107,11 @@ class TranscriptionProvider:
         Recommended maximum audio chunk length (see recommended_min_chunk_seconds).
         """
         return 60.0
+
+    @property
+    def supports_diarization(self) -> bool:
+        """Whether the provider will label speakers, as currently configured."""
+        return False
 
     def GetAvailableModels(self) -> list[str]:
         """
@@ -184,9 +192,9 @@ class TranscriptionProvider:
         """
         raise NotImplementedError
 
-    def GetOptions(self, settings : SettingsType) -> GuiSettingsType:
+    def GetOptions(self, settings : SettingsType, scope : OptionsScope = OptionsScope.ALL) -> GuiSettingsType:
         """
-        Returns the configurable options for the provider
+        Returns the configurable options for the provider, in the given scope.
         """
         raise NotImplementedError
 

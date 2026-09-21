@@ -57,9 +57,9 @@ class SettingsDialog(QDialog):
         },
         TRANSCRIPTION_SECTION: {
             'transcription_provider': ([], _("The transcription service to use")),
+            'provider_info': (INFO_OPTION, _("Information about the selected transcription provider")),
             'transcription_provider_settings': TranscriptionProvider,
             'postprocess_transcription': (bool, _("Clean transcribed lines with the same normalizations used for loaded subtitles (dashes, filler words, line breaks)")),
-            'provider_info': (INFO_OPTION, _("Information about the selected transcription provider")),
             'ffmpeg_path': (str, _(
                 "Optional path to the ffmpeg executable. Leave blank to use ffmpeg and ffprobe from the system PATH"
             ), _("Leave blank to use ffmpeg and ffprobe from the system PATH")),

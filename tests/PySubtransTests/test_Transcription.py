@@ -26,7 +26,7 @@ from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionCoordinator import TranscriptionCoordinator, TranscriptionStatus
 from PySubtrans.Transcription.TranscriptionLines import TranscriptionLineBuilder
 from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionOutcome
-from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
+from PySubtrans.Transcription.TranscriptionProvider import OptionsScope, TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionResult, TranscriptionSegment
 
 from tests.Helpers import FakeClock
@@ -109,12 +109,17 @@ class FakeTranscriptionProvider(TranscriptionProvider):
         self.client = FakeTranscriptionClient(settings, self.texts, self.words, self.timed)
         return self.client
 
-    def GetOptions(self, settings : SettingsType) -> GuiSettingsType:
+    def GetOptions(self, settings : SettingsType, scope : OptionsScope = OptionsScope.ALL) -> GuiSettingsType:
         """Settings schema exercising text and dropdown widgets."""
-        return {
+        options : GuiSettingsType = {
             'model': (self.available_models, "Model to use"),
             'language': (str, "Language hint"),
         }
+
+        if scope is OptionsScope.ALL:
+            options['merge_eligible_gap'] = (float, "Merge gap")
+
+        return options
 
     information_noapikey = "Test walkthrough"
 
@@ -382,6 +387,39 @@ class TestWordGrouping(LoggedTestCase):
         lines = self._scene_lines(self._builder(), "以为自己是只鬼。", words)
 
         self.assertLoggedEqual("line count", 2, len(lines))
+
+    def test_speaker_turns_stay_separate_when_merging_is_disabled(self):
+        """The same brief turns that normally share a line keep their own when turn merging is off."""
+        builder = TranscriptionLineBuilder(max_line_chars=120, max_line_seconds=4.0, min_split_chars=3,
+                                           can_merge_different_speakers=False)
+        words = [_word("yes", 0.0, 0.5, "A"), _word("no", 0.6, 1.0, "B")]
+        lines = self._scene_lines(builder, "yes no", words)
+
+        self.assertLoggedEqual("line count", 2, len(lines))
+        self.assertLoggedEqual("first speaker", "A", lines[0].speaker)
+        self.assertLoggedEqual("second speaker", "B", lines[1].speaker)
+
+    def test_one_speaker_still_merges_when_turn_merging_is_disabled(self):
+        """Disabling turn merging bears on speaker changes only, not on one speaker's fragments."""
+        builder = TranscriptionLineBuilder(max_line_chars=120, max_line_seconds=4.0, min_split_chars=3,
+                                           can_merge_different_speakers=False)
+        words = [_word("以为自己", 0.0, 0.559, "0"), _word("是只鬼。", 1.28, 2.08, "0")]
+        lines = self._scene_lines(builder, "以为自己是只鬼。", words)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("merged text", "以为自己是只鬼。", lines[0].text)
+
+    def test_configured_gaps_override_the_defaults(self):
+        """A pause past the default limit still joins when the settings allow it."""
+        words = [_word("以为自己", 0.0, 0.559, "0"), _word("是只鬼。", 1.9, 2.7, "0")]
+
+        default_lines = self._scene_lines(self._builder(), "以为自己是只鬼。", words)
+        self.assertLoggedEqual("line count with default gaps", 2, len(default_lines))
+
+        generous = TranscriptionLineBuilder(max_line_chars=120, max_line_seconds=4.0, min_split_chars=3,
+                                            same_speaker_merge_eligible_gap=2.0)
+        lines = self._scene_lines(generous, "以为自己是只鬼。", words)
+        self.assertLoggedEqual("line count with a wider same-speaker gap", 1, len(lines))
 
     def test_sliver_across_pause_stays_separate(self):
         """A short interjection after seconds of silence keeps its own line."""

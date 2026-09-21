@@ -16,7 +16,9 @@ from PySubtrans.Transcription.AudioChunker import AudioChunker, AudioChunk
 from PySubtrans.Transcription.AudioExtractor import AudioExtractor, AudioTrack, CheckFfmpegAvailable
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionEvents import TranscriptionEvents
-from PySubtrans.Transcription.TranscriptionLines import NO_SPEAKER_MAX_GAP_SECONDS, SpanLabel, TranscriptionLineBuilder
+from PySubtrans.Transcription.TranscriptionLines import (DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
+                                                         DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS,
+                                                         SpanLabel, TranscriptionLineBuilder)
 from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionOutcome, TranscriptionStatus
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionRun import TranscriptionRun
@@ -45,14 +47,21 @@ class TranscriptionCoordinator:
         self.chunker : AudioChunker = AudioChunker(chunk_settings)
         self.extractor : AudioExtractor = self.chunker.extractor
 
+        # Reading the engine's output is provider-specific; the limits a
+        # finished line is held to are not
+        line_settings = provider.settings
+
         # Transcribed lines obey the same limits as loaded and translated subtitles
         self.line_builder : TranscriptionLineBuilder = TranscriptionLineBuilder(
             max_line_chars=self.settings.get_int('max_characters') or 120,
             max_line_seconds=self.settings.get_float('max_line_duration') or 4.0,
             min_split_chars=self.settings.get_int('min_split_chars') or 3,
             min_line_seconds=self.settings.get_float('min_line_duration') or 0.8,
-            max_gap_for_merge=self.settings.get_float('max_gap_for_merge') or NO_SPEAKER_MAX_GAP_SECONDS,
-            max_newlines=self.settings.get_int('max_newlines') or 2)
+            merge_eligible_gap=line_settings.get_float('merge_eligible_gap') or DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
+            same_speaker_merge_eligible_gap=line_settings.get_float('same_speaker_merge_eligible_gap')
+                or DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS,
+            max_newlines=self.settings.get_int('max_newlines') or 2,
+            can_merge_different_speakers=line_settings.get_bool('can_merge_different_speakers', True))
 
         self.events : TranscriptionEvents = TranscriptionEvents()
         self._active_client : TranscriptionClient|None = None
