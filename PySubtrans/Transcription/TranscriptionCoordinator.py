@@ -15,6 +15,7 @@ from PySubtrans.Subtitles import Subtitles
 from PySubtrans.Transcription.AudioChunker import AudioChunker, AudioChunk
 from PySubtrans.Transcription.AudioExtractor import AudioExtractor, AudioTrack, CheckFfmpegAvailable
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
+from PySubtrans.Transcription.TranscriptionCapture import CapturePath, TranscriptionCapture
 from PySubtrans.Transcription.TranscriptionEvents import TranscriptionEvents
 from PySubtrans.Transcription.TranscriptionLines import (DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
                                                          DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS,
@@ -66,6 +67,9 @@ class TranscriptionCoordinator:
         self.events : TranscriptionEvents = TranscriptionEvents()
         self._active_client : TranscriptionClient|None = None
 
+        # TEMPORARY: raw segment capture for line assembly tuning
+        self._capture : TranscriptionCapture|None = None
+
     @property
     def track_index(self) -> int:
         """Audio track to transcribe (0-based within audio streams)."""
@@ -113,6 +117,10 @@ class TranscriptionCoordinator:
             return self._failed(e)
 
         run = TranscriptionRun(prior_subtitles)
+
+        # TEMPORARY: raw segment capture for line assembly tuning
+        capture_path = CapturePath(self.settings)
+        self._capture = TranscriptionCapture(capture_path, self.provider.name, media_path) if capture_path else None
 
         def on_duration(duration : timedelta) -> None:
             run.audio_total_seconds = max(0.0, duration.total_seconds())
@@ -331,6 +339,10 @@ class TranscriptionCoordinator:
 
         if segment is None:
             return
+
+        # TEMPORARY: raw segment capture for line assembly tuning
+        if self._capture is not None:
+            self._capture.Add(segment)
 
         for line in self.line_builder.LinesForSegment(segment):
             if run.AddLine(line) is not None:

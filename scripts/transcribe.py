@@ -43,6 +43,8 @@ def CreateTranscribeParser() -> ArgumentParser:
     parser.add_argument('--no-align', dest='align', action='store_false', help="Disable word timestamps (chunk-level lines)")
     parser.add_argument('--postprocess', action='store_true', default=True, help="Clean transcribed lines with subtitle normalizations (default on)")
     parser.add_argument('--no-postprocess', dest='postprocess', action='store_false', help="Keep raw transcription text")
+    parser.add_argument('--capture', type=str, default=None,
+                        help="TEMPORARY: write the provider's raw segments to this JSON file for offline analysis")
     parser.add_argument('--debug', action='store_true', help="Run with DEBUG log level")
     parser.add_argument('--verbose', action='store_true', help="Log each transcribed chunk")
     return parser
@@ -111,6 +113,8 @@ def main() -> int:
         coordinator_settings['rate_limit'] = args.rate_limit
     if args.ffmpeg_path is not None:
         coordinator_settings['ffmpeg_path'] = args.ffmpeg_path
+    if args.capture is not None:
+        coordinator_settings['transcription_capture_path'] = args.capture
     try:
         coordinator = TranscriptionCoordinator(provider, coordinator_settings)
     except SubtitleError as e:
