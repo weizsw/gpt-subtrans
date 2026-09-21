@@ -47,7 +47,7 @@ namespaces = true
 
 [tool.pyright]
 include = ["PySubtrans", "GuiSubtrans", "scripts", "tests"]
-exclude = ["**/node_modules", "**/__pycache__", "dist", "build", "envsubtrans"]
+exclude = ["**/.*", "**/node_modules", "**/__pycache__", "dist", "build", "envsubtrans"]
 pythonVersion = "3.10"
 typeCheckingMode = "basic"
 venvPath = "."
