@@ -22,6 +22,18 @@ class FailingCommand(Command):
         raise self.error
 
 
+class TerminalCommand(Command):
+    """Command that handles a fatal error itself and reports the result of its work."""
+
+    def __init__(self, succeeded : bool) -> None:
+        super().__init__()
+        self.result : bool = succeeded
+
+    def execute(self) -> bool:
+        self.terminal = True
+        return self.result
+
+
 class TestFatalCommandErrors(LoggedTestCase):
     """A fatal error must leave the command failed and terminal so the chain stops."""
 
@@ -46,6 +58,15 @@ class TestFatalCommandErrors(LoggedTestCase):
 
         self.assertLoggedEqual("command succeeded", False, command.succeeded)
         self.assertLoggedTrue("command terminal", command.terminal)
+
+    def test_terminal_command_reports_its_own_result(self) -> None:
+        """Terminal stops the commands that follow, it does not decide whether this one worked."""
+        for result in (True, False):
+            command = TerminalCommand(result)
+            with self.assertLogs(level=logging.ERROR):
+                command.run()
+
+            self.assertLoggedEqual("command succeeded", result, command.succeeded, input_value=result)
 
     def test_unexpected_error_is_not_terminal(self) -> None:
         command = self._run_command(RuntimeError("something unexpected"))

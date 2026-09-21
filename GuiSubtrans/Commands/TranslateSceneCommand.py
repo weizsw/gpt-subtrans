@@ -119,7 +119,8 @@ class TranslateSceneCommand(Command):
                 self.translator.events.warning.disconnect(self._on_warning)
                 self.translator.events.info.disconnect(self._on_info)
 
-        return True
+        # A scene that ended in a terminal state did not translate
+        return not self.terminal
 
     def on_abort(self):
         if self.translator:

@@ -86,9 +86,11 @@ class Command(QRunnable, QObject):
 
             if self.aborted:
                 logging.info(_("Aborted {type}").format(type=type(self).__name__))
-            elif self.terminal:
-                logging.error(_("Unrecoverable error in {name}").format(name=type(self).__name__))
             else:
+                # Terminal only means nothing can follow - the command still reports whether it did its work
+                if self.terminal:
+                    logging.error(_("Unrecoverable error in {name}").format(name=type(self).__name__))
+
                 self.succeeded = success
 
             # Mark the project as dirty if the command modified it

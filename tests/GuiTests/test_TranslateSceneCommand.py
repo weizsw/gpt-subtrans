@@ -70,9 +70,10 @@ class TestTranslateSceneCommand(LoggedTestCase):
 
         command = TranslateSceneCommand(1, datamodel=datamodel)
         with patch('GuiSubtrans.Commands.TranslateSceneCommand.SubtitleTranslator', FailingTranslationCommandTranslator),                 self.assertLogs(level=logging.ERROR):
-            command.execute()
+            result = command.execute()
 
         self.assertLoggedTrue('translation command is terminal', command.terminal)
+        self.assertLoggedFalse('translation command succeeded', result)
 
     def test_completed_command_records_selected_batch_cost(self) -> None:
         line = SubtitleLine.Construct(1, timedelta(), timedelta(seconds=1), 'source text')
