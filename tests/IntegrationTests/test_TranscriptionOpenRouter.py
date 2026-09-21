@@ -109,6 +109,23 @@ class TestOpenRouterRegistered(LoggedTestCase):
         self.assertLoggedEqual("second speaker", "1", words[1].speaker)
 
 
+    def test_word_order_survives_unordered_timings(self):
+        """Spoken order comes from the array, not the timings, which are best effort."""
+
+        payload = {
+            'text': 'the quick brown fox',
+            'words': [
+                {'word': 'the', 'start': 1.00, 'end': 1.20},
+                {'word': 'quick', 'start': 0.90, 'end': 1.40},
+                {'word': 'brown', 'start': 1.30, 'end': 1.50},
+                {'word': 'fox', 'start': 1.10, 'end': 1.80},
+            ],
+        }
+        _text, _language, _parts, words = _parse_transcription_payload(payload)
+
+        self.assertLoggedEqual("transcript order preserved",
+                               ['the', 'quick', 'brown', 'fox'], [word.text for word in words])
+
     def test_segments_without_words(self):
         """Segments parse when word timings are absent."""
 

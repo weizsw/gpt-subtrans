@@ -235,8 +235,17 @@ class TranscriptionLineBuilder:
         return pieces
 
     def _line_from_words(self, words : list[WordTiming], segment : TranscriptionSegment) -> TranscriptionSegment:
-        """Build one absolute-timed line from a run of chunk-relative words."""
-        start, end = self._clamped_span(segment, words[0].start, words[-1].end)
+        """
+        Build one absolute-timed line from a run of chunk-relative words.
+
+        Words are kept in the order the engine emitted them, which is the
+        order they were spoken in; their timings are a best-effort signal
+        and need not run in step with it, so the span takes the earliest
+        start and latest end rather than the first and last word's.
+        """
+        start, end = self._clamped_span(segment,
+                                        min(word.start for word in words),
+                                        max(word.end for word in words))
         return TranscriptionSegment(start=start, end=end, text=JoinWords([w.text for w in words]),
                                     speaker=words[0].speaker or segment.speaker,
                                     language=segment.language)

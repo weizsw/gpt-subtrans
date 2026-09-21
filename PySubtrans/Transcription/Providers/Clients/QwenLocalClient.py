@@ -336,7 +336,6 @@ def parse_qwen_result(result : object) -> tuple[str, str|None, list[WordTiming]]
                                 start=timedelta(seconds=max(0.0, start)),
                                 end=timedelta(seconds=max(0.0, end))))
 
-    words.sort(key=lambda w: w.start)
     return text, language, words
 
 

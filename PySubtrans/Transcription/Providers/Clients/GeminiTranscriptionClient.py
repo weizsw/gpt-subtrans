@@ -290,8 +290,6 @@ else:
                                     start=timedelta(seconds=start),
                                     end=timedelta(seconds=end),
                                     speaker=str(speaker) if speaker else None))
-
-        words.sort(key=lambda w: w.start)
         return words
 
 
