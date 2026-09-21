@@ -97,9 +97,13 @@ class Command(QRunnable, QObject):
 
             self.commandCompleted.emit(self)
 
+        except CommandError as e:
+            # Commands raise a CommandError for a state that the commands after them cannot escape
+            self.terminal = True
+            self._report_failure(e)
+
         except Exception as e:
-            logging.error(_("Error executing {type}: {str}").format(type=type(self).__name__, str=e))
-            self.commandCompleted.emit(self)
+            self._report_failure(e)
 
     def execute(self) -> bool:
         raise NotImplementedError
@@ -121,6 +125,12 @@ class Command(QRunnable, QObject):
     def execute_undo_callback(self) -> None:
         if self.undo_callback:
             self.undo_callback(self)
+
+    def _report_failure(self, error : Exception) -> None:
+        """Log an error that escaped execute() and report the command as failed"""
+        logging.error(_("Error executing {type}: {str}").format(type=type(self).__name__, str=error))
+        self.succeeded = False
+        self.commandCompleted.emit(self)
 
 class CommandError(Exception):
     def __init__(self, message : str, command : Command, *args: object) -> None:

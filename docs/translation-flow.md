@@ -469,9 +469,10 @@ model_update.scenes.update(scene.number, {
 
 ## Error Handling
 
-- **CommandError** exceptions stop command execution and set `terminal = True`
 - **TranslationAbortedError** marks command as aborted and terminal
 - **TranslationImpossibleError** logs error and marks command as terminal
+- **ProviderError** / **NoProviderError** mark the command terminal - a provider that cannot produce a client will fail identically for every other scene
+- An exception that escapes `execute()` is caught by `Command.run()`, which sets `succeeded = False`, and `terminal = True` for a `CommandError`. Commands that can recognise a fatal error should handle it themselves, as `TranslateSceneCommand` does
 - Terminal commands prevent subsequent queued commands from executing
 - Undo stack is cleared when non-undoable commands execute
 

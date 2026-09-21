@@ -10,6 +10,7 @@ from PySubtrans.Options import Options
 from PySubtrans.SubtitleBatch import SubtitleBatch
 from PySubtrans.SubtitleLine import SubtitleLine
 from PySubtrans.SubtitleScene import SubtitleScene
+from PySubtrans.SubtitleError import ProviderError
 from PySubtrans.Subtitles import Subtitles
 from PySubtrans.Translation import Translation
 from PySubtrans.TranslationEvents import TranslationEvents
@@ -36,8 +37,42 @@ class FakeTranslationCommandTranslator:
         self.aborted = True
 
 
+class FailingTranslationCommandTranslator:
+    """Stand in for a provider whose client cannot be created."""
+
+    def __init__(self, *_args, **_kwargs) -> None:
+        raise ProviderError('unable to create provider client')
+
+
 class TestTranslateSceneCommand(LoggedTestCase):
     """Verify that GUI translation commands report provider costs."""
+
+    def _create_datamodel(self) -> Mock:
+        """Build a data model with one scene of two batches."""
+        line = SubtitleLine.Construct(1, timedelta(), timedelta(seconds=1), 'source text')
+        first_batch = SubtitleBatch({'scene': 1, 'batch': 1, 'originals': [line]})
+        second_batch = SubtitleBatch({'scene': 1, 'batch': 2, 'originals': [line.Construct(2, line.start, line.end, 'other source')]})
+        scene = SubtitleScene({'scene': 1, 'number': 1, 'batches': [first_batch, second_batch]})
+        subtitles = Subtitles()
+        subtitles.scenes = [scene]
+
+        project = Mock(subtitles=subtitles)
+        datamodel = Mock(spec=ProjectDataModel)
+        datamodel.project = project
+        datamodel.project_options = Options()
+        datamodel.translation_provider = Mock()
+        datamodel.translation_provider.ValidateSettings.return_value = True
+        return datamodel
+
+    def test_provider_failure_is_terminal(self) -> None:
+        """A provider that cannot create a client must stop the translation run."""
+        datamodel = self._create_datamodel()
+
+        command = TranslateSceneCommand(1, datamodel=datamodel)
+        with patch('GuiSubtrans.Commands.TranslateSceneCommand.SubtitleTranslator', FailingTranslationCommandTranslator),                 self.assertLogs(level=logging.ERROR):
+            command.execute()
+
+        self.assertLoggedTrue('translation command is terminal', command.terminal)
 
     def test_completed_command_records_selected_batch_cost(self) -> None:
         line = SubtitleLine.Construct(1, timedelta(), timedelta(seconds=1), 'source text')
