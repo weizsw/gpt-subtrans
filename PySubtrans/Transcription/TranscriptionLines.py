@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from datetime import timedelta
 
+import regex
+
 from PySubtrans.Helpers.Localization import _
 from PySubtrans.Helpers.Text import JoinWords
 from PySubtrans.Transcription.AudioChunker import AudioChunk
@@ -32,21 +34,53 @@ CLAUSE_END_BONUS = 0.15
 SHORT_WORD_PENALTY = 0.05
 SHORT_WORD_CHARS = 3
 
+# A word made of nothing but punctuation and spacing
+PUNCTUATION_ONLY = regex.compile(r'^[\p{P}\s]+$')
+
 
 def SpanLabel(span : AudioChunk|TranscriptionSegment) -> str:
     """Human-readable start-end label for a chunk or segment, in seconds."""
     return f"{span.start.total_seconds():.1f}s-{span.end.total_seconds():.1f}s"
 
 
+def CompactText(text : str) -> str:
+    """Text with all whitespace removed, for comparing transcripts that space words differently."""
+    return ''.join(text.split())
+
+
+def CutText(text : str, lengths : list[int]) -> list[str]:
+    """
+    Cut text into pieces holding the given numbers of non-whitespace characters.
+    The last piece takes whatever remains.
+    """
+    pieces : list[str] = []
+    position = 0
+
+    for length in lengths[:-1]:
+        seen = 0
+        end = position
+        while end < len(text) and seen < length:
+            if not text[end].isspace():
+                seen += 1
+            end += 1
+
+        pieces.append(text[position:end].strip())
+        position = end
+
+    pieces.append(text[position:].strip())
+    return pieces
+
+
 class TranscriptionLineBuilder:
     """
     Turns transcribed chunks into timed subtitle lines.
 
-    Word timings group into utterances at pauses, speaker changes and
-    sentence punctuation; utterances over the character or duration limit
-    are split at their best pause. Provider sub-segments without word
-    timings become rebased lines. Brief slivers merge into their
-    neighbours. No provider or audio dependencies.
+    Provider sub-segments are the lines when there are any; word timings
+    only split the ones over the character or duration limit. Without
+    sub-segments, word timings group into utterances at pauses, speaker
+    changes and sentence punctuation, and over-long utterances are split
+    at their best pause. Brief slivers merge into their neighbours.
+    No provider or audio dependencies.
     """
     def __init__(self, max_line_chars : int, max_line_seconds : float, min_split_chars : int = 3,
                  min_line_seconds : float = 0.8, merge_eligible_gap : float = DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
@@ -65,25 +99,21 @@ class TranscriptionLineBuilder:
         """
         Turn a transcribed chunk into timed subtitle lines.
 
-        Word timings group into lines; provider sub-segments without word
-        timings become rebased lines. Either way brief slivers are merged
-        back into their neighbours. A chunk with neither stays one line
-        over its true chunk span: coarse but honest, and the text was
-        already paid for, so it is kept rather than thrown away.
+        Provider sub-segments become rebased lines, split by word timings
+        where they run over a limit. Without sub-segments, word timings
+        group into lines. Either way brief slivers are merged back into
+        their neighbours. A chunk with neither stays one line over its
+        true chunk span: coarse but honest, and the text was already paid
+        for, so it is kept rather than thrown away.
         """
-        if segment.words:
-            lines = self._group_words(segment.words, segment)
-            return lines or [segment]
+        words = [self._capped_word(word) for word in segment.words]
 
         if segment.parts:
-            rebased = [self._rebase_part(part, segment) for part in segment.parts if part.text.strip()]
+            return self._lines_from_parts(segment, words)
 
-            # Providers that segment for us still strand fragments, which
-            # translate badly in isolation
-            merged = self.MergeSlivers(rebased)
-            for line in merged:
-                self.WarnIfOverlong(line)
-            return merged or [segment]
+        if words:
+            lines = self._group_words(words, segment)
+            return lines or [segment]
 
         self.WarnIfOverlong(segment)
         return [segment]
@@ -107,15 +137,121 @@ class TranscriptionLineBuilder:
         Merge brief adjacent lines, preserving pauses and dialogue turns.
 
         A run too long for one subtitle is divided into even pieces.
+
+        Lines are taken in time order. Subtitles play in time order whatever
+        order the engine emitted them in, so that is the order in which
+        neighbours must be judged.
         """
         if len(lines) < 2:
             return lines
+
+        lines = sorted(lines, key=lambda line: line.start)
 
         merged : list[TranscriptionSegment] = []
         for run in self._sliver_runs(lines):
             merged.extend(self._merge_run(chunk) for chunk in self._balanced_chunks(run))
 
         return merged
+
+    def _capped_word(self, word : WordTiming) -> WordTiming:
+        """
+        Limit a word to the longest a line may last.
+        Engines occasionally stamp a word across most of a chunk, and no single word outlasts a whole line.
+        """
+        if (word.end - word.start).total_seconds() <= self.max_line_seconds:
+            return word
+
+        return WordTiming(text=word.text, start=word.start,
+                          end=word.start + timedelta(seconds=self.max_line_seconds), speaker=word.speaker)
+
+    def _lines_from_parts(self, segment : TranscriptionSegment, words : list[WordTiming]) -> list[TranscriptionSegment]:
+        """
+        Rebase the provider's sub-segments into lines, splitting any over a limit.
+        """
+        parts = [part for part in segment.parts if part.text.strip()]
+
+        lines : list[TranscriptionSegment] = []
+        for part, part_words in zip(parts, self._assign_words(parts, words)):
+            lines.extend(self._fit_part(part, part_words, segment))
+
+        # Providers that segment for us still strand fragments, which
+        # translate badly in isolation
+        merged = self.MergeSlivers(lines)
+        for line in merged:
+            self.WarnIfOverlong(line)
+
+        return merged or [segment]
+
+    @staticmethod
+    def _assign_words(parts : list[TranscriptionSegment], words : list[WordTiming]) -> list[list[WordTiming]]:
+        """
+        Share words out among the parts that transcribe them, matching text in order.
+
+        Timings are not consulted, since they are the unreliable half.
+        Once the texts disagree, no later part is given any words.
+        """
+        assigned : list[list[WordTiming]] = []
+        index = 0
+
+        for part in parts:
+            target = CompactText(part.text)
+            taken : list[WordTiming] = []
+            text = ''
+            while index < len(words) and len(text) < len(target):
+                text += CompactText(words[index].text)
+                taken.append(words[index])
+                index += 1
+
+            if text != target:
+                break
+
+            assigned.append(taken)
+
+        assigned.extend([] for _ in range(len(parts) - len(assigned)))
+        return assigned
+
+    def _fit_part(self, part : TranscriptionSegment, words : list[WordTiming],
+                  segment : TranscriptionSegment) -> list[TranscriptionSegment]:
+        """
+        Rebase a part, splitting it at its words when it runs over a limit.
+
+        The text always comes from the part; words only decide where it is
+        cut and when each piece starts and ends. A part whose words fit on
+        one line keeps its text but takes the words' span, which corrects a
+        provider span that runs far past its speech.
+        """
+        line = self._rebase_part(part, segment)
+        duration = (line.end - line.start).total_seconds()
+        if not words or (duration <= self.max_line_seconds and len(line.text) <= self.max_line_chars):
+            return [line]
+
+        pieces = self._fit_utterance(self._attach_punctuation(words))
+        texts = CutText(line.text, [sum(len(CompactText(word.text)) for word in piece) for piece in pieces])
+
+        lines : list[TranscriptionSegment] = []
+        for piece, text in zip(pieces, texts):
+            start, end = self._clamped_span(segment, min(word.start for word in piece), max(word.end for word in piece))
+            lines.append(TranscriptionSegment(start=start, end=end, text=text, speaker=line.speaker,
+                                              language=line.language, confidence=line.confidence))
+
+        return lines
+
+    @staticmethod
+    def _attach_punctuation(words : list[WordTiming]) -> list[WordTiming]:
+        """
+        Fold punctuation-only words into the word before them, so a split never starts with one.
+        The word keeps its own end: punctuation is not spoken, so its timing means nothing.
+        """
+        attached : list[WordTiming] = []
+        for word in words:
+            if attached and PUNCTUATION_ONLY.match(word.text):
+                previous = attached[-1]
+                attached[-1] = WordTiming(text=previous.text + word.text, start=previous.start,
+                                          end=previous.end, speaker=previous.speaker)
+            else:
+                attached.append(word)
+
+        return attached
 
     def _group_words(self, words : list[WordTiming], segment : TranscriptionSegment) -> list[TranscriptionSegment]:
         """
@@ -297,6 +433,11 @@ class TranscriptionLineBuilder:
         A fragment joins the fragment in front of it. One left standing alone,
         because what came before it was a full line, takes the line behind it
         instead, whatever that line's length.
+
+        A line that overlaps the one before it always joins it, whatever the
+        lengths or speakers, so overlapping speech is shown together. Only the
+        line before counts, so one line with a runaway span cannot draw in
+        everything after it.
         """
         runs : list[list[TranscriptionSegment]] = [[lines[0]]]
 
@@ -304,9 +445,9 @@ class TranscriptionLineBuilder:
             run = runs[-1]
             stranded = len(run) == 1
 
-            if (self._is_sliver(run[-1])
-                    and (self._is_sliver(line) or stranded)
-                    and self._merge_eligible(run, line)):
+            if line.start < run[-1].end or (self._is_sliver(run[-1])
+                                            and (self._is_sliver(line) or stranded)
+                                            and self._merge_eligible(run, line)):
                 run.append(line)
             else:
                 runs.append([line])
@@ -396,7 +537,7 @@ class TranscriptionLineBuilder:
 
         speakers = {line.speaker for line in run if line.speaker is not None}
         return TranscriptionSegment(
-            start=run[0].start, end=max(line.end for line in run), text=text,
+            start=min(line.start for line in run), end=max(line.end for line in run), text=text,
             speaker=None if dialogue else (speakers.pop() if speakers else None),
             language=next((line.language for line in run if line.language), None))
 
@@ -406,8 +547,15 @@ class TranscriptionLineBuilder:
 
         A line that already carries dialogue markers stands on its own,
         whatever its speaker: it is more than one turn by itself.
+
+        Overlapping lines are separate turns whatever their speakers, because
+        diarization does not tell overlapping voices apart. The markers also
+        stop a translator reading two utterances as one sentence.
         """
         if self._is_dialogue(first) or self._is_dialogue(second):
+            return False
+
+        if second.start < first.end:
             return False
 
         return first.speaker is None or second.speaker is None or first.speaker == second.speaker

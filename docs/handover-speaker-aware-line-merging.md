@@ -101,7 +101,8 @@ Ordered roughly by what the user asked for next vs. what's still open-ended:
 1. **Push the 4 unpushed commits and update PR #451**, or open a follow-up PR — not yet done, not yet asked for explicitly.
 2. ~~Re-capture both OpenRouter and Gemini~~ Done 2026-09-22; see "What we know". New open item: detect and retry degenerate Gemini chunks (see `docs/transcription-line-assembly.md`, Open problems).
 3. **Implement the parts-first plan** from `docs/transcription-line-assembly.md`:
-   - `LinesForSegment` prefers `segment.parts` when present; word timings become a splitting/tightening signal only, used when a part exceeds `max_line_duration`/`max_line_chars`.
+   - ~~`LinesForSegment` prefers `segment.parts` when present~~ Done 2026-09-22, including overlap merging with dialogue markers and time-ordered merging; results in the doc. Only OpenRouter is affected.
+   - Before step 2, take a Qwen capture (local, free): Qwen has the same text + words shape as Gemini, is the CLI default, and has the most trustworthy words, so it is the provider most likely to regress under step 2.
    - For providers with no parts (Gemini), derive parts from the chunk transcript: split on punctuation primarily, falling back to word-stream pauses; take each part boundary's time from the nearest word we can confidently match against the transcript (via something like `difflib.SequenceMatcher`), interpolating across unmatched stretches. User was explicit that full character-level alignment is unnecessary — only boundary times are needed.
    - Sliver merging should end up operating on parts rather than word-grouped fragments.
 4. **Muse investigation** — take a Muse capture, quantify the silence-stretching problem, and figure out whether there's a fix (e.g. capping an inferred end at some maximum duration, or requiring corroborating evidence before trusting a missing `endMs`).

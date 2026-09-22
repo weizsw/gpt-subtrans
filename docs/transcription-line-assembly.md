@@ -22,7 +22,7 @@ This is the central point. An engine's word timings are not a measurement in the
 
 - **Order does not follow time.** OpenRouter returns words in transcript order with start times that are not monotonic. Sorting by start time therefore destroys the text. Fixed by removing the sort from every client; see "Word order" below.
 - **Text does not match the transcript.** Gemini's word stream is 0.94–0.97 similar to its own chunk transcript, so building lines from the words drops or alters a few percent of what the engine transcribed. (The earlier 79–92% figure was measured on a capture with a degenerate chunk in it.)
-- **Spans can be nonsense.** OpenRouter parts include a 19.1s part holding nine characters of text, and 44 of 1,160 parts overlap the part before them by more than 0.1s. Some overlaps are the same line transcribed twice, once in Cantonese and once in Mandarin, with different speakers.
+- **Spans can be nonsense.** OpenRouter parts include a 19.1s part holding nine characters of text, and 9 of 1,160 parts overlap the part before them by more than 0.1s. Some are the same audio decoded twice in different languages or scripts (Vietnamese and Chinese over an identical 1.72s span; `減差減差` and `检查，检查`), so their text does not match. Others are a long part with a broken span whose tail is repeated by a short part inside it. Overlapping speech or hallucinated dialogue would look the same, so overlapping parts are kept as overlapping lines. Only parts with identical text are safe to collapse, and this capture has none.
 - **Whole chunks can be garbage.** Each Gemini capture, at its recommended ~18-minute chunks, contained one broken chunk out of five. One capture returned 85 characters for 18 minutes of dialogue. The other fell into a repetition loop, repeating one passage dozens of times, with word timings cycling over the same 70 seconds. Both runs reported success.
 
 ### Parts are better structured, where they exist
@@ -101,10 +101,6 @@ Line spans now take the earliest start and latest end of their words rather than
 
 The primary Muse failure mode. `_parse_muse_payload` infers a turn's end from **the next turn's start** whenever `endMs` is missing, so a turn followed by thirty seconds of silence becomes a thirty-second part. No fix identified; needs its own investigation with a Muse capture.
 
-### Line source is the wrong way round
-
-`LinesForSegment` takes the words branch whenever `segment.words` is non-empty, so for a provider that returns both, the good segmentation is discarded in favour of the best-effort signal. It should be the other way round.
-
 ### Gemini: degenerate chunks go undetected
 
 A chunk that comes back near-empty or stuck in a repetition loop is accepted as a successful transcription. A sanity check (characters per second against the chunk length, or repeated n-grams) could reject and retry it. Smaller chunks may also make it less likely. Not investigated.
@@ -113,9 +109,29 @@ A chunk that comes back near-empty or stuck in a repetition loop is accepted as 
 
 Use the provider's parts when it gives them, and derive parts from the chunk transcript when it does not. Word timings become a timing and boundary signal only — never a text source.
 
-### 1. Prefer parts over words
+### 1. Prefer parts over words (done)
 
-`LinesForSegment` takes `segment.parts` when present. Word timings are then used only to split a part that exceeds `max_line_duration` or `max_line_chars` — 18% of them for OpenRouter — and to tighten a span that is obviously wrong.
+`LinesForSegment` takes `segment.parts` when present. Words are shared out among the parts by matching text in order, ignoring whitespace; timings play no part in the matching. In the OpenRouter capture every part matched. Word timings are then used only to split a part that exceeds `max_line_duration` or `max_line_chars` — 18% of them for OpenRouter. Each piece's text is cut from the part, and its span comes from its words. A long part whose words fit on one line keeps its text and takes the words' span.
+
+Punctuation-only words are folded into the word before them before splitting, keeping that word's end, so a split never strands a `。` on its own line.
+
+Long parts are mostly several utterances with long silences between them, which the words reveal: `速。` at 0s and `杀了！` at 29.7s in one 30s part. Splitting separates them.
+
+Lines are merged in time order. Parts arrive out of time order often enough to matter, and a subtitle file plays in time order regardless. An overlap is judged against the previous line only, so one runaway span cannot draw every later line into its run.
+
+| OpenRouter | Lines | Under 0.8s | Three-row | Over 4s | Out of order | Overlapping |
+|---|---|---|---|---|---|---|
+| before, words | 1,562 | 285 | 23 | 2 | 4 | 16 |
+| before, parts without words | 1,125 | 189 | 12 | 211 | 4 | 12 |
+| parts first, words capped | 1,408 | 227 | 14 | 0 | 0 | 1 |
+
+The remaining overlap is four overlapping lines too many for one subtitle, which the line limits correctly keep apart. The two lines over 4s were single English words (`Yeah,`, `cousin.`) the engine stamped at 5.4s and 4.6s; see word capping below.
+
+### Word durations are capped at `max_line_duration` (done)
+
+A single word can carry an absurd span. The healthy Gemini chunks contain one word, `嗨`, stamped from 0.1s to 1,073s, which became an 18-minute subtitle; the degenerate chunk has 105 words longer than 4s. No word outlasts a whole line, so every word is cut to `max_line_duration` before either path uses it. Neither capture now has a line over 4s.
+
+Overlapping parts are always eligible to merge, so they reach the viewer as one subtitle. Otherwise `prevent_overlapping_times` would cut the earlier line back to where the later one starts, leaving nothing of it when both start together. Overlapping parts are always rendered with dialogue markers, whatever their speaker IDs. In this capture all 9 overlapping pairs carry the same speaker ID, so the IDs cannot tell overlapping speakers apart. The markers also stop the translator from reading two utterances as one sentence, which is common with Chinese source subtitles, where dialogue markers are rare. The usual size limits still apply, so broken-span parts must be split before merging.
 
 ### 2. Derive parts for providers that return none
 
@@ -132,7 +148,7 @@ Sliver merging stays: 31% of OpenRouter's parts are below `min_line_duration` ev
 
 ### Verification
 
-Replay the captures in `test_results/` and compare against the Baseline tables above. `--source parts` already previews step 1 for OpenRouter. Leave out Gemini's degenerate chunk, or the repetition loop dominates every figure.
+Replay the captures in `test_results/` and compare against the Baseline tables above. `--source words` shows the old behaviour for OpenRouter; note that `--source parts` strips the words, so it shows parts without splitting. Leave out Gemini's degenerate chunk, or the repetition loop dominates every figure.
 
 ## Tools
 
