@@ -234,6 +234,17 @@ def NormaliseDialogTags(text : str, dialog_marker : str) -> str:
 
     return text
 
+def RemoveEmptyDialogRows(text : str, dialog_marker : str) -> str:
+    """
+    Drop rows left holding nothing but a dialog marker, e.g. after filler removal emptied an utterance.
+    """
+    bare_marker = dialog_marker.strip()
+    if not bare_marker or bare_marker not in text:
+        return text
+
+    rows = [row for row in text.split('\n') if row.strip() not in ('', bare_marker)]
+    return '\n'.join(rows)
+
 def FindBreakPoint(text : str, break_sequences: list[regex.Pattern], max_line_length : int, min_line_length : int) -> int|None:
     """
     Find the optimal break point for a long line
@@ -337,11 +348,17 @@ def CompileFillerWordsPattern(filler_words: str|list[str]) -> regex.Pattern[Any]
 def RemoveFillerWords(text: str, fillerWords: str|list[str]|regex.Pattern[Any]) -> str:
     """
     Remove filler words from a text string, adjusting capitalization based on the capitalization of the filler word.
+    Each row is processed separately, so a match never swallows a line break, and rows left empty are dropped.
     """
     fillerPatterns = fillerWords if isinstance(fillerWords, regex.Pattern) else CompileFillerWordsPattern(fillerWords)
 
     if fillerPatterns is None:
         return text
+
+    if '\n' in text:
+        rows = text.split('\n')
+        cleaned = [RemoveFillerWords(row, fillerPatterns) for row in rows]
+        return '\n'.join(row for row, original in zip(cleaned, rows) if row.strip() or not original.strip())
 
     output = []
     last_index = 0

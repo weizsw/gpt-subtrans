@@ -17,6 +17,7 @@ from PySubtrans.Helpers.Text import (
     ConvertWideDashesToStandardDashes,
     EnsureFullWidthPunctuation,
     NormaliseDialogTags,
+    RemoveEmptyDialogRows,
     RemoveFillerWords
 )
 from PySubtrans.Options import SettingsType
@@ -153,9 +154,10 @@ class SubtitleProcessor:
         if self.full_width_punctuation:
             text = EnsureFullWidthPunctuation(text)
 
-        # Remove filler words
+        # Remove filler words, and any dialog row they leave empty
         if self.remove_filler_words and self.filler_words_pattern:
             text = RemoveFillerWords(text, self.filler_words_pattern)
+            text = RemoveEmptyDialogRows(text, self.dialog_marker)
 
         # If the subtitle is a single line, see if it should have line breaks added
         if self.break_dialog_on_one_line and self.split_dialog_pattern:
@@ -182,6 +184,7 @@ class SubtitleProcessor:
 
         if self.remove_filler_words and self.filler_words_pattern:
             text = RemoveFillerWords(text, self.filler_words_pattern)
+            text = RemoveEmptyDialogRows(text, self.dialog_marker)
 
         if self.convert_wide_dashes:
             text = ConvertWideDashesToStandardDashes(text)

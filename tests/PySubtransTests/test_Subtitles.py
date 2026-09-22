@@ -159,6 +159,8 @@ class SubtitleProcessorTests(LoggedTestCase):
     example_line_12 = "1\n00:00:10,000 --> 00:00:11,000\nFirst part"
     example_line_13 = "2\n00:00:11,200 --> 00:00:11,500\nsecond part"
     example_line_14 = "2\n00:00:11,800 --> 00:00:12,100\nsecond part"
+    example_line_15 = "12\n00:27:25,910 --> 00:27:27,000\n- 啊！\n- Ah!"
+    example_line_16 = "13\n00:27:28,000 --> 00:27:30,000\n- Um.\n- I'm here.\n- Where?"
 
     preprocess_cases = [
         ([example_line_1, example_line_2], {}, [example_line_1, example_line_2]),  # No changes
@@ -250,7 +252,12 @@ class SubtitleProcessorTests(LoggedTestCase):
                 "9\n00:01:00,000 --> 00:01:05,000\nThis subtitle has some filler\nwords that should be removed."
             ]),
         (["227\n00:22:53,260 --> 00:22:56,196\n"], { }, [ "227\n00:22:53,260 --> 00:22:56,196\n"]),
-        ([example_line_11], { "convert_wide_dashes": True }, [ "345\n00:49:03,294 --> 00:49:06,005\nNo escape - I have one condition"])
+        ([example_line_11], { "convert_wide_dashes": True }, [ "345\n00:49:03,294 --> 00:49:06,005\nNo escape - I have one condition"]),
+        # A dialog row emptied by filler removal goes with its marker, leaving a single utterance
+        ([example_line_15], { 'remove_filler_words': True, 'filler_words': standard_filler_words, 'normalise_dialog_tags': True },
+            [ "12\n00:27:25,910 --> 00:27:27,000\n啊！" ]),
+        ([example_line_16], { 'remove_filler_words': True, 'filler_words': standard_filler_words, 'normalise_dialog_tags': True },
+            [ "13\n00:27:28,000 --> 00:27:30,000\n- I'm here.\n- Where?" ]),
     ]
 
     def test_Postprocess(self):

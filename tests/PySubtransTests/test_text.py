@@ -19,6 +19,7 @@ from PySubtrans.Helpers.Text import (
     LimitTextLength,
     Linearise,
     NormaliseDialogTags,
+    RemoveEmptyDialogRows,
     RemoveFillerWords,
     RemoveWhitespaceAndPunctuation,
     SanitiseSummary
@@ -88,6 +89,22 @@ class TestTextHelpers(LoggedTestCase):
             with self.subTest(text=text):
                 result = NormaliseDialogTags(text, self.dialog_marker)
                 self.assertLoggedEqual("normalise dialog tags", expected, result, input_value=text)
+
+    remove_empty_dialog_rows_cases = {
+        "This is a test": "This is a test",
+        "- This is a test\n- I also think that": "- This is a test\n- I also think that",
+        "- 啊！\n-": "- 啊！",
+        "-\n- I also think that": "- I also think that",
+        "- This is a test\n- \n- I also think that": "- This is a test\n- I also think that",
+        "-": "",
+        "This is a test - a harder one": "This is a test - a harder one",
+    }
+
+    def test_RemoveEmptyDialogRows(self):
+        for text, expected in self.remove_empty_dialog_rows_cases.items():
+            with self.subTest(text=text):
+                result = RemoveEmptyDialogRows(text, self.dialog_marker)
+                self.assertLoggedEqual("remove empty dialog rows", expected, result, input_value=text)
 
     break_dialog_on_one_line_cases = {
         "This is a test": "This is a test",
@@ -254,7 +271,10 @@ class TestTextHelpers(LoggedTestCase):
         ("This is, err, not a normal sentence", "This is not a normal sentence"),
         ("Umm, this sentence has a filler word", "This sentence has a filler word"),
         ("This, err, sentence is, umm, full of filler words, eh?", "This sentence is full of filler words"),
-        ("This sentence has no filler. Ah, but this one does.", "This sentence has no filler. But this one does.")
+        ("This sentence has no filler. Ah, but this one does.", "This sentence has no filler. But this one does."),
+        ("Um.\nHello there", "Hello there"),
+        ("This row is fine.\nUmm, and so is this one", "This row is fine.\nAnd so is this one"),
+        ("- Um.\n- I'm here.", "-\n- I'm here."),
     ]
 
     def test_RemoveFillerWords(self):
