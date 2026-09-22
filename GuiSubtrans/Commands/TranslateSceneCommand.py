@@ -5,7 +5,7 @@ from GuiSubtrans.ProjectDataModel import ProjectDataModel
 from GuiSubtrans.ViewModel.ViewModelUpdate import ModelUpdate
 from PySubtrans.Helpers import FormatErrorMessages
 from PySubtrans.SubtitleBatch import SubtitleBatch
-from PySubtrans.SubtitleError import TranslationAbortedError, TranslationImpossibleError
+from PySubtrans.SubtitleError import NoProviderError, ProviderError, TranslationAbortedError, TranslationImpossibleError
 from PySubtrans.SubtitleProject import SubtitleProject
 from PySubtrans.SubtitleScene import SubtitleScene
 from PySubtrans.SubtitleTranslator import SubtitleTranslator
@@ -57,18 +57,19 @@ class TranslateSceneCommand(Command):
         if not translation_provider.ValidateSettings():
             raise CommandError(_("Translation provider settings are invalid"), command=self)
 
-        self.translator = SubtitleTranslator(options, translation_provider, resume=self.resume, terminology_map=project.subtitles.terminology_map)
-
-        self.translator.events.batch_translated.connect(self._on_batch_translated)
-        self.translator.events.batch_updated.connect(self._on_batch_updated)
-        self.translator.events.terminology_updated.connect(self._on_terminology_updated)
-        self.translator.events.translation_cost.connect(project.subtitles.RecordTranslationCost, weak=False)
-        self.translator.events.error.connect(self._on_error)
-        self.translator.events.warning.connect(self._on_warning)
-        self.translator.events.info.connect(self._on_info)
-
         scene : SubtitleScene|None = None
         try:
+            # Constructing the translator can fail if the provider is misconfigured, which is fatal for the whole run
+            self.translator = SubtitleTranslator(options, translation_provider, resume=self.resume, terminology_map=project.subtitles.terminology_map)
+
+            self.translator.events.batch_translated.connect(self._on_batch_translated)
+            self.translator.events.batch_updated.connect(self._on_batch_updated)
+            self.translator.events.terminology_updated.connect(self._on_terminology_updated)
+            self.translator.events.translation_cost.connect(project.subtitles.RecordTranslationCost, weak=False)
+            self.translator.events.error.connect(self._on_error)
+            self.translator.events.warning.connect(self._on_warning)
+            self.translator.events.info.connect(self._on_info)
+
             scene = project.subtitles.GetScene(self.scene_number)
             scene.errors = []
 
@@ -98,6 +99,11 @@ class TranslateSceneCommand(Command):
             logging.error(_("Error translating scene {scene}: {error}").format(scene=self.scene_number, error=e))
             self.terminal = True
 
+        except (ProviderError, NoProviderError) as e:
+            # A provider that cannot produce a client will fail the same way for every other scene
+            logging.error(_("Error translating scene {scene}: {error}").format(scene=self.scene_number, error=e))
+            self.terminal = True
+
         except Exception as e:
             logging.error(_("Error translating scene {scene}: {error}").format(scene=self.scene_number, error=e))
             if self.translator and self.translator.stop_on_error:
@@ -113,7 +119,8 @@ class TranslateSceneCommand(Command):
                 self.translator.events.warning.disconnect(self._on_warning)
                 self.translator.events.info.disconnect(self._on_info)
 
-        return True
+        # A scene that ended in a terminal state did not translate
+        return not self.terminal
 
     def on_abort(self):
         if self.translator:
