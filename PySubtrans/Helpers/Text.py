@@ -191,10 +191,12 @@ def EnsureFullWidthPunctuation(text: str) -> str:
 
 def CompileDialogSplitPattern(dialog_marker):
     """
-    Compile a regex pattern to split lines at dialog markers
+    Compile a regex pattern to split lines at dialog markers.
+    A marker only counts after punctuation, so a stutter dash attached to a word ("你- 你", "what- what") never splits.
+    After a hyphen it needs whitespace too, so the second dash of "--" is not taken for a marker.
     """
     escaped_marker = regex.escape(dialog_marker)
-    re_split = r"(?<=[^a-zA-Z0-9\s])\s*(?=" + escaped_marker + ")"
+    re_split = r"(?:(?<=[^\p{L}\p{N}\s-])\s*|(?<=-)\s+)(?=" + escaped_marker + ")"
     return regex.compile(re_split)
 
 def BreakDialogOnOneLine(text : str, dialog_marker : str|regex.Pattern) -> str:

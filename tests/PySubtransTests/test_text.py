@@ -113,6 +113,12 @@ class TestTextHelpers(LoggedTestCase):
         "- This is a test\n- I also think that": "- This is a test\n- I also think that",
         "This is a test! - A hard one! - I hope it passes": "This is a test!\n- A hard one!\n- I hope it passes",
         "- This is a test! - Another hard one! - I hope it passes": "- This is a test!\n- Another hard one!\n- I hope it passes",
+        "我-你- 你問有冇功效啊？": "我-你- 你問有冇功效啊？",
+        "别過！哈！你- 你。": "别過！哈！你- 你。",
+        "What- what is it?": "What- what is it?",
+        "好啊。- 你呢？": "好啊。\n- 你呢？",
+        "好啊。 - 你呢？": "好啊。\n- 你呢？",
+        "Wait-- - Now!": "Wait--\n- Now!",
     }
 
     def test_BreakDialogOnOneLine(self):
