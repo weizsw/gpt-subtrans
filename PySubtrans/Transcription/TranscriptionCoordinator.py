@@ -70,7 +70,7 @@ class TranscriptionCoordinator:
         self.events : TranscriptionEvents = TranscriptionEvents()
         self._active_client : TranscriptionClient|None = None
 
-        # TEMPORARY: raw segment capture for line assembly tuning
+        # Raw provider segments, captured on request for offline replay
         self._capture : TranscriptionCapture|None = None
 
     @property
@@ -121,7 +121,7 @@ class TranscriptionCoordinator:
 
         run = TranscriptionRun(prior_subtitles)
 
-        # TEMPORARY: raw segment capture for line assembly tuning
+        # Capture raw provider segments when requested (scripts/replay_transcription.py)
         capture_path = CapturePath(self.settings)
         self._capture = TranscriptionCapture(capture_path, self.provider.name, media_path) if capture_path else None
 
@@ -343,7 +343,7 @@ class TranscriptionCoordinator:
         if segment is None:
             return
 
-        # TEMPORARY: raw segment capture for line assembly tuning
+        # Record the segment as the provider returned it, before line assembly
         if self._capture is not None:
             self._capture.Add(segment)
 

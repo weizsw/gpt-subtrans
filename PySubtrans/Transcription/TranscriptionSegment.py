@@ -13,10 +13,8 @@ class TranscriptionSegment:
 
     Timings are absolute offsets from the start of the source media.
     Speaker is None when the engine provides no diarization.
-    Words, when present, carry chunk-relative timings from a word-level
-    engine (local ASR with timestamps or a forced aligner).
-    Parts, when present, are chunk-relative sub-segments (e.g. provider
-    segments without word timings) promoted to lines by the coordinator.
+    Words, when present, carry chunk-relative timings, in the order the engine emitted them.
+    Parts, when present, are the engine's own chunk-relative sub-segments, and become the lines.
     """
     start : timedelta = field(default_factory=lambda: timedelta(seconds=0))
     end : timedelta = field(default_factory=lambda: timedelta(seconds=0))
@@ -31,13 +29,10 @@ class TranscriptionSegment:
 @dataclass
 class TranscriptionResult:
     """
-    The transcribed text for one audio chunk, with optional metadata.
+    The transcribed text for one audio chunk.
 
-    Words carry chunk-relative timings when the engine returns them.
-    Parts carry chunk-relative sub-segments (text with start/end) for
-    engines that return segments but no word timings. Both are empty
-    for flat-text engines. Cost is the billed amount in USD when the
-    backend reports usage (OpenRouter does per request).
+    Words and parts are chunk-relative, in the order the engine emitted them: never sort them by timing.
+    Cost is the billed amount in USD, when the backend reports it.
     """
     text : str = ""
     language : str|None = None

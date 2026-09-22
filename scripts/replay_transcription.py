@@ -1,17 +1,17 @@
 """
-TEMPORARY tool for tuning transcription line assembly.
+Developer tool for tuning transcription line assembly.
 
 Replays a capture written by TranscriptionCapture through the line builder,
-so the effect of a settings change can be seen without transcribing again.
+so the effect of a code or settings change can be seen without transcribing again.
 
     python scripts/transcribe.py media.mkv --capture capture.json    # transcribe once
     python scripts/replay_transcription.py capture.json
     python scripts/replay_transcription.py capture.json --min-line-duration 1.2
-    python scripts/replay_transcription.py capture.json --source parts --quiet
+    python scripts/replay_transcription.py capture.json --source words --quiet
     python scripts/replay_transcription.py capture.json --quiet --compare min_line_seconds 0.6 0.8 1.0
+    python scripts/replay_transcription.py capture.json --quiet -o replayed.vtt
 
-Remove this script, PySubtrans/Transcription/TranscriptionCapture.py and its
-call in TranscriptionCoordinator._accept_chunk once line assembly is settled.
+--source parts strips the words, so it shows parts without splitting.
 """
 from __future__ import annotations
 

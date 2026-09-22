@@ -1,12 +1,9 @@
 """
-TEMPORARY diagnostic support for tuning transcription line assembly.
+Diagnostic capture of raw transcription output.
 
 Captures the segments a provider returns, before the line builder touches
 them, so a real transcription can be replayed offline against different
-settings (see scripts/replay_transcription.py).
-
-Remove this module, its call in TranscriptionCoordinator._accept_chunk and
-the replay script once line assembly is settled.
+code or settings (see scripts/replay_transcription.py).
 """
 from __future__ import annotations
 

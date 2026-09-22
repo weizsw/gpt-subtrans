@@ -1,18 +1,6 @@
 # Handover: speaker-aware line merging
 
-Branch `speaker-aware-line-merging`, off `main`. PR [#451](https://github.com/machinewrapped/llm-subtrans/pull/451) is open but only covers the first two commits — four more are local and unpushed. Nothing has been force-pushed or rewritten; pushing the branch is a fast-forward.
-
-```
-a48eeea Document transcription line assembly findings and plan
-0fb5119 Add temporary capture and replay tools for line assembly
-7c1bff6 Keep transcribed words in the order they were spoken
-d5a52f0 Only a fragment may take on a following fragment
-60cb3f8 Fix dialogue merging and forward line limits from callers      <- in PR
-47b503f Make line merging a transcription provider setting            <- in PR
-ceaf29f Speaker-aware line merging for transcription and preprocessing <- in PR
-```
-
-613 tests pass, pyright clean, as of the last commit.
+Branch `speaker-aware-line-merging`, off `main`, with PR [#451](https://github.com/machinewrapped/llm-subtrans/pull/451) open. Check `git status -sb` after a fetch for what is pushed; don't trust a list here.
 
 ## How this started
 
@@ -98,7 +86,7 @@ Both explicitly marked `TEMPORARY` in their docstrings, with removal instruction
 
 Ordered roughly by what the user asked for next vs. what's still open-ended:
 
-1. **Push the 4 unpushed commits and update PR #451**, or open a follow-up PR — not yet done, not yet asked for explicitly.
+1. **Keep PR #451 up to date** — the user pushes; check the remote rather than assuming.
 2. ~~Re-capture both OpenRouter and Gemini~~ Done 2026-09-22; see "What we know". New open item: detect and retry degenerate Gemini chunks (see `docs/transcription-line-assembly.md`, Open problems).
 3. **Implement the parts-first plan** from `docs/transcription-line-assembly.md`:
    - ~~`LinesForSegment` prefers `segment.parts` when present~~ Done 2026-09-22, including overlap merging with dialogue markers and time-ordered merging; results in the doc. Only OpenRouter is affected.

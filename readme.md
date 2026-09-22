@@ -263,6 +263,7 @@ Transcription options:
 - `-s` / `--server` — server address for the provider
 - `-k` / `--apikey` — API key for cloud providers
 - `-m` / `--model` — model name
+- `--capture` — also write the provider's raw output to a JSON file, for replaying with `scripts/replay_transcription.py` (developer tool)
 
 ## Project File
 
