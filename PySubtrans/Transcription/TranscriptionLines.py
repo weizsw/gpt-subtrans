@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from datetime import timedelta
 
 import regex
@@ -23,6 +24,9 @@ DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS = 0.5
 
 # A pause within one speaker's turn is not a break, so it is given more room
 DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS = 1.0
+
+# Space left between a line extended into a pause and the line after it
+DEFAULT_MIN_GAP_SECONDS = 0.05
 
 # Split-point scoring for over-long utterances: the pause at a boundary is
 # the primary signal, weighted by how central the boundary is. The floor
@@ -85,7 +89,8 @@ class TranscriptionLineBuilder:
     def __init__(self, max_line_chars : int, max_line_seconds : float, min_split_chars : int = 3,
                  min_line_seconds : float = 0.8, merge_eligible_gap : float = DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
                  same_speaker_merge_eligible_gap : float = DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS,
-                 max_newlines : int = 2, can_merge_different_speakers : bool = True):
+                 max_newlines : int = 2, can_merge_different_speakers : bool = True,
+                 min_gap : float = DEFAULT_MIN_GAP_SECONDS):
         self.max_line_chars : int = max_line_chars
         self.max_line_seconds : float = max_line_seconds
         self.min_split_chars : int = min_split_chars
@@ -94,6 +99,7 @@ class TranscriptionLineBuilder:
         self.same_speaker_merge_eligible_gap : float = same_speaker_merge_eligible_gap
         self.max_newlines : int = max_newlines
         self.can_merge_different_speakers : bool = can_merge_different_speakers
+        self.min_gap : float = min_gap
 
     def LinesForSegment(self, segment : TranscriptionSegment) -> list[TranscriptionSegment]:
         """
@@ -132,26 +138,27 @@ class TranscriptionLineBuilder:
             return True
         return False
 
-    def MergeSlivers(self, lines : list[TranscriptionSegment]) -> list[TranscriptionSegment]:
+    def MergeSlivers(self, lines : list[TranscriptionSegment], limit : timedelta|None = None) -> list[TranscriptionSegment]:
         """
         Merge brief adjacent lines, preserving pauses and dialogue turns.
 
-        A run too long for one subtitle is divided into even pieces.
+        A run too long for one subtitle is divided into even pieces. A brief
+        line left over afterwards is extended into the pause after it where
+        there is room; the last line may extend up to `limit`, when given.
 
         Lines are taken in time order. Subtitles play in time order whatever
         order the engine emitted them in, so that is the order in which
         neighbours must be judged.
         """
-        if len(lines) < 2:
-            return lines
-
         lines = sorted(lines, key=lambda line: line.start)
+        if len(lines) < 2:
+            return self._extend_into_pauses(lines, limit)
 
         merged : list[TranscriptionSegment] = []
         for run in self._sliver_runs(lines):
             merged.extend(self._merge_run(chunk) for chunk in self._balanced_chunks(run))
 
-        return merged
+        return self._extend_into_pauses(merged, limit)
 
     def _capped_word(self, word : WordTiming) -> WordTiming:
         """
@@ -176,7 +183,7 @@ class TranscriptionLineBuilder:
 
         # Providers that segment for us still strand fragments, which
         # translate badly in isolation
-        merged = self.MergeSlivers(lines)
+        merged = self.MergeSlivers(lines, limit=segment.end)
         for line in merged:
             self.WarnIfOverlong(line)
 
@@ -266,7 +273,7 @@ class TranscriptionLineBuilder:
             for run in self._fit_utterance(utterance):
                 lines.append(self._line_from_words(run, segment))
 
-        return self.MergeSlivers(lines)
+        return self.MergeSlivers(lines, limit=segment.end)
 
     def _split_utterances(self, words : list[WordTiming]) -> list[list[WordTiming]]:
         """Cut words at boundaries that apply regardless of line length."""
@@ -416,6 +423,29 @@ class TranscriptionLineBuilder:
             end = segment.end
         return start, end
 
+    def _extend_into_pauses(self, lines : list[TranscriptionSegment], limit : timedelta|None) -> list[TranscriptionSegment]:
+        """
+        Extend each brief line to the minimum duration where the pause after it allows.
+
+        A line is only extended when it can reach the minimum while leaving
+        min_gap before the next line; otherwise it is left for merging.
+        Only the end moves, so a subtitle never appears before its speech.
+        """
+        min_duration = timedelta(seconds=self.min_line_seconds)
+        min_gap = timedelta(seconds=self.min_gap)
+
+        extended : list[TranscriptionSegment] = []
+        for index, line in enumerate(lines):
+            following = lines[index + 1].start - min_gap if index + 1 < len(lines) else limit
+            target = line.start + min_duration
+
+            if self._is_sliver(line) and following is not None and target <= following:
+                line = replace(line, end=target)
+
+            extended.append(line)
+
+        return extended
+
     def _is_sliver(self, line : TranscriptionSegment) -> bool:
         return (line.end - line.start).total_seconds() < self.min_line_seconds
 
@@ -432,7 +462,9 @@ class TranscriptionLineBuilder:
 
         A fragment joins the fragment in front of it. One left standing alone,
         because what came before it was a full line, takes the line behind it
-        instead, whatever that line's length.
+        instead, whatever that line's length. The exception is another
+        speaker's line with room before it: the fragment is a complete turn,
+        and is better extended into the pause than made into dialogue.
 
         A line that overlaps the one before it always joins it, whatever the
         lengths or speakers, so overlapping speech is shown together. Only the
@@ -444,15 +476,22 @@ class TranscriptionLineBuilder:
         for line in lines[1:]:
             run = runs[-1]
             stranded = len(run) == 1
+            takes_fragment = self._is_sliver(line) or (stranded and not self._extends_instead(run[-1], line))
 
             if line.start < run[-1].end or (self._is_sliver(run[-1])
-                                            and (self._is_sliver(line) or stranded)
+                                            and takes_fragment
                                             and self._merge_eligible(run, line)):
                 run.append(line)
             else:
                 runs.append([line])
 
         return runs
+
+    def _extends_instead(self, fragment : TranscriptionSegment, line : TranscriptionSegment) -> bool:
+        """Whether a fragment followed by another speaker's line has room to be extended instead of merged."""
+        speakers_differ = fragment.speaker is not None and line.speaker is not None and fragment.speaker != line.speaker
+        target = fragment.start + timedelta(seconds=self.min_line_seconds)
+        return speakers_differ and target <= line.start - timedelta(seconds=self.min_gap)
 
     def _merge_eligible(self, run : list[TranscriptionSegment], line : TranscriptionSegment) -> bool:
         """

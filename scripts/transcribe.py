@@ -103,6 +103,7 @@ def main() -> int:
         'min_line_duration': options.get_float('min_line_duration'),
         'min_split_chars': options.get_int('min_split_chars'),
         'max_newlines': options.get_int('max_newlines'),
+        'min_gap': options.get_float('min_gap'),
     })
     # Drop unset values so provider recommendations apply
     if args.min_chunk is not None:

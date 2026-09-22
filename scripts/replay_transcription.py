@@ -26,8 +26,12 @@ from difflib import SequenceMatcher
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from PySubtrans.Options import Options
+from PySubtrans.SettingsType import SettingsType
+from PySubtrans.SubtitleProcessor import SubtitleProcessor
+from PySubtrans.Subtitles import Subtitles
 from PySubtrans.Transcription.TranscriptionCapture import LoadCapture
 from PySubtrans.Transcription.TranscriptionLines import TranscriptionLineBuilder
+from PySubtrans.Transcription.TranscriptionRun import TranscriptionRun
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionSegment
 
 
@@ -40,6 +44,7 @@ def BuildLines(segments : list[TranscriptionSegment], **overrides) -> list[Trans
         'min_split_chars': options.get_int('min_split_chars') or 3,
         'min_line_seconds': options.get_float('min_line_duration') or 0.8,
         'max_newlines': options.get_int('max_newlines') or 2,
+        'min_gap': options.get_float('min_gap') or 0.05,
     }
     settings.update({key: value for key, value in overrides.items() if value is not None})
 
@@ -50,6 +55,28 @@ def BuildLines(segments : list[TranscriptionSegment], **overrides) -> list[Trans
         lines.extend(builder.LinesForSegment(segment))
 
     return lines
+
+
+def SaveLines(lines : list[TranscriptionSegment], path : str, postprocess : bool) -> int:
+    """
+    Write lines as a subtitle file, the way a transcription run would.
+    Mirrors TranscriptionCoordinator._finish_run and _process_transcription.
+    """
+    run = TranscriptionRun(None)
+    for line in lines:
+        run.AddLine(line)
+
+    subtitles = Subtitles()
+    subtitles.originals = run.lines
+
+    if postprocess and subtitles.originals:
+        processor = SubtitleProcessor(SettingsType(Options()))
+        processed = processor.PreprocessSubtitles(subtitles.originals)
+        subtitles.originals = [line for line in processor.PostprocessSubtitles(processed)
+                               if line.text and line.text.strip()]
+
+    subtitles.SaveOriginal(path)
+    return subtitles.linecount
 
 
 def SelectSource(segments : list[TranscriptionSegment], source : str) -> list[TranscriptionSegment]:
@@ -159,6 +186,9 @@ def main() -> int:
     parser.add_argument('--source', choices=('auto', 'parts', 'words'), default='auto',
                         help="Build lines from parts or words (default: whatever the builder prefers)")
     parser.add_argument('--quiet', action='store_true', help="Print only the summary")
+    parser.add_argument('-o', '--output', help="Also write the lines as subtitles (format from the extension)")
+    parser.add_argument('--no-postprocess', dest='postprocess', action='store_false',
+                        help="Write the raw lines, without the post-processing a transcription run applies")
     parser.add_argument('--compare', nargs='+', metavar=('SETTING', 'VALUE'),
                         help="Builder setting and the values to compare, e.g. --compare min_line_seconds 0.6 1.0")
     args = parser.parse_args()
@@ -190,6 +220,11 @@ def main() -> int:
     print()
     lines = BuildLines(segments, **overrides)
     Report(lines, overrides['min_line_seconds'] or 0.8, overrides['max_newlines'] or 2, args.quiet)
+
+    if args.output:
+        count = SaveLines(lines, args.output, args.postprocess)
+        print(f"Saved {count} lines to {args.output}")
+
     return 0
 
 

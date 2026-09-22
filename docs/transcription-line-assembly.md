@@ -127,6 +127,21 @@ Lines are merged in time order. Parts arrive out of time order often enough to m
 
 The remaining overlap is four overlapping lines too many for one subtitle, which the line limits correctly keep apart. The two lines over 4s were single English words (`Yeah,`, `cousin.`) the engine stamped at 5.4s and 4.6s; see word capping below.
 
+### Short lines extend into the pause after them (done)
+
+A line under `min_line_duration` is usually short only because the words were quick to say; the silence after it is free screen time. After merging, any line still under the minimum is extended to it when that leaves `min_gap` before the next line. Only the end moves, and the last line of a chunk stays within the chunk.
+
+Extension also replaces the stranded-fragment rule in one case. A fragment followed by another speaker's full line used to be pulled into it as dialogue, whatever that line's length, which in translation produced long crowded rows. It is now extended instead when there is room, since it is a complete turn. A fragment followed by the same speaker, or an unknown one, still merges, because it is usually a sentence split mid-clause.
+
+| | Lines | Under 0.8s | Three-row |
+|---|---|---|---|
+| OpenRouter, before | 1,408 | 227 | 14 |
+| OpenRouter, with extension | 1,420 | 17 | 14 |
+| Gemini healthy chunks, before | 873 | 312 | 1 |
+| Gemini healthy chunks, with extension | 875 | 23 | 1 |
+
+This is the display-time extension "Why short lines survive" pointed to as the only lever for Gemini's isolated interjections.
+
 ### Word durations are capped at `max_line_duration` (done)
 
 A single word can carry an absurd span. The healthy Gemini chunks contain one word, `嗨`, stamped from 0.1s to 1,073s, which became an 18-minute subtitle; the degenerate chunk has 105 words longer than 4s. No word outlasts a whole line, so every word is cut to `max_line_duration` before either path uses it. Neither capture now has a line over 4s.
