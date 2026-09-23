@@ -237,7 +237,7 @@ class TranscriptionLineBuilder:
 
         lines : list[TranscriptionSegment] = []
         for piece, text in zip(pieces, texts):
-            start, end = self._clamped_span(segment, min(word.start for word in piece), max(word.end for word in piece))
+            start, end = self._clamped_span(segment, *self._span(piece))
             lines.append(TranscriptionSegment(start=start, end=end, text=text, speaker=line.speaker,
                                               language=line.language, confidence=line.confidence))
 
@@ -307,9 +307,15 @@ class TranscriptionLineBuilder:
                 or speaker_changed
                 or bool(previous.text and previous.text[-1] in SENTENCE_END_CHARS))
 
+    @staticmethod
+    def _span(words : list[WordTiming]) -> tuple[timedelta, timedelta]:
+        """The earliest start and latest end of a run of words, which need not be in time order."""
+        return min(word.start for word in words), max(word.end for word in words)
+
     def _fits(self, words : list[WordTiming]) -> bool:
         """Whether a run of words is within the duration and character limits."""
-        seconds = (words[-1].end - words[0].start).total_seconds()
+        start, end = self._span(words)
+        seconds = (end - start).total_seconds()
         return seconds <= self.max_line_seconds and len(JoinWords([w.text for w in words])) <= self.max_line_chars
 
     def _fit_utterance(self, words : list[WordTiming]) -> list[list[WordTiming]]:
@@ -331,8 +337,8 @@ class TranscriptionLineBuilder:
         penalty for stranding a short word. Both halves must reach the
         minimum split length; None when no boundary qualifies.
         """
-        start = words[0].start
-        half_span = (words[-1].end - start).total_seconds() / 2.0
+        start, end = self._span(words)
+        half_span = (end - start).total_seconds() / 2.0
         best_index : int|None = None
         best_score : float = float('-inf')
 
@@ -386,9 +392,7 @@ class TranscriptionLineBuilder:
         and need not run in step with it, so the span takes the earliest
         start and latest end rather than the first and last word's.
         """
-        start, end = self._clamped_span(segment,
-                                        min(word.start for word in words),
-                                        max(word.end for word in words))
+        start, end = self._clamped_span(segment, *self._span(words))
         return TranscriptionSegment(start=start, end=end, text=JoinWords([w.text for w in words]),
                                     speaker=words[0].speaker or segment.speaker,
                                     language=segment.language)

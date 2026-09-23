@@ -328,6 +328,14 @@ class TestWordGrouping(LoggedTestCase):
         self.assertLoggedEqual("second start", timedelta(seconds=103), lines[1].start)
         self.assertLoggedEqual("no fabrication", timedelta(seconds=104), lines[1].end)
 
+    def test_limit_measures_the_whole_unordered_span(self):
+        """A word timed earlier than the one before it cannot hide how long the line really runs."""
+        words = [_word("alpha", 0.0, 0.5), _word("bravo", 0.5, 4.4), _word("charlie", 0.2, 0.4)]
+        lines = self._scene_lines(self._builder(), "alpha bravo charlie", words)
+
+        longest = max((line.end - line.start).total_seconds() for line in lines)
+        self.assertLoggedLessEqual("longest line within the limit", longest, 4.0)
+
     def test_runaway_word_is_capped_at_the_line_limit(self):
         """A word stamped across most of the chunk lasts no longer than a line may."""
         words = [_word("嗨", 0.1, 50.0), _word("你好", 55.0, 56.0)]
