@@ -191,10 +191,12 @@ def EnsureFullWidthPunctuation(text: str) -> str:
 
 def CompileDialogSplitPattern(dialog_marker):
     """
-    Compile a regex pattern to split lines at dialog markers
+    Compile a regex pattern to split lines at dialog markers.
+    A marker only counts after punctuation, so a stutter dash attached to a word ("你- 你", "what- what") never splits.
+    After a hyphen it needs whitespace too, so the second dash of "--" is not taken for a marker.
     """
     escaped_marker = regex.escape(dialog_marker)
-    re_split = r"(?<=[^a-zA-Z0-9\s])\s*(?=" + escaped_marker + ")"
+    re_split = r"(?:(?<=[^\p{L}\p{N}\s-])\s*|(?<=-)\s+)(?=" + escaped_marker + ")"
     return regex.compile(re_split)
 
 def BreakDialogOnOneLine(text : str, dialog_marker : str|regex.Pattern) -> str:
@@ -233,6 +235,17 @@ def NormaliseDialogTags(text : str, dialog_marker : str) -> str:
         text = '\n'.join(part.strip() for part in line_parts)
 
     return text
+
+def RemoveEmptyDialogRows(text : str, dialog_marker : str) -> str:
+    """
+    Drop rows left holding nothing but a dialog marker, e.g. after filler removal emptied an utterance.
+    """
+    bare_marker = dialog_marker.strip()
+    if not bare_marker or bare_marker not in text:
+        return text
+
+    rows = [row for row in text.split('\n') if row.strip() not in ('', bare_marker)]
+    return '\n'.join(rows)
 
 def FindBreakPoint(text : str, break_sequences: list[regex.Pattern], max_line_length : int, min_line_length : int) -> int|None:
     """
@@ -337,11 +350,17 @@ def CompileFillerWordsPattern(filler_words: str|list[str]) -> regex.Pattern[Any]
 def RemoveFillerWords(text: str, fillerWords: str|list[str]|regex.Pattern[Any]) -> str:
     """
     Remove filler words from a text string, adjusting capitalization based on the capitalization of the filler word.
+    Each row is processed separately, so a match never swallows a line break, and rows left empty are dropped.
     """
     fillerPatterns = fillerWords if isinstance(fillerWords, regex.Pattern) else CompileFillerWordsPattern(fillerWords)
 
     if fillerPatterns is None:
         return text
+
+    if '\n' in text:
+        rows = text.split('\n')
+        cleaned = [RemoveFillerWords(row, fillerPatterns) for row in rows]
+        return '\n'.join(row for row, original in zip(cleaned, rows) if row.strip() or not original.strip())
 
     output = []
     last_index = 0

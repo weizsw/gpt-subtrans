@@ -10,6 +10,7 @@ from unittest.mock import Mock, patch
 from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.Helpers.Tests import skip_if_debugger_attached
 from PySubtrans.SettingsType import SettingsType
+from PySubtrans.Transcription.TranscriptionProvider import OptionsScope
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.TranscriptionCoordinator import TranscriptionCoordinator
 from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionStatus
@@ -41,8 +42,9 @@ class TestQwenLocalProvider(LoggedTestCase):
         self.assertLoggedIn("checkpoint", "Qwen/Qwen3-ASR-1.7B", provider.GetAvailableModels())
 
         self.assertLoggedEqual("CPU fallback default", False, provider.settings.get_bool('allow_cpu_fallback'))
-        self.assertLoggedIn("CPU fallback is advanced", "allow_cpu_fallback", provider.advanced_settings)
-        self.assertLoggedIn("Torch directory is advanced", "torch_installation_directory", provider.advanced_settings)
+        per_run = provider.GetOptions(provider.settings, OptionsScope.PER_RUN)
+        self.assertLoggedNotIn("CPU fallback is not a per-run choice", "allow_cpu_fallback", per_run)
+        self.assertLoggedNotIn("Torch directory is not a per-run choice", "torch_installation_directory", per_run)
 
     def test_options_progressive_disclosure_when_unconfigured(self):
         """Only the torch setup option is shown when torch is not configured."""

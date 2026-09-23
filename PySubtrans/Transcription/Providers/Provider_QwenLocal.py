@@ -9,7 +9,9 @@ from PySubtrans.SettingsType import GuiSettingsType, SettingsType
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.Torch.Runtime import TorchConfigOption
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
-from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
+from PySubtrans.Transcription.TranscriptionLines import (DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
+                                                         DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS)
+from PySubtrans.Transcription.TranscriptionProvider import OptionsScope, TranscriptionProvider
 
 _QWEN_CHECKPOINTS : list[str] = [
     'Qwen/Qwen3-ASR-1.7B',
@@ -42,12 +44,6 @@ try:
 
         aligner_models = [_ALIGNER_CHECKPOINT]
 
-        # Device and budgets rarely change per job; model and language do
-        advanced_settings = [
-            'device', 'aligner_model', 'max_new_tokens', 'rate_limit',
-            'allow_cpu_fallback', 'torch_installation_directory',
-        ]
-
         @property
         def recommended_min_chunk_seconds(self) -> float:
             """Short chunks fit the default generation budget and GPU memory."""
@@ -69,6 +65,10 @@ try:
                 'rate_limit': settings.get_float('rate_limit', env_float('QWEN_TRANSCRIPTION_RATE_LIMIT')),
                 'allow_cpu_fallback': settings.get_bool('allow_cpu_fallback', False),
                 'torch_installation_directory': settings.get_str('torch_installation_directory', ''),
+                'merge_eligible_gap': settings.get_float('merge_eligible_gap', DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS),
+                'same_speaker_merge_eligible_gap': settings.get_float(
+                    'same_speaker_merge_eligible_gap', DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS),
+                'can_merge_different_speakers': settings.get_bool('can_merge_different_speakers', True),
             }))
 
             self.refresh_when_changed = ['allow_cpu_fallback', 'torch_installation_directory', 'language']
@@ -89,7 +89,7 @@ try:
             client_settings.update(settings)
             return QwenLocalClient(client_settings)
 
-        def GetOptions(self, settings : SettingsType) -> GuiSettingsType:
+        def GetOptions(self, settings : SettingsType, scope : OptionsScope = OptionsScope.ALL) -> GuiSettingsType:
             """Returns the configurable options for the provider.
 
             Uses progressive disclosure: when torch_installation_directory is
@@ -97,6 +97,9 @@ try:
             user focuses on the critical prerequisite first.
             """
             if not settings.get_str('torch_installation_directory'):
+                if scope is not OptionsScope.ALL:
+                    return {}
+
                 return {
                     'torch_installation_directory': (TorchConfigOption, _("Configure the Torch environment for local transcription")),
                 }
@@ -104,13 +107,27 @@ try:
             options : GuiSettingsType = {
                 'model': (self.available_models, _("Transcription model to run")),
                 'language': (str, _("Spoken language hint (optional, auto-detected when empty)")),
-                'device': (['auto', 'cuda', 'mps', 'xpu', 'cpu'], _("Compute device for local inference")),
-                'aligner_model': (self.aligner_models, _("Aligner model for word timestamps")),
-                'max_new_tokens': (int, _("Generation budget per chunk (long chunks need headroom)")),
-                'rate_limit': (float, _("Maximum requests per minute (0 for unlimited)")),
-                'allow_cpu_fallback': (bool, _("Allow emergency CPU fallback (may be slow)")),
-                'torch_installation_directory': (TorchConfigOption, _("Set up Torch...")),
             }
+
+            if scope is OptionsScope.ALL:
+                options.update({
+                    'device': (['auto', 'cuda', 'mps', 'xpu', 'cpu'], _("Compute device for local inference")),
+                    'aligner_model': (self.aligner_models, _("Aligner model for word timestamps")),
+                    'max_new_tokens': (int, _("Generation budget per chunk (long chunks need headroom)")),
+                    'rate_limit': (float, _("Maximum requests per minute (0 for unlimited)")),
+                    'allow_cpu_fallback': (bool, _("Allow emergency CPU fallback (may be slow)")),
+                    'torch_installation_directory': (TorchConfigOption, _("Set up Torch...")),
+                })
+
+                options['merge_eligible_gap'] = (float, _(
+                    "Widest gap, in seconds, across which transcribed lines can still be merged"))
+
+                if self.supports_diarization:
+                    options['same_speaker_merge_eligible_gap'] = (float, _(
+                        "Widest gap, in seconds, across which lines can be merged when the speaker has not changed"))
+                    options['can_merge_different_speakers'] = (bool, _(
+                        "Allow brief lines by different speakers to be combined into a single line of dialogue"))
+
             return options
 
         def ValidateSettings(self) -> bool:

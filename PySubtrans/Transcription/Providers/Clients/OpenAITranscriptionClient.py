@@ -149,5 +149,4 @@ def _parse_verbose_payload(payload : dict) -> tuple[str, str|None, list[WordTimi
                                 start=timedelta(seconds=start),
                                 end=timedelta(seconds=end)))
 
-    words.sort(key=lambda w: w.start)
     return text, language, words

@@ -22,6 +22,7 @@ from PySubtrans.Helpers.Tests import skip_if_debugger_attached
 from PySubtrans.Options import Options
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.Transcription.AudioExtractor import AudioTrack
+from PySubtrans.Transcription.TranscriptionProvider import OptionsScope
 from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionStatus
 from tests.PySubtransTests.test_Transcription import FakeTranscriptionProvider
 
@@ -236,7 +237,7 @@ class TestTranscriptionDialogLayout(LoggedTestCase):
 
             # Assign a fake provider with options and rebuild
             provider = FakeTranscriptionProvider()
-            provider.GetOptions = lambda settings: {'model': (['model-a', 'model-b'], None), 'language': (str, None)}  # type: ignore
+            provider.GetOptions = lambda settings, scope=OptionsScope.ALL: {'model': (['model-a', 'model-b'], None), 'language': (str, None)}  # type: ignore
             dialog.provider = provider
             dialog._rebuild_provider_form()
 
@@ -246,7 +247,7 @@ class TestTranscriptionDialogLayout(LoggedTestCase):
             self.assertLoggedIn('provider field registered', 'language', dialog.provider_fields)
 
             # Rebuild with different options
-            provider.GetOptions = lambda settings: {'single_opt': (bool, None)}  # type: ignore
+            provider.GetOptions = lambda settings, scope=OptionsScope.ALL: {'single_opt': (bool, None)}  # type: ignore
             dialog._rebuild_provider_form()
 
             self.assertLoggedEqual('provider row count updated', 1, dialog._provider_row_count)
@@ -313,8 +314,9 @@ class TestTranscriptionDialogLayout(LoggedTestCase):
             dialog = TranscriptionDialog(options)
         try:
             provider = FakeTranscriptionProvider()
-            provider.advanced_settings = ['allow_cpu_fallback', 'torch_installation_directory']
-            provider.GetOptions = lambda settings: {
+            provider.GetOptions = lambda settings, scope=OptionsScope.ALL: {  # type: ignore[assignment]
+                'model': (['model-a'], ''),
+            } if scope is OptionsScope.PER_RUN else {
                 'model': (['model-a'], ''),
                 'allow_cpu_fallback': (bool, ''),
                 'torch_installation_directory': (str, ''),

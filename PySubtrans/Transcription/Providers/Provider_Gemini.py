@@ -8,7 +8,9 @@ from PySubtrans.Options import env_float
 from PySubtrans.SettingsType import GuiSettingsType, SettingsType
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
-from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
+from PySubtrans.Transcription.TranscriptionLines import (DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
+                                                         DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS)
+from PySubtrans.Transcription.TranscriptionProvider import OptionsScope, TranscriptionProvider
 
 # Gemini's language table is plain language-region BCP-47 (ja-JP, sr-RS)
 # except for Chinese, which it lists with a script subtag and under the
@@ -61,8 +63,6 @@ else:
             """)
 
             # Keys and quotas live in Settings; model, diarization and language vary per job
-            advanced_settings = ['api_key', 'max_retries', 'rate_limit']
-
             @property
             def recommended_min_chunk_seconds(self) -> float:
                 """Gemini rate limits and quotas are brutal, but it can handle long chunks."""
@@ -73,6 +73,11 @@ else:
                 """The Files API handles multi-minute chunks comfortably."""
                 return 1200.0
 
+            @property
+            def supports_diarization(self) -> bool:
+                """Speaker labels only when diarization is enabled."""
+                return self.settings.get_bool('diarize', True)
+
             def __init__(self, settings : SettingsType):
                 super().__init__(self.name, SettingsType({
                     'api_key': settings.get_str('api_key', os.getenv('GEMINI_API_KEY')),
@@ -81,9 +86,13 @@ else:
                     'diarize': settings.get_bool('diarize', True),
                     'max_retries': settings.get_int('max_retries', 5),
                     'rate_limit': settings.get_float('rate_limit', env_float('GEMINI_TRANSCRIPTION_RATE_LIMIT')),
+                    'merge_eligible_gap': settings.get_float('merge_eligible_gap', DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS),
+                    'same_speaker_merge_eligible_gap': settings.get_float(
+                        'same_speaker_merge_eligible_gap', DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS),
+                    'can_merge_different_speakers': settings.get_bool('can_merge_different_speakers', True),
                 }))
 
-                self.refresh_when_changed = ['api_key', 'language']
+                self.refresh_when_changed = ['api_key', 'language', 'diarize']
 
             def GetAvailableModels(self) -> list[str]:
                 """Transcription models served by this provider."""
@@ -101,22 +110,36 @@ else:
                 client_settings.update(settings)
                 return GeminiTranscriptionClient(client_settings)
 
-            def GetOptions(self, settings : SettingsType) -> GuiSettingsType:
+            def GetOptions(self, settings : SettingsType, scope : OptionsScope = OptionsScope.ALL) -> GuiSettingsType:
                 """
                 Returns the configurable options for the provider.
                 """
-                options : GuiSettingsType = {
-                    'api_key': (str, _("A Google AI Studio API key (shared with translation)")),
-                }
+                options : GuiSettingsType = {}
+
+                if scope is OptionsScope.ALL:
+                    options['api_key'] = (str, _("A Google AI Studio API key (shared with translation)"))
+
                 if not self.settings.get_str('api_key'):
                     return options
+
                 options.update({
                     'model': (self.available_models, _("Speech-to-text model")),
                     'language': (str, _("Spoken language hint, e.g. Chinese, ja or cmn-Hans-CN (optional, auto-detected when empty)")),
                     'diarize': (bool, _("Identify speakers (up to 8, experimental past 3)")),
-                    'max_retries': (int, _("Rate-limit retries per chunk before giving up")),
-                    'rate_limit': (float, _("Maximum API requests per minute (0 for unlimited)")),
                 })
+
+                if scope is OptionsScope.ALL:
+                    options['max_retries'] = (int, _("Rate-limit retries per chunk before giving up"))
+                    options['rate_limit'] = (float, _("Maximum API requests per minute (0 for unlimited)"))
+                    options['merge_eligible_gap'] = (float, _(
+                        "Widest gap, in seconds, across which transcribed lines can still be merged"))
+
+                    if self.supports_diarization:
+                        options['same_speaker_merge_eligible_gap'] = (float, _(
+                            "Widest gap, in seconds, across which lines can be merged when the speaker has not changed"))
+                        options['can_merge_different_speakers'] = (bool, _(
+                            "Allow brief lines by different speakers to be combined into a single line of dialogue"))
+
                 return options
 
             def ValidateSettings(self) -> bool:

@@ -15,8 +15,12 @@ from PySubtrans.Subtitles import Subtitles
 from PySubtrans.Transcription.AudioChunker import AudioChunker, AudioChunk
 from PySubtrans.Transcription.AudioExtractor import AudioExtractor, AudioTrack, CheckFfmpegAvailable
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
+from PySubtrans.Transcription.TranscriptionCapture import CapturePath, TranscriptionCapture
 from PySubtrans.Transcription.TranscriptionEvents import TranscriptionEvents
-from PySubtrans.Transcription.TranscriptionLines import SpanLabel, TranscriptionLineBuilder
+from PySubtrans.Transcription.TranscriptionLines import (DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
+                                                         DEFAULT_MIN_GAP_SECONDS,
+                                                         DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS,
+                                                         SpanLabel, TranscriptionLineBuilder)
 from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionOutcome, TranscriptionStatus
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionRun import TranscriptionRun
@@ -45,14 +49,29 @@ class TranscriptionCoordinator:
         self.chunker : AudioChunker = AudioChunker(chunk_settings)
         self.extractor : AudioExtractor = self.chunker.extractor
 
+        # Reading the engine's output is provider-specific; the limits a
+        # finished line is held to are not
+        line_settings = provider.settings
+
         # Transcribed lines obey the same limits as loaded and translated subtitles
+        min_gap = self.settings.get_float('min_gap')
         self.line_builder : TranscriptionLineBuilder = TranscriptionLineBuilder(
             max_line_chars=self.settings.get_int('max_characters') or 120,
             max_line_seconds=self.settings.get_float('max_line_duration') or 4.0,
-            min_split_chars=self.settings.get_int('min_split_chars') or 3)
+            min_split_chars=self.settings.get_int('min_split_chars') or 3,
+            min_line_seconds=self.settings.get_float('min_line_duration') or 0.8,
+            merge_eligible_gap=line_settings.get_float('merge_eligible_gap') or DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
+            same_speaker_merge_eligible_gap=line_settings.get_float('same_speaker_merge_eligible_gap')
+                or DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS,
+            max_newlines=self.settings.get_int('max_newlines') or 2,
+            can_merge_different_speakers=line_settings.get_bool('can_merge_different_speakers', True),
+            min_gap=min_gap if min_gap is not None else DEFAULT_MIN_GAP_SECONDS)
 
         self.events : TranscriptionEvents = TranscriptionEvents()
         self._active_client : TranscriptionClient|None = None
+
+        # Raw provider segments, captured on request for offline replay
+        self._capture : TranscriptionCapture|None = None
 
     @property
     def track_index(self) -> int:
@@ -101,6 +120,10 @@ class TranscriptionCoordinator:
             return self._failed(e)
 
         run = TranscriptionRun(prior_subtitles)
+
+        # Capture raw provider segments when requested (scripts/replay_transcription.py)
+        capture_path = CapturePath(self.settings)
+        self._capture = TranscriptionCapture(capture_path, self.provider.name, media_path) if capture_path else None
 
         def on_duration(duration : timedelta) -> None:
             run.audio_total_seconds = max(0.0, duration.total_seconds())
@@ -319,6 +342,10 @@ class TranscriptionCoordinator:
 
         if segment is None:
             return
+
+        # Record the segment as the provider returned it, before line assembly
+        if self._capture is not None:
+            self._capture.Add(segment)
 
         for line in self.line_builder.LinesForSegment(segment):
             if run.AddLine(line) is not None:

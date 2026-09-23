@@ -26,7 +26,7 @@ from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionCoordinator import TranscriptionCoordinator, TranscriptionStatus
 from PySubtrans.Transcription.TranscriptionLines import TranscriptionLineBuilder
 from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionOutcome
-from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
+from PySubtrans.Transcription.TranscriptionProvider import OptionsScope, TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionResult, TranscriptionSegment
 
 from tests.Helpers import FakeClock
@@ -109,12 +109,17 @@ class FakeTranscriptionProvider(TranscriptionProvider):
         self.client = FakeTranscriptionClient(settings, self.texts, self.words, self.timed)
         return self.client
 
-    def GetOptions(self, settings : SettingsType) -> GuiSettingsType:
+    def GetOptions(self, settings : SettingsType, scope : OptionsScope = OptionsScope.ALL) -> GuiSettingsType:
         """Settings schema exercising text and dropdown widgets."""
-        return {
+        options : GuiSettingsType = {
             'model': (self.available_models, "Model to use"),
             'language': (str, "Language hint"),
         }
+
+        if scope is OptionsScope.ALL:
+            options['merge_eligible_gap'] = (float, "Merge gap")
+
+        return options
 
     information_noapikey = "Test walkthrough"
 
@@ -323,6 +328,22 @@ class TestWordGrouping(LoggedTestCase):
         self.assertLoggedEqual("second start", timedelta(seconds=103), lines[1].start)
         self.assertLoggedEqual("no fabrication", timedelta(seconds=104), lines[1].end)
 
+    def test_limit_measures_the_whole_unordered_span(self):
+        """A word timed earlier than the one before it cannot hide how long the line really runs."""
+        words = [_word("alpha", 0.0, 0.5), _word("bravo", 0.5, 4.4), _word("charlie", 0.2, 0.4)]
+        lines = self._scene_lines(self._builder(), "alpha bravo charlie", words)
+
+        longest = max((line.end - line.start).total_seconds() for line in lines)
+        self.assertLoggedLessEqual("longest line within the limit", longest, 4.0)
+
+    def test_runaway_word_is_capped_at_the_line_limit(self):
+        """A word stamped across most of the chunk lasts no longer than a line may."""
+        words = [_word("嗨", 0.1, 50.0), _word("你好", 55.0, 56.0)]
+        lines = self._scene_lines(self._builder(), "嗨你好", words)
+
+        self.assertLoggedEqual("line count", 2, len(lines))
+        self.assertLoggedEqual("capped end", timedelta(seconds=104.1), lines[0].end)
+
     def test_no_words_stays_scene_line(self):
         """Untimed scenes stay one honest line over the chunk span."""
         builder = self._builder()
@@ -350,32 +371,101 @@ class TestWordGrouping(LoggedTestCase):
 
     def test_speaker_change_splits_lines(self):
         """Speaker turns break subtitle lines and label them."""
-        words = [_word("yes", 0.0, 0.5, "A"), _word("no", 0.6, 1.0, "B")]
+        words = [_word("yes", 0.0, 1.0, "A"), _word("no", 1.1, 2.1, "B")]
         lines = self._scene_lines(self._builder(), "yes no", words)
 
         self.assertLoggedEqual("line count", 2, len(lines))
         self.assertLoggedEqual("first speaker", "A", lines[0].speaker)
         self.assertLoggedEqual("second speaker", "B", lines[1].speaker)
 
+    def test_brief_speaker_turns_combine_into_dialogue(self):
+        """Two turns too short to read on their own share a line rather than flicker past."""
+        words = [_word("yes", 0.0, 0.5, "A"), _word("no", 0.6, 1.0, "B")]
+        lines = self._scene_lines(self._builder(), "yes no", words)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("dialogue text", "- yes\n- no", lines[0].text)
+        self.assertLoggedEqual("mixed speaker attribution", None, lines[0].speaker)
+
+    def test_same_speaker_continues_across_moderate_pause(self):
+        """One speaker pausing mid-clause keeps a single line instead of two fragments."""
+        words = [_word("以为自己", 0.0, 0.559, "0"), _word("是只鬼。", 1.28, 2.08, "0")]
+        lines = self._scene_lines(self._builder(), "以为自己是只鬼。", words)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("merged text", "以为自己是只鬼。", lines[0].text)
+        self.assertLoggedEqual("merged start", timedelta(seconds=100), lines[0].start)
+        self.assertLoggedEqual("merged end", timedelta(seconds=102.08), lines[0].end)
+
+    def test_unknown_speaker_keeps_tighter_pause_limit(self):
+        """Without speaker information the same pause is treated as a real break."""
+        words = [_word("以为自己", 0.0, 0.559), _word("是只鬼。", 1.28, 2.08)]
+        lines = self._scene_lines(self._builder(), "以为自己是只鬼。", words)
+
+        self.assertLoggedEqual("line count", 2, len(lines))
+
+    def test_speaker_turns_stay_separate_when_merging_is_disabled(self):
+        """The same brief turns that normally share a line keep their own when turn merging is off."""
+        builder = TranscriptionLineBuilder(max_line_chars=120, max_line_seconds=4.0, min_split_chars=3,
+                                           can_merge_different_speakers=False)
+        words = [_word("yes", 0.0, 0.5, "A"), _word("no", 0.6, 1.0, "B")]
+        lines = self._scene_lines(builder, "yes no", words)
+
+        self.assertLoggedEqual("line count", 2, len(lines))
+        self.assertLoggedEqual("first speaker", "A", lines[0].speaker)
+        self.assertLoggedEqual("second speaker", "B", lines[1].speaker)
+
+    def test_one_speaker_still_merges_when_turn_merging_is_disabled(self):
+        """Disabling turn merging bears on speaker changes only, not on one speaker's fragments."""
+        builder = TranscriptionLineBuilder(max_line_chars=120, max_line_seconds=4.0, min_split_chars=3,
+                                           can_merge_different_speakers=False)
+        words = [_word("以为自己", 0.0, 0.559, "0"), _word("是只鬼。", 1.28, 2.08, "0")]
+        lines = self._scene_lines(builder, "以为自己是只鬼。", words)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("merged text", "以为自己是只鬼。", lines[0].text)
+
+    def test_configured_gaps_override_the_defaults(self):
+        """A pause past the default limit still joins when the settings allow it."""
+        words = [_word("以为自己", 0.0, 0.559, "0"), _word("是只鬼。", 1.9, 2.7, "0")]
+
+        default_lines = self._scene_lines(self._builder(), "以为自己是只鬼。", words)
+        self.assertLoggedEqual("line count with default gaps", 2, len(default_lines))
+
+        generous = TranscriptionLineBuilder(max_line_chars=120, max_line_seconds=4.0, min_split_chars=3,
+                                            same_speaker_merge_eligible_gap=2.0)
+        lines = self._scene_lines(generous, "以为自己是只鬼。", words)
+        self.assertLoggedEqual("line count with a wider same-speaker gap", 1, len(lines))
+
     def test_sliver_across_pause_stays_separate(self):
-        """A short interjection after seconds of silence keeps its own line."""
+        """A short interjection after seconds of silence keeps its own line, extended to the minimum duration."""
         words = [_word("seat?", 0.0, 1.0), _word("So...", 11.0, 11.3)]
         lines = self._scene_lines(self._builder(), "seat? So...", words)
 
         self.assertLoggedEqual("line count", 2, len(lines))
         self.assertLoggedEqual("first end", timedelta(seconds=101), lines[0].end)
         self.assertLoggedEqual("second start", timedelta(seconds=111), lines[1].start)
-        self.assertLoggedEqual("second end", timedelta(seconds=111.3), lines[1].end)
+        self.assertLoggedEqual("second end", timedelta(seconds=111.8), lines[1].end)
         self.assertLoggedEqual("second text", "So...", lines[1].text)
 
-    def test_sliver_after_short_pause_merges(self):
-        """A fragment hard on the heels of the previous line still folds in."""
+    def test_readable_line_does_not_absorb_a_trailing_fragment(self):
+        """A line already long enough to read keeps to itself, however close the next fragment."""
         words = [_word("yes", 0.0, 1.0, "A"), _word("um", 1.2, 1.4, "B")]
         lines = self._scene_lines(self._builder(), "yes um", words)
 
-        self.assertLoggedEqual("line count", 1, len(lines))
-        self.assertLoggedEqual("merged span", timedelta(seconds=101.4), lines[0].end)
-        self.assertLoggedEqual("merged text", "- yes\n- um", lines[0].text)
+        self.assertLoggedEqual("line count", 2, len(lines))
+        self.assertLoggedEqual("readable line kept its own span", timedelta(seconds=101), lines[0].end)
+        self.assertLoggedEqual("fragment text", "um", lines[1].text)
+
+    def test_stranded_fragment_takes_the_line_behind_it(self):
+        """A fragment a full line will not host adopts its follower instead of standing alone."""
+        words = [_word("yes", 0.0, 1.0, "A"), _word("um", 1.2, 1.4, "B"),
+                 _word("indeed", 1.5, 2.6, "B")]
+        lines = self._scene_lines(self._builder(), "yes um indeed", words)
+
+        self.assertLoggedEqual("line count", 2, len(lines))
+        self.assertLoggedEqual("readable line kept its own span", timedelta(seconds=101), lines[0].end)
+        self.assertLoggedEqual("fragment joined its follower", "um indeed", lines[1].text)
 
     def test_three_speaker_slivers_keep_all_dialogue_turns(self):
         """Merging a third speaker keeps earlier dialogue markers and attribution."""
@@ -405,6 +495,56 @@ class TestWordGrouping(LoggedTestCase):
         self.assertLoggedEqual("line count", 1, len(lines))
         self.assertLoggedEqual("merged start", timedelta(seconds=100), lines[0].start)
         self.assertLoggedEqual("merged end", timedelta(seconds=101.4), lines[0].end)
+
+
+class TestSliverMergeLimits(LoggedTestCase):
+    """A run of fragments divides into readable pieces instead of one dense block."""
+
+    def _turns(self, texts : list[str], speakers : list[str]) -> list[TranscriptionSegment]:
+        """Half-second turns a fifth of a second apart, so every one is a fragment."""
+        lines : list[TranscriptionSegment] = []
+        for index, (text, speaker) in enumerate(zip(texts, speakers)):
+            start = index * 0.7
+            lines.append(TranscriptionSegment(start=timedelta(seconds=start),
+                                              end=timedelta(seconds=start + 0.5),
+                                              text=text, speaker=speaker))
+        return lines
+
+    def test_four_turns_divide_into_pairs(self):
+        """Four turns make a pair of pairs rather than three turns and an orphan."""
+        lines = self._turns(["够了。", "蛤？", "够了？", "不适了？"], ["0", "1", "0", "1"])
+        merged = _default_builder().MergeSlivers(lines)
+
+        self.assertLoggedEqual("line count", 2, len(merged))
+        self.assertLoggedEqual("first pair", "- 够了。\n- 蛤？", merged[0].text)
+        self.assertLoggedEqual("second pair", "- 够了？\n- 不适了？", merged[1].text)
+
+    def test_five_turns_respect_the_newline_limit(self):
+        """A five turn scramble divides rather than stacking onto one subtitle."""
+        lines = self._turns(["我死我死", "早生啊！", "我死", "打你啊！", "點樣啊？"],
+                            ["0", "1", "0", "1", "0"])
+        merged = _default_builder().MergeSlivers(lines)
+
+        self.assertLoggedEqual("line count", 2, len(merged))
+        self.assertLoggedEqual("first piece", "- 我死我死\n- 早生啊！\n- 我死", merged[0].text)
+        self.assertLoggedEqual("second piece", "- 打你啊！\n- 點樣啊？", merged[1].text)
+
+    def test_a_turn_arriving_in_fragments_stays_one_turn(self):
+        """A speaker resuming after an interruption is one turn, not two dialogue lines."""
+        lines = self._turns(["够了。", "蛤？", "不适了？"], ["0", "1", "1"])
+        merged = _default_builder().MergeSlivers(lines)
+
+        self.assertLoggedEqual("line count", 1, len(merged))
+        self.assertLoggedEqual("two turns, not three", "- 够了。\n- 蛤？不适了？", merged[0].text)
+        self.assertLoggedEqual("mixed speaker attribution", None, merged[0].speaker)
+
+    def test_one_speaker_fragments_join_as_continuous_text(self):
+        """One speaker's broken up sentence carries no turn markers to limit."""
+        lines = self._turns(["我", "不", "知", "道", "啊"], ["0"] * 5)
+        merged = _default_builder().MergeSlivers(lines)
+
+        self.assertLoggedEqual("line count", 1, len(merged))
+        self.assertLoggedEqual("continuous text", "我不知道啊", merged[0].text)
 
 
 class TestOverlongUtteranceSplitting(LoggedTestCase):
@@ -553,6 +693,69 @@ class TestOverlongSpans(LoggedTestCase):
         self.assertLoggedEqual("line count", 1, len(lines))
         self.assertLoggedEqual("flagged", False, builder.WarnIfOverlong(lines[0]))
 
+    def test_same_speaker_part_fragments_merge(self):
+        """Fragments the provider segmented for us are still reunited when one speaker owns both."""
+        chunk = AudioChunk(start=timedelta(seconds=100), end=timedelta(seconds=160))
+        parts = [TranscriptionSegment(start=timedelta(seconds=0), end=timedelta(seconds=0.559),
+                                      text="以为自己", speaker="0"),
+                 TranscriptionSegment(start=timedelta(seconds=1.28), end=timedelta(seconds=2.08),
+                                      text="是只鬼。", speaker="0")]
+        segment = TranscriptionSegment(start=chunk.start, end=chunk.end, text="以为自己是只鬼。",
+                                       language="Chinese", parts=parts)
+        lines = self._builder().LinesForSegment(segment)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("merged text", "以为自己是只鬼。", lines[0].text)
+        self.assertLoggedEqual("merged end", timedelta(seconds=102.08), lines[0].end)
+
+    def test_continuation_after_a_turn_keeps_the_same_speaker_gap(self):
+        """A run holding two speakers still judges the next line against the turn it follows."""
+        chunk = AudioChunk(start=timedelta(seconds=100), end=timedelta(seconds=160))
+        parts = [TranscriptionSegment(start=timedelta(seconds=0), end=timedelta(seconds=0.5),
+                                      text="够了", speaker="A"),
+                 TranscriptionSegment(start=timedelta(seconds=0.6), end=timedelta(seconds=1.0),
+                                      text="蛤", speaker="B"),
+                 # 0.7s after B's own turn: too long for a speaker change, not for a continuation
+                 TranscriptionSegment(start=timedelta(seconds=1.7), end=timedelta(seconds=2.1),
+                                      text="不适了", speaker="B")]
+        segment = TranscriptionSegment(start=chunk.start, end=chunk.end, text="够了蛤不适了",
+                                       language="Chinese", parts=parts)
+        lines = self._builder().LinesForSegment(segment)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("one turn per speaker", "- 够了\n- 蛤不适了", lines[0].text)
+
+    def test_one_speaker_repeating_costs_no_extra_newline(self):
+        """Consecutive fragments from one speaker join as text, so only the turn change breaks a line."""
+        builder = TranscriptionLineBuilder(max_line_chars=120, max_line_seconds=4.0, min_split_chars=3,
+                                           max_newlines=1)
+        chunk = AudioChunk(start=timedelta(seconds=100), end=timedelta(seconds=160))
+        parts = [TranscriptionSegment(start=timedelta(seconds=0), end=timedelta(seconds=0.4),
+                                      text="够了", speaker="A"),
+                 TranscriptionSegment(start=timedelta(seconds=0.5), end=timedelta(seconds=0.9),
+                                      text="真的", speaker="A"),
+                 TranscriptionSegment(start=timedelta(seconds=1.0), end=timedelta(seconds=1.4),
+                                      text="蛤", speaker="B")]
+        segment = TranscriptionSegment(start=chunk.start, end=chunk.end, text="够了真的蛤",
+                                       language="Chinese", parts=parts)
+        lines = builder.LinesForSegment(segment)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("one turn break only", "- 够了真的\n- 蛤", lines[0].text)
+
+    def test_distinct_speaker_parts_keep_tighter_pause_limit(self):
+        """The same pause that joins one speaker's fragments is a real break between two."""
+        chunk = AudioChunk(start=timedelta(seconds=100), end=timedelta(seconds=160))
+        parts = [TranscriptionSegment(start=timedelta(seconds=0), end=timedelta(seconds=0.559),
+                                      text="你是谁", speaker="0"),
+                 TranscriptionSegment(start=timedelta(seconds=1.28), end=timedelta(seconds=2.08),
+                                      text="我是警察", speaker="1")]
+        segment = TranscriptionSegment(start=chunk.start, end=chunk.end, text="你是谁我是警察",
+                                       language="Chinese", parts=parts)
+        lines = self._builder().LinesForSegment(segment)
+
+        self.assertLoggedEqual("line count", 2, len(lines))
+
     def test_whole_chunk_fallback_flags_warning(self):
         """A flat-text chunk span is flagged when it runs long."""
         builder = self._builder()
@@ -583,6 +786,192 @@ class TestOverlongSpans(LoggedTestCase):
         self.assertLoggedEqual("flagged", False, builder.WarnIfOverlong(line))
 
 
+def _part(text : str, start : float, end : float, speaker : str|None = None) -> TranscriptionSegment:
+    return TranscriptionSegment(start=timedelta(seconds=start), end=timedelta(seconds=end), text=text, speaker=speaker)
+
+
+class TestPartsFirst(LoggedTestCase):
+    def _lines(self, parts : list[TranscriptionSegment], words : list[WordTiming],
+               builder : TranscriptionLineBuilder|None = None) -> list[TranscriptionSegment]:
+        segment = TranscriptionSegment(start=timedelta(seconds=100), end=timedelta(seconds=160),
+                                       text=''.join(part.text for part in parts), language="Chinese",
+                                       parts=parts, words=words)
+        return (builder or _default_builder()).LinesForSegment(segment)
+
+    def test_parts_are_preferred_over_words(self):
+        """The provider's own segmentation stands, though the words alone would split it at the pause."""
+        parts = [_part("以为自己是只鬼。", 0.0, 2.0)]
+        words = [_word("以为自己", 0.0, 0.5), _word("是只鬼。", 1.5, 2.0)]
+        lines = self._lines(parts, words)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("part text", "以为自己是只鬼。", lines[0].text)
+
+    def test_long_part_splits_at_its_words(self):
+        """A part over the duration limit is cut where its words say, keeping the part's text."""
+        parts = [_part("你好，朋友。我们走吧！", 0.0, 8.0, "0")]
+        words = _uniform_words(["你好", "，", "朋友", "。", "我们", "走吧", "！"], seconds_each=6.0 / 7)
+        lines = self._lines(parts, words)
+
+        self.assertLoggedEqual("line count", 2, len(lines))
+        self.assertLoggedEqual("first piece", "你好，朋友。", lines[0].text)
+        self.assertLoggedEqual("second piece", "我们走吧！", lines[1].text)
+        self.assertLoggedEqual("second starts at its first word", words[4].start + timedelta(seconds=100), lines[1].start)
+        self.assertLoggedEqual("speaker kept", "0", lines[1].speaker)
+
+    def test_split_keeps_the_part_spacing(self):
+        """Pieces are cut from the part's text, not rebuilt from the words."""
+        parts = [_part("Alpha bravo, charlie delta.", 0.0, 8.0)]
+        words = _uniform_words(["Alpha", "bravo", ",", "charlie", "delta", "."], seconds_each=8.0 / 6)
+        lines = self._lines(parts, words)
+
+        self.assertLoggedEqual("line count", 2, len(lines))
+        self.assertLoggedEqual("first piece", "Alpha bravo,", lines[0].text)
+        self.assertLoggedEqual("second piece", "charlie delta.", lines[1].text)
+
+    def test_broken_span_takes_its_words_span(self):
+        """A part that runs far past its speech is pulled in to where its words are."""
+        parts = [_part("要不要跳进去？", 0.0, 19.0)]
+        words = [_word("要不要", 1.0, 1.8), _word("跳进去", 1.8, 2.5), _word("？", 2.5, 2.5)]
+        lines = self._lines(parts, words)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("text kept", "要不要跳进去？", lines[0].text)
+        self.assertLoggedEqual("start", timedelta(seconds=101.0), lines[0].start)
+        self.assertLoggedEqual("end", timedelta(seconds=102.5), lines[0].end)
+
+    def test_split_never_strands_punctuation(self):
+        """Utterances separated by a long silence split apart, each keeping its own punctuation."""
+        parts = [_part("速。杀了！", 0.0, 30.36)]
+        words = [_word("速", 0.0, 0.08), _word("。", 6.66, 6.68), _word("杀", 29.72, 29.8),
+                 _word("了", 29.92, 30.0), _word("！", 30.28, 30.36)]
+        lines = self._lines(parts, words)
+
+        self.assertLoggedEqual("line count", 2, len(lines))
+        self.assertLoggedEqual("first utterance", "速。", lines[0].text)
+        self.assertLoggedEqual("first extended from its word into the pause", timedelta(seconds=100.8), lines[0].end)
+        self.assertLoggedEqual("second utterance", "杀了！", lines[1].text)
+
+    def test_mismatched_words_leave_the_part_whole(self):
+        """Words that do not transcribe the part cannot be trusted to split it."""
+        parts = [_part("要不要跳进去？", 0.0, 19.0)]
+        words = [_word("别的", 1.0, 1.8), _word("东西", 1.8, 2.5)]
+        builder = _default_builder()
+        lines = self._lines(parts, words, builder)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("span kept", timedelta(seconds=119.0), lines[0].end)
+        self.assertLoggedEqual("flagged", True, builder.WarnIfOverlong(lines[0]))
+
+    def test_words_are_matched_to_parts_by_text(self):
+        """Word timings that disagree with the part spans do not move words between parts."""
+        parts = [_part("好。", 0.0, 1.0), _part("你好，朋友。我们走吧！", 1.0, 9.0)]
+        words = ([_word("好", 5.0, 5.2), _word("。", 5.2, 5.2)]
+                 + _uniform_words(["你好", "，", "朋友", "。", "我们", "走吧", "！"], seconds_each=6.0 / 7, start=1.0))
+        lines = self._lines(parts, words)
+
+        self.assertLoggedEqual("line count", 3, len(lines))
+        self.assertLoggedEqual("first part untouched", "好。", lines[0].text)
+        self.assertLoggedEqual("second part split", "你好，朋友。", lines[1].text)
+
+    def test_overlapping_lines_merge_as_dialogue(self):
+        """Two full lines over the same span become one subtitle, one row each, even with one speaker ID."""
+        parts = [_part("Ái da, dâm cung rồi.", 0.0, 1.72, "0"), _part("哎呀，杨公了。", 0.0, 1.72, "0")]
+        builder = TranscriptionLineBuilder(max_line_chars=120, max_line_seconds=4.0, min_line_seconds=0.8)
+        lines = self._lines(parts, [], builder)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("dialogue rows", "- Ái da, dâm cung rồi.\n- 哎呀，杨公了。", lines[0].text)
+
+    def test_overlap_merges_even_when_speakers_are_kept_apart(self):
+        """Overlapping speakers still share a subtitle when speaker merging is disabled."""
+        parts = [_part("我们走吧。", 0.0, 2.0, "0"), _part("等一下！", 1.0, 3.0, "1")]
+        builder = TranscriptionLineBuilder(max_line_chars=120, max_line_seconds=4.0,
+                                           can_merge_different_speakers=False)
+        lines = self._lines(parts, [], builder)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+
+    def test_parts_are_placed_by_time(self):
+        """A part listed after one it precedes is ordered and merged by its time, not its position."""
+        parts = [_part("好啊。", 1.0, 2.0, "1"), _part("你一千万赏金都没事。", 0.0, 1.5, "1")]
+        lines = self._lines(parts, [])
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("start", timedelta(seconds=100.0), lines[0].start)
+        self.assertLoggedEqual("rows in time order", "- 你一千万赏金都没事。\n- 好啊。", lines[0].text)
+
+    def test_separate_parts_come_out_in_time_order(self):
+        """Parts that do not overlap are still emitted in time order."""
+        parts = [_part("我们走吧。", 5.0, 7.0), _part("等一下！", 0.0, 2.0)]
+        lines = self._lines(parts, [])
+
+        self.assertLoggedEqual("line count", 2, len(lines))
+        self.assertLoggedEqual("earliest first", "等一下！", lines[0].text)
+
+    def test_runaway_span_does_not_draw_in_later_lines(self):
+        """A line spanning the whole chunk overlaps everything, but must not chain every later line into one run."""
+        parts = [_part("嗨", 0.0, 50.0), _part("你好", 1.0, 3.0),
+                 _part("哎呀", 10.0, 10.5), _part("是", 10.9, 11.2), _part("我们走吧。", 20.0, 22.0)]
+        lines = self._lines(parts, [])
+
+        texts = [line.text for line in lines]
+        self.assertLoggedIn("brief fragments still pair up", "哎呀是", texts)
+        self.assertLoggedIn("distant line stays its own", "我们走吧。", texts)
+
+    def test_fragment_before_another_speaker_extends_instead_of_merging(self):
+        """A complete brief turn with room after it is lengthened, not made into dialogue with the next speaker."""
+        parts = [_part("不正，华西來的師傅來㗎嘛，點解立面插去㗎？", 1.275, 4.554, "0"),
+                 _part("我插你㗎。", 4.835, 5.554, "0"),
+                 _part("佢哋選了我成千萬奖金啊，正要插就算比面啊。", 5.835, 8.755, "1")]
+        lines = self._lines(parts, [])
+
+        self.assertLoggedEqual("line count", 3, len(lines))
+        self.assertLoggedEqual("fragment alone", "我插你㗎。", lines[1].text)
+        self.assertLoggedEqual("fragment extended", timedelta(seconds=105.635), lines[1].end)
+
+    def test_fragment_without_room_still_joins_the_next_speaker(self):
+        """With no pause to extend into, the fragment is still rescued by merging."""
+        parts = [_part("不正，华西來的師傅來㗎嘛。", 1.0, 4.0, "0"),
+                 _part("我插你㗎。", 4.2, 4.7, "0"),
+                 _part("佢哋選了我成千萬奖金啊。", 4.8, 7.0, "1")]
+        lines = self._lines(parts, [])
+
+        self.assertLoggedEqual("line count", 2, len(lines))
+        self.assertLoggedEqual("dialogue", "- 我插你㗎。\n- 佢哋選了我成千萬奖金啊。", lines[1].text)
+
+    def test_isolated_fragment_extends_into_the_pause(self):
+        """A brief line alone between pauses is shown for the minimum duration."""
+        parts = [_part("你好。", 0.0, 2.0), _part("嗯。", 3.0, 3.2), _part("我们走吧。", 6.0, 8.0)]
+        lines = self._lines(parts, [])
+
+        self.assertLoggedEqual("line count", 3, len(lines))
+        self.assertLoggedEqual("extended end", timedelta(seconds=103.8), lines[1].end)
+
+    def test_extension_leaves_the_minimum_gap(self):
+        """A fragment that cannot reach the minimum before the next line keeps its own span."""
+        parts = [_part("你好。", 0.0, 2.0, "0"), _part("嗯。", 3.0, 3.2, "0"), _part("我们走吧。", 3.78, 6.0, "1")]
+        lines = self._lines(parts, [])
+
+        fragment = next(line for line in lines if line.text == "嗯。")
+        self.assertLoggedEqual("span kept", timedelta(seconds=103.2), fragment.end)
+
+    def test_last_line_extends_no_further_than_the_chunk(self):
+        """The final fragment of a chunk is only extended within the chunk."""
+        segment = TranscriptionSegment(start=timedelta(seconds=100), end=timedelta(seconds=103.5), text="你好。嗯。",
+                                       language="Chinese", parts=[_part("你好。", 0.0, 2.0), _part("嗯。", 3.0, 3.2)])
+        lines = _default_builder().LinesForSegment(segment)
+
+        self.assertLoggedEqual("fragment unextended", timedelta(seconds=103.2), lines[-1].end)
+
+    def test_overlap_respects_the_line_limits(self):
+        """Overlapping lines too long to share a subtitle stay apart."""
+        parts = [_part("我们走吧。", 0.0, 3.0), _part("等一下！", 2.0, 5.0)]
+        lines = self._lines(parts, [])
+
+        self.assertLoggedEqual("line count", 2, len(lines))
+
+
 class TestLineBuilderWiring(LoggedTestCase):
     def test_builder_limits_come_from_settings(self):
         """The coordinator configures its line builder from transcription settings."""
@@ -590,11 +979,13 @@ class TestLineBuilderWiring(LoggedTestCase):
         coordinator = TranscriptionCoordinator(provider, SettingsType({
             'max_characters': 42,
             'max_line_duration': 5.5,
-            'min_split_chars': 6}))
+            'min_split_chars': 6,
+            'min_gap': 0.1}))
 
         self.assertLoggedEqual("max chars", 42, coordinator.line_builder.max_line_chars)
         self.assertLoggedEqual("max seconds", 5.5, coordinator.line_builder.max_line_seconds)
         self.assertLoggedEqual("min split chars", 6, coordinator.line_builder.min_split_chars)
+        self.assertLoggedEqual("min gap", 0.1, coordinator.line_builder.min_gap)
 
     def test_builder_defaults(self):
         """Missing settings fall back to the documented defaults."""

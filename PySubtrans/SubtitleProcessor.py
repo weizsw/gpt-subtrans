@@ -17,6 +17,7 @@ from PySubtrans.Helpers.Text import (
     ConvertWideDashesToStandardDashes,
     EnsureFullWidthPunctuation,
     NormaliseDialogTags,
+    RemoveEmptyDialogRows,
     RemoveFillerWords
 )
 from PySubtrans.Options import SettingsType
@@ -51,6 +52,7 @@ class SubtitleProcessor:
         self.max_line_duration : timedelta = settings.get_timedelta('max_line_duration', timedelta(seconds=0))
         self.min_line_duration : timedelta = settings.get_timedelta('min_line_duration', timedelta(seconds=0))
         self.merge_line_duration : timedelta = settings.get_timedelta('merge_line_duration', timedelta(seconds=0))
+        self.max_gap_for_merge : timedelta = settings.get_timedelta('max_gap_for_merge', timedelta(seconds=0.5))
         self.min_gap : timedelta = settings.get_timedelta('min_gap', timedelta(seconds=0.05))
         self.min_split_chars : int = settings.get_int('min_split_chars') or 4
 
@@ -152,9 +154,10 @@ class SubtitleProcessor:
         if self.full_width_punctuation:
             text = EnsureFullWidthPunctuation(text)
 
-        # Remove filler words
+        # Remove filler words, and any dialog row they leave empty
         if self.remove_filler_words and self.filler_words_pattern:
             text = RemoveFillerWords(text, self.filler_words_pattern)
+            text = RemoveEmptyDialogRows(text, self.dialog_marker)
 
         # If the subtitle is a single line, see if it should have line breaks added
         if self.break_dialog_on_one_line and self.split_dialog_pattern:
@@ -181,6 +184,7 @@ class SubtitleProcessor:
 
         if self.remove_filler_words and self.filler_words_pattern:
             text = RemoveFillerWords(text, self.filler_words_pattern)
+            text = RemoveEmptyDialogRows(text, self.dialog_marker)
 
         if self.convert_wide_dashes:
             text = ConvertWideDashesToStandardDashes(text)
@@ -279,7 +283,10 @@ class SubtitleProcessor:
                 current_line = line
                 continue
 
-            if line.duration < short_duration:
+            # A brief line is only a fragment of its predecessor if it follows closely enough
+            gap : timedelta = line.start - current_line.end
+
+            if line.duration < short_duration and gap <= self.max_gap_for_merge:
                 # If the line ends with a sentence-ending punctuation mark, assume different speakers (questionable logic)
                 if current_line.text_normalized[-1] in sentence_end_punctuation:
                     current_line.text = f"{dialog_marker}{current_line.text}\n{dialog_marker}{line.text}"

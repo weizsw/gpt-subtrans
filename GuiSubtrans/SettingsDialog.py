@@ -57,9 +57,9 @@ class SettingsDialog(QDialog):
         },
         TRANSCRIPTION_SECTION: {
             'transcription_provider': ([], _("The transcription service to use")),
+            'provider_info': (INFO_OPTION, _("Information about the selected transcription provider")),
             'transcription_provider_settings': TranscriptionProvider,
             'postprocess_transcription': (bool, _("Clean transcribed lines with the same normalizations used for loaded subtitles (dashes, filler words, line breaks)")),
-            'provider_info': (INFO_OPTION, _("Information about the selected transcription provider")),
             'ffmpeg_path': (str, _(
                 "Optional path to the ffmpeg executable. Leave blank to use ffmpeg and ffprobe from the system PATH"
             ), _("Leave blank to use ffmpeg and ffprobe from the system PATH")),
@@ -75,6 +75,7 @@ class SettingsDialog(QDialog):
             'seconds_per_character': (float, _("Minimum reading time per visible character in seconds")),
             'min_gap': (float, _("Minimum gap between consecutive subtitles, in seconds, used when preprocess_subtitles, extend_short_subtitles, or prevent_overlapping_times is enabled")),
             'merge_line_duration': (float, _("Merge lines with a duration less than this with the previous line")),
+            'max_gap_for_merge': (float, _("Maximum gap between lines for them to be considered part of the same utterance")),
             'min_split_chars': (int, _("Minimum number of characters to split a line at")),
             'break_dialog_on_one_line': (bool, _("Add line breaks to text with dialog markers")),
             'normalise_dialog_tags': (bool, _("Ensure dialog markers match in multi-line subtitles")),

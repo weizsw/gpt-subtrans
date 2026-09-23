@@ -167,8 +167,6 @@ def _parse_muse_payload(payload : dict, chunk_seconds : float|None = None, inclu
             text=entry_text,
             speaker=str(speaker) if speaker is not None else None))
 
-    parts.sort(key=lambda part: part.start)
-
     return text, parts
 
 

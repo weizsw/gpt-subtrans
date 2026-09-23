@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 
 from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.SettingsType import SettingsType
+from PySubtrans.Transcription.TranscriptionProvider import OptionsScope
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Transcription.Providers.Clients.OpenRouterTranscriptionClient import (
@@ -77,19 +78,17 @@ class TestOpenRouterRegistered(LoggedTestCase):
 
             self.assertLoggedIn("model option", 'model', options)
 
-    def test_advanced_settings_match_schema(self):
-        """Advanced keys must exist in the options schema, or filtering silently misses."""
+    def test_per_run_scope_offers_only_per_job_choices(self):
+        """Settings decided once stay out of the schema the Transcribe dialog asks for."""
         provider = OpenRouterTranscriptionProvider(SettingsType({'api_key': 'k'}))
+        options = provider.GetOptions(provider.settings, OptionsScope.PER_RUN)
 
-        with patch('httpx.Client') as mock_client:
-            mock_client.return_value.__enter__.return_value.get.return_value = Mock(
-                is_error=False, status_code=200, text="")
-            options = provider.GetOptions(provider.settings)
+        for key in ('model', 'language', 'diarize'):
+            self.assertLoggedIn(f"{key} offered per run", key, options)
 
-        unknown = [key for key in provider.advanced_settings if key not in options]
-        self.assertLoggedEqual("no stale advanced keys", [], unknown)
+        for key in ('request_timeout', 'rate_limit', 'merge_eligible_gap'):
+            self.assertLoggedNotIn(f"{key} withheld per run", key, options)
 
-class TestOpenRouterParsing(LoggedTestCase):
     def test_verbose_words_with_speakers(self):
         """Word timings and speaker labels parse from verbose responses."""
 
@@ -109,6 +108,23 @@ class TestOpenRouterParsing(LoggedTestCase):
         self.assertLoggedEqual("first speaker", "0", words[0].speaker)
         self.assertLoggedEqual("second speaker", "1", words[1].speaker)
 
+
+    def test_word_order_survives_unordered_timings(self):
+        """Spoken order comes from the array, not the timings, which are best effort."""
+
+        payload = {
+            'text': 'the quick brown fox',
+            'words': [
+                {'word': 'the', 'start': 1.00, 'end': 1.20},
+                {'word': 'quick', 'start': 0.90, 'end': 1.40},
+                {'word': 'brown', 'start': 1.30, 'end': 1.50},
+                {'word': 'fox', 'start': 1.10, 'end': 1.80},
+            ],
+        }
+        _text, _language, _parts, words = _parse_transcription_payload(payload)
+
+        self.assertLoggedEqual("transcript order preserved",
+                               ['the', 'quick', 'brown', 'fox'], [word.text for word in words])
 
     def test_segments_without_words(self):
         """Segments parse when word timings are absent."""

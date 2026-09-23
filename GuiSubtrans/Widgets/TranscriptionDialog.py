@@ -46,7 +46,7 @@ from PySubtrans.Transcription.AudioChunker import AudioChunker
 from PySubtrans.Transcription.AudioExtractor import AudioTrack, SUPPORTED_MEDIA_EXTENSIONS, CheckFfmpegAvailable
 from PySubtrans.Transcription.TranscriptionCoordinator import TranscriptionCoordinator
 from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionStatus
-from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
+from PySubtrans.Transcription.TranscriptionProvider import OptionsScope, TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionSegment
 
 
@@ -441,15 +441,12 @@ class TranscriptionDialog(QDialog):
             return
 
         try:
-            schema = self.provider.GetOptions(self.provider.settings)
+            schema = self.provider.GetOptions(self.provider.settings, OptionsScope.PER_RUN)
         except Exception as e:
             logging.error(_("Unable to load provider options: {error}").format(error=str(e)))
             return
 
         for key, option_definition in schema.items():
-            if key in self.provider.advanced_settings:
-                continue
-
             field = self._create_option_field(
                 key,
                 self.provider.settings.get(key),
@@ -652,7 +649,10 @@ class TranscriptionDialog(QDialog):
             'ffmpeg_path': self.global_options.get_str('ffmpeg_path'),
             'max_characters': self.global_options.get_int('max_characters'),
             'max_line_duration': self.global_options.get_float('max_line_duration'),
+            'min_line_duration': self.global_options.get_float('min_line_duration'),
             'min_split_chars': self.global_options.get_int('min_split_chars'),
+            'max_newlines': self.global_options.get_int('max_newlines'),
+            'min_gap': self.global_options.get_float('min_gap'),
         })
 
         output_format = str(self.fields['output_format'].GetValue() or '.srt').lstrip('.')

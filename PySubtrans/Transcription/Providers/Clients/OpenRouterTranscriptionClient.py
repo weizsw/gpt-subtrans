@@ -195,7 +195,6 @@ def _parse_transcription_payload(payload : dict) -> tuple[str, str|None, list[Tr
                                 end=timedelta(seconds=end),
                                 speaker=str(speaker) if speaker is not None else None))
 
-    words.sort(key=lambda w: w.start)
     return text, language, parts, words
 
 

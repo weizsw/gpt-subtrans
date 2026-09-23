@@ -8,7 +8,9 @@ from PySubtrans.Helpers.Localization import _
 from PySubtrans.Options import env_float
 from PySubtrans.SettingsType import GuiSettingsType, SettingsType
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
-from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
+from PySubtrans.Transcription.TranscriptionLines import (DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
+                                                         DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS)
+from PySubtrans.Transcription.TranscriptionProvider import OptionsScope, TranscriptionProvider
 
 class OpenRouterTranscriptionProvider(TranscriptionProvider):
     """
@@ -25,9 +27,6 @@ class OpenRouterTranscriptionProvider(TranscriptionProvider):
     <p>To use this provider you need <a href="https://openrouter.ai/keys">an OpenRouter API key</a>.</p>
     """)
 
-    # Endpoint and quotas live in Settings; model, diarization and language vary per job
-    advanced_settings = ['api_key', 'request_timeout', 'rate_limit']
-
     default_transcription_model = 'microsoft/mai-transcribe-2'
 
     @property
@@ -40,6 +39,11 @@ class OpenRouterTranscriptionProvider(TranscriptionProvider):
         """Short chunks bound base64 request bodies and the blast radius of retries."""
         return 120.0
 
+    @property
+    def supports_diarization(self) -> bool:
+        """Speaker labels when diarization is requested on a mapped model."""
+        return self.settings.get_bool('diarize', False)
+
     def __init__(self, settings : SettingsType):
         super().__init__(self.name, SettingsType({
             'api_key': settings.get_str('api_key', os.getenv('OPENROUTER_API_KEY')),
@@ -50,9 +54,13 @@ class OpenRouterTranscriptionProvider(TranscriptionProvider):
             'request_timeout': settings.get_float('request_timeout', env_float('TRANSCRIPTION_TIMEOUT', 300.0)),
             'rate_limit': settings.get_float('rate_limit', env_float('OPENROUTER_TRANSCRIPTION_RATE_LIMIT')),
             'proxy': settings.get_str('proxy') or os.getenv('OPENROUTER_PROXY'),
+            'merge_eligible_gap': settings.get_float('merge_eligible_gap', DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS),
+            'same_speaker_merge_eligible_gap': settings.get_float(
+                'same_speaker_merge_eligible_gap', DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS),
+            'can_merge_different_speakers': settings.get_bool('can_merge_different_speakers', True),
         }))
 
-        self.refresh_when_changed = ['api_key', 'language']
+        self.refresh_when_changed = ['api_key', 'language', 'diarize']
 
     def GetAvailableModels(self) -> list[str]:
         """
@@ -80,22 +88,36 @@ class OpenRouterTranscriptionProvider(TranscriptionProvider):
         client_settings.update(settings)
         return OpenRouterTranscriptionClient(client_settings)
 
-    def GetOptions(self, settings : SettingsType) -> GuiSettingsType:
+    def GetOptions(self, settings : SettingsType, scope : OptionsScope = OptionsScope.ALL) -> GuiSettingsType:
         """
         Returns the configurable options for the provider.
         """
-        options : GuiSettingsType = {
-            'api_key': (str, _("An OpenRouter API key (shared with translation)")),
-        }
+        options : GuiSettingsType = {}
+
+        if scope is OptionsScope.ALL:
+            options['api_key'] = (str, _("An OpenRouter API key (shared with translation)"))
+
         if not self.settings.get_str('api_key'):
             return options
+
         options.update({
             'model': (self.available_models, _("Speech-to-text model")),
             'language': (str, _("Spoken language hint, e.g. Chinese or en (optional, auto-detected when empty)")),
             'diarize': (bool, _("Request speaker diarization (only supported by some models)")),
-            'request_timeout': (float, _("Per-chunk request timeout in seconds")),
-            'rate_limit': (float, _("Maximum API requests per minute (0 for unlimited)")),
         })
+
+        if scope is OptionsScope.ALL:
+            options['request_timeout'] = (float, _("Per-chunk request timeout in seconds"))
+            options['rate_limit'] = (float, _("Maximum API requests per minute (0 for unlimited)"))
+            options['merge_eligible_gap'] = (float, _(
+                "Widest gap, in seconds, across which transcribed lines can still be merged"))
+
+            if self.supports_diarization:
+                options['same_speaker_merge_eligible_gap'] = (float, _(
+                    "Widest gap, in seconds, across which lines can be merged when the speaker has not changed"))
+                options['can_merge_different_speakers'] = (bool, _(
+                    "Allow brief lines by different speakers to be combined into a single line of dialogue"))
+
         return options
 
     def ResolveLanguageCode(self, language : str|None, display_language : str|None = None) -> str|None:

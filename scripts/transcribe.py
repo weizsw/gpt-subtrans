@@ -43,6 +43,8 @@ def CreateTranscribeParser() -> ArgumentParser:
     parser.add_argument('--no-align', dest='align', action='store_false', help="Disable word timestamps (chunk-level lines)")
     parser.add_argument('--postprocess', action='store_true', default=True, help="Clean transcribed lines with subtitle normalizations (default on)")
     parser.add_argument('--no-postprocess', dest='postprocess', action='store_false', help="Keep raw transcription text")
+    parser.add_argument('--capture', type=str, default=None,
+                        help="Also write the provider's raw segments to this JSON file, for replay with scripts/replay_transcription.py")
     parser.add_argument('--debug', action='store_true', help="Run with DEBUG log level")
     parser.add_argument('--verbose', action='store_true', help="Log each transcribed chunk")
     return parser
@@ -98,7 +100,10 @@ def main() -> int:
         'transcription_align': args.align,
         'max_characters': options.get_int('max_characters'),
         'max_line_duration': options.get_float('max_line_duration'),
+        'min_line_duration': options.get_float('min_line_duration'),
         'min_split_chars': options.get_int('min_split_chars'),
+        'max_newlines': options.get_int('max_newlines'),
+        'min_gap': options.get_float('min_gap'),
     })
     # Drop unset values so provider recommendations apply
     if args.min_chunk is not None:
@@ -109,6 +114,8 @@ def main() -> int:
         coordinator_settings['rate_limit'] = args.rate_limit
     if args.ffmpeg_path is not None:
         coordinator_settings['ffmpeg_path'] = args.ffmpeg_path
+    if args.capture is not None:
+        coordinator_settings['transcription_capture_path'] = args.capture
     try:
         coordinator = TranscriptionCoordinator(provider, coordinator_settings)
     except SubtitleError as e:

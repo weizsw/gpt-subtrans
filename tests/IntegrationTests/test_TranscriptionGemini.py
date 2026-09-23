@@ -7,6 +7,7 @@ from unittest.mock import Mock, patch
 from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.Helpers.Tests import log_input_expected_error, skip_if_debugger_attached
 from PySubtrans.SettingsType import SettingsType
+from PySubtrans.Transcription.TranscriptionProvider import OptionsScope
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Transcription.Providers.Clients.GeminiTranscriptionClient import (
@@ -66,14 +67,17 @@ class TestGeminiProvider(LoggedTestCase):
 
             self.assertLoggedEqual("invalid without key", False, provider.ValidateSettings())
 
-    def test_advanced_settings_match_schema(self):
-        """Advanced keys must exist in the options schema, or filtering silently misses."""
+    def test_per_run_scope_offers_only_per_job_choices(self):
+        """Settings decided once stay out of the schema the Transcribe dialog asks for."""
         assert GeminiTranscriptionProvider is not None  # Type narrowing for PyLance
         provider = GeminiTranscriptionProvider(SettingsType({'api_key': 'k'}))
-        options = provider.GetOptions(provider.settings)
+        options = provider.GetOptions(provider.settings, OptionsScope.PER_RUN)
 
-        unknown = [key for key in provider.advanced_settings if key not in options]
-        self.assertLoggedEqual("no stale advanced keys", [], unknown)
+        for key in ('model', 'language', 'diarize'):
+            self.assertLoggedIn(f"{key} offered per run", key, options)
+
+        for key in ('api_key', 'max_retries', 'rate_limit', 'merge_eligible_gap'):
+            self.assertLoggedNotIn(f"{key} withheld per run", key, options)
 
     def test_rate_limit_reaches_client(self):
         """Provider rate limits flow into the transcription client."""
