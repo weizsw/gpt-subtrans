@@ -1,5 +1,6 @@
 import array
 import io
+import logging
 import math
 import os
 import tempfile
@@ -347,7 +348,8 @@ class TestWordGrouping(LoggedTestCase):
     def test_no_words_stays_scene_line(self):
         """Untimed scenes stay one honest line over the chunk span."""
         builder = self._builder()
-        lines = self._scene_lines(builder, "some text", [], language="Thai")
+        with self.assertLogs(level=logging.WARNING):
+            lines = self._scene_lines(builder, "some text", [], language="Thai")
 
         self.assertLoggedEqual("line count", 1, len(lines))
         self.assertLoggedEqual("span preserved", timedelta(seconds=160), lines[0].end)
@@ -679,11 +681,13 @@ class TestOverlongSpans(LoggedTestCase):
     def test_long_part_flags_warning(self):
         """Untimed engine spans beyond the line cap are flagged, not split."""
         builder = self._builder()
-        lines = builder.LinesForSegment(self._part_segment(20.0))
+        with self.assertLogs(level=logging.WARNING):
+            lines = builder.LinesForSegment(self._part_segment(20.0))
+            flagged = builder.WarnIfOverlong(lines[0])
 
         self.assertLoggedEqual("line count", 1, len(lines))
         self.assertLoggedEqual("span kept", timedelta(seconds=120), lines[0].end)
-        self.assertLoggedEqual("flagged", True, builder.WarnIfOverlong(lines[0]))
+        self.assertLoggedEqual("flagged", True, flagged)
 
     def test_short_part_no_warning(self):
         """Ordinary parts pass without warnings."""
@@ -761,10 +765,12 @@ class TestOverlongSpans(LoggedTestCase):
         builder = self._builder()
         segment = TranscriptionSegment(start=timedelta(seconds=100), end=timedelta(seconds=160),
                                        text="monologue", language="Chinese")
-        lines = builder.LinesForSegment(segment)
+        with self.assertLogs(level=logging.WARNING):
+            lines = builder.LinesForSegment(segment)
+            flagged = builder.WarnIfOverlong(lines[0])
 
         self.assertLoggedEqual("line count", 1, len(lines))
-        self.assertLoggedEqual("flagged", True, builder.WarnIfOverlong(lines[0]))
+        self.assertLoggedEqual("flagged", True, flagged)
 
     def test_timed_line_no_warning(self):
         """Word-timed lines are already capped, so they never flag."""
@@ -857,11 +863,13 @@ class TestPartsFirst(LoggedTestCase):
         parts = [_part("要不要跳进去？", 0.0, 19.0)]
         words = [_word("别的", 1.0, 1.8), _word("东西", 1.8, 2.5)]
         builder = _default_builder()
-        lines = self._lines(parts, words, builder)
+        with self.assertLogs(level=logging.WARNING):
+            lines = self._lines(parts, words, builder)
+            flagged = builder.WarnIfOverlong(lines[0])
 
         self.assertLoggedEqual("line count", 1, len(lines))
         self.assertLoggedEqual("span kept", timedelta(seconds=119.0), lines[0].end)
-        self.assertLoggedEqual("flagged", True, builder.WarnIfOverlong(lines[0]))
+        self.assertLoggedEqual("flagged", True, flagged)
 
     def test_words_are_matched_to_parts_by_text(self):
         """Word timings that disagree with the part spans do not move words between parts."""
@@ -913,7 +921,8 @@ class TestPartsFirst(LoggedTestCase):
         """A line spanning the whole chunk overlaps everything, but must not chain every later line into one run."""
         parts = [_part("嗨", 0.0, 50.0), _part("你好", 1.0, 3.0),
                  _part("哎呀", 10.0, 10.5), _part("是", 10.9, 11.2), _part("我们走吧。", 20.0, 22.0)]
-        lines = self._lines(parts, [])
+        with self.assertLogs(level=logging.WARNING):
+            lines = self._lines(parts, [])
 
         texts = [line.text for line in lines]
         self.assertLoggedIn("brief fragments still pair up", "哎呀是", texts)
@@ -1135,7 +1144,8 @@ class TestSilenceGate(LoggedTestCase):
         ], audio=self._silent_wav())
 
         with tempfile.NamedTemporaryFile(suffix=".mkv") as media:
-            outcome = coordinator.TranscribeMedia(media.name)
+            with self.assertLogs(level=logging.ERROR):
+                outcome = coordinator.TranscribeMedia(media.name)
 
         self.assertLoggedEqual("failed status", TranscriptionStatus.FAILED, outcome.status)
         self.assertLoggedIn("no timed subtitles", "No timed", str(outcome.error))
@@ -1176,7 +1186,8 @@ class TestTranscriptionCoordinator(LoggedTestCase):
         coordinator = TranscriptionCoordinator(provider, SettingsType())
 
         with tempfile.NamedTemporaryFile(suffix=".mkv") as media:
-            outcome = coordinator.TranscribeMedia(media.name)
+            with self.assertLogs(level=logging.ERROR):
+                outcome = coordinator.TranscribeMedia(media.name)
 
         self.assertLoggedEqual("failed status", TranscriptionStatus.FAILED, outcome.status)
         self.assertLoggedIn("provider named", "Fake Transcription", str(outcome.error))
@@ -1205,7 +1216,8 @@ class TestTranscriptionCoordinator(LoggedTestCase):
         ])
 
         with tempfile.NamedTemporaryFile(suffix=".mkv") as media:
-            outcome = coordinator.TranscribeMedia(media.name)
+            with self.assertLogs(level=logging.ERROR):
+                outcome = coordinator.TranscribeMedia(media.name)
 
         self.assertLoggedEqual("failed status", TranscriptionStatus.FAILED, outcome.status)
         self.assertLoggedIsNone("no subtitles", outcome.subtitles)
@@ -1273,7 +1285,8 @@ class TestTranscriptionCoordinator(LoggedTestCase):
 
         coordinator.events.progress.connect(abort_after_first)
         with tempfile.NamedTemporaryFile(suffix=".mkv") as media:
-            outcome = coordinator.TranscribeMedia(media.name)
+            with self.assertLogs(level=logging.ERROR):
+                outcome = coordinator.TranscribeMedia(media.name)
             subtitles = _subtitles_of(outcome)
 
         self.assertLoggedEqual("partial line count", 1, subtitles.linecount)
@@ -1287,7 +1300,8 @@ class TestTranscriptionCoordinator(LoggedTestCase):
         coordinator.Abort()
 
         with tempfile.NamedTemporaryFile(suffix=".mkv") as media:
-            outcome = coordinator.TranscribeMedia(media.name)
+            with self.assertLogs(level=logging.ERROR):
+                outcome = coordinator.TranscribeMedia(media.name)
 
         self.assertLoggedEqual("failed status", TranscriptionStatus.FAILED, outcome.status)
 
@@ -1325,7 +1339,8 @@ class TestTranscriptionCoordinator(LoggedTestCase):
         self.addCleanup(read_patcher.stop)
 
         with tempfile.NamedTemporaryFile(suffix=".mkv") as media:
-            outcome = coordinator.TranscribeMedia(media.name)
+            with self.assertLogs(level=logging.ERROR):
+                outcome = coordinator.TranscribeMedia(media.name)
             subtitles = _subtitles_of(outcome)
 
         self.assertLoggedEqual("partial line count", 1, subtitles.linecount)
@@ -1336,7 +1351,8 @@ class TestTranscriptionCoordinator(LoggedTestCase):
         coordinator, failing = self._failing_coordinator({1}, chunks=3)
 
         with tempfile.NamedTemporaryFile(suffix=".mkv") as media:
-            outcome = coordinator.TranscribeMedia(media.name)
+            with self.assertLogs(level=logging.ERROR):
+                outcome = coordinator.TranscribeMedia(media.name)
 
         self.assertLoggedEqual("failed status", TranscriptionStatus.FAILED, outcome.status)
         self.assertLoggedIsNotNone("error recorded", outcome.error)
@@ -1347,7 +1363,8 @@ class TestTranscriptionCoordinator(LoggedTestCase):
         coordinator, failing = self._failing_coordinator({2}, chunks=4)
 
         with tempfile.NamedTemporaryFile(suffix=".mkv") as media:
-            outcome = coordinator.TranscribeMedia(media.name)
+            with self.assertLogs(level=logging.ERROR):
+                outcome = coordinator.TranscribeMedia(media.name)
             subtitles = _subtitles_of(outcome)
 
         self.assertLoggedEqual("partial lines retained", 1, subtitles.linecount)
@@ -1405,8 +1422,9 @@ class TestTranscriptionCoordinator(LoggedTestCase):
         ])
 
         with tempfile.NamedTemporaryFile(suffix=".mkv") as media:
-            outcome = coordinator.CreateTranscription(media.name, Options({
-                'postprocess_transcription': True, 'max_line_duration': 4.0}))
+            with self.assertLogs(level=logging.WARNING):
+                outcome = coordinator.CreateTranscription(media.name, Options({
+                    'postprocess_transcription': True, 'max_line_duration': 4.0}))
             subtitles = _subtitles_of(outcome)
 
         assert subtitles.originals is not None  # Type narrowing for PyLance
@@ -1425,8 +1443,9 @@ class TestTranscriptionCoordinator(LoggedTestCase):
         ])
 
         with tempfile.NamedTemporaryFile(suffix=".mkv") as media:
-            outcome = coordinator.CreateTranscription(media.name, Options({
-                'postprocess_transcription': False}))
+            with self.assertLogs(level=logging.WARNING):
+                outcome = coordinator.CreateTranscription(media.name, Options({
+                    'postprocess_transcription': False}))
             subtitles = _subtitles_of(outcome)
 
         assert subtitles.originals is not None  # Type narrowing for PyLance
@@ -1499,7 +1518,8 @@ class TestTranscriptionRetry(LoggedTestCase):
         with patch.object(client, '_PostRequest', side_effect=[rate_limited, ok]) as mock_post, \
              patch("time.monotonic", side_effect=clock.Monotonic), \
              patch("time.sleep", side_effect=clock.Sleep):
-            result = client._PostJson("http://test/api")
+            with self.assertLogs(level=logging.WARNING):
+                result = client._PostJson("http://test/api")
 
         self.assertLoggedEqual("two requests", 2, mock_post.call_count)
         self.assertLoggedEqual("payload text", "hello", result.get("text"))
@@ -1515,7 +1535,8 @@ class TestTranscriptionRetry(LoggedTestCase):
         with patch.object(client, '_PostRequest', side_effect=[rate_limited, ok]), \
              patch("time.monotonic", side_effect=clock.Monotonic), \
              patch("time.sleep", side_effect=clock.Sleep) as mock_sleep:
-            client._PostJson("http://test/api")
+            with self.assertLogs(level=logging.WARNING):
+                client._PostJson("http://test/api")
 
         total_slept = sum(call.args[0] for call in mock_sleep.call_args_list)
         self.assertLoggedGreaterEqual("slept at least 10s", total_slept, 10.0)
@@ -1529,8 +1550,9 @@ class TestTranscriptionRetry(LoggedTestCase):
         with patch.object(client, '_PostRequest', return_value=rate_limited), \
              patch("time.monotonic", side_effect=clock.Monotonic), \
              patch("time.sleep", side_effect=clock.Sleep):
-            with self.assertRaises(SubtitleError):
-                client._PostJson("http://test/api")
+            with self.assertLogs(level=logging.WARNING):
+                with self.assertRaises(SubtitleError):
+                    client._PostJson("http://test/api")
 
     def test_gives_up_on_excessive_retry_after(self):
         """A Retry-After exceeding _GIVE_UP_SECONDS stops retrying immediately."""
@@ -1557,8 +1579,9 @@ class TestTranscriptionRetry(LoggedTestCase):
         with patch.object(client, '_PostRequest', return_value=rate_limited), \
              patch("time.monotonic", return_value=0.0), \
              patch("time.sleep", side_effect=abort_on_sleep):
-            with self.assertRaises(SubtitleError):
-                client._PostJson("http://test/api")
+            with self.assertLogs(level=logging.WARNING):
+                with self.assertRaises(SubtitleError):
+                    client._PostJson("http://test/api")
 
     def test_no_retry_on_non_429_error(self):
         """A 500 error is not retried, just raised immediately."""
@@ -1585,7 +1608,8 @@ class TestTranscriptionRetry(LoggedTestCase):
         with patch.object(client, '_PostRequest', side_effect=[rate_limited, ok]), \
              patch("time.monotonic", side_effect=clock.Monotonic), \
              patch("time.sleep", side_effect=clock.Sleep) as mock_sleep:
-            result = client._PostJson("http://test/api")
+            with self.assertLogs(level=logging.WARNING):
+                result = client._PostJson("http://test/api")
 
         total_slept = sum(call.args[0] for call in mock_sleep.call_args_list)
         self.assertLoggedEqual("payload text", "ok", result.get("text"))

@@ -1,4 +1,5 @@
 """Command-line options for scripts/transcribe.py (no media or backends needed)."""
+import logging
 import os
 import sys
 import unittest
@@ -100,7 +101,8 @@ class TestTranscribeCliExecution(LoggedTestCase):
                 patch.object(transcribe.TranscriptionProvider, 'create_provider', return_value=provider), \
                 patch.object(transcribe, 'TranscriptionCoordinator') as coordinator_factory, \
                 patch.object(sys, 'argv', ['transcribe.py', 'input.wav']):
-            result = transcribe.main()
+            with self.assertLogs(level=logging.ERROR):
+                result = transcribe.main()
 
         self.assertLoggedEqual("invalid provider status", 1, result)
         self.assertLoggedEqual("provider validation called", 1, provider.ValidateSettings.call_count)
@@ -115,7 +117,8 @@ class TestTranscribeCliExecution(LoggedTestCase):
                 patch.object(transcribe.TranscriptionProvider, 'create_provider', return_value=provider), \
                 patch.object(transcribe, 'TranscriptionCoordinator') as coordinator_factory, \
                 patch.object(sys, 'argv', ['transcribe.py', 'input.wav', '--language', 'Klingon']):
-            result = transcribe.main()
+            with self.assertLogs(level=logging.ERROR):
+                result = transcribe.main()
 
         self.assertLoggedEqual("unresolvable language status", 1, result)
         self.assertLoggedEqual("transcription not started", 0, coordinator_factory.call_count)
@@ -171,7 +174,8 @@ class TestTranscribeCliExecution(LoggedTestCase):
                 patch.object(transcribe, 'TranscriptionCoordinator', return_value=coordinator), \
                 patch.object(transcribe, 'GetOutputPath', return_value='out.vtt'), \
                 patch.object(sys, 'argv', ['transcribe.py', 'input.wav']):
-            result = transcribe.main()
+            with self.assertLogs(level=logging.ERROR):
+                result = transcribe.main()
 
         self.assertLoggedEqual("save failure status", 1, result)
 
@@ -203,7 +207,8 @@ class TestTranscribeCliExecution(LoggedTestCase):
                 patch.object(transcribe, 'TranscriptionCoordinator', return_value=coordinator), \
                 patch.object(transcribe, 'GetOutputPath', return_value='out.vtt'), \
                 patch.object(sys, 'argv', ['transcribe.py', 'input.wav']):
-            result = transcribe.main()
+            with self.assertLogs(level=logging.ERROR):
+                result = transcribe.main()
 
         self.assertLoggedEqual("incomplete status", 1, result)
         subtitles.SaveOriginal.assert_called_once_with('out.vtt')

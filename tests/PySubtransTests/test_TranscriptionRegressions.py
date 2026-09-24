@@ -1,4 +1,5 @@
 """Regression coverage for transcription recovery, dialogue, and usage."""
+import logging
 from datetime import timedelta
 from unittest.mock import patch
 
@@ -31,7 +32,8 @@ class TestTranscriptionRegressions(LoggedTestCase):
 
     def test_mid_run_failure_returns_partial_result(self) -> None:
         """Completed billed chunks remain usable after a mid-run failure."""
-        outcome, client = self._run_failures({2}, 5)
+        with self.assertLogs(level=logging.ERROR):
+            outcome, client = self._run_failures({2}, 5)
         self.assertLoggedEqual('partial source lines', 1, _subtitles_of(outcome).linecount)
         self.assertLoggedEqual('incomplete result', TranscriptionStatus.INCOMPLETE, outcome.status)
         self.assertLoggedIsNotNone('failure detail retained', outcome.error)
@@ -93,7 +95,8 @@ class TestTranscriptionRegressions(LoggedTestCase):
         self.addCleanup(patch.stopall)
 
         with patch.object(self.provider, 'GetTranscriptionClient', return_value=client):
-            outcome = self.coordinator.CreateTranscription('readme.md', Options())
+            with self.assertLogs(level=logging.ERROR):
+                outcome = self.coordinator.CreateTranscription('readme.md', Options())
 
         # Extraction is local and free — skipping a chunk would leave a
         # gap the user has no way to fill, so the run fails cleanly.

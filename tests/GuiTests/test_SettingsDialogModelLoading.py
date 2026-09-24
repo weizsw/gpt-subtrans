@@ -1,4 +1,5 @@
 """Exercise asynchronous provider model loading in the settings dialog."""
+import logging
 import time
 from threading import Event
 from unittest.mock import patch
@@ -314,7 +315,8 @@ class TestSettingsDialogModelLoading(LoggedTestCase):
         provider = FailingModelProvider(SettingsType({'model': 'model-b'}))
         dialog = self._open_dialog(provider, 'model-b')
 
-        self._await_models(dialog)
+        with self.assertLogs(level=logging.WARNING):
+            self._await_models(dialog)
 
         field = self._model_field(dialog)
         self.assertLoggedIsNotNone('model field created', field)

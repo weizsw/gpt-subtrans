@@ -1,4 +1,5 @@
 """Exercise synchronous transcription settings and result handling."""
+import logging
 from unittest.mock import patch
 
 from tests.GuiTestSupport import ConfigureOffscreenPlatform
@@ -51,7 +52,8 @@ class TestTranscriptionGlobalSettings(LoggedTestCase):
         options = Options({'postprocess_transcription': True})
         with patch.object(SettingsDialog, '_refresh_transcription_providers'), \
                 patch.object(SettingsDialog, '_initialise_translation_provider'):
-            dialog = SettingsDialog(options)
+            with self.assertLogs(level=logging.WARNING):
+                dialog = SettingsDialog(options)
         try:
             dialog._on_setting_changed('Transcription', 'postprocess_transcription', False)
             self.assertLoggedEqual('global value changed immediately', False, dialog.settings['postprocess_transcription'])
@@ -72,7 +74,8 @@ class TestTranscriptionGlobalSettings(LoggedTestCase):
         options = Options()
         with patch.object(SettingsDialog, '_refresh_transcription_providers'), \
                 patch.object(SettingsDialog, '_initialise_translation_provider'):
-            dialog = SettingsDialog(options)
+            with self.assertLogs(level=logging.WARNING):
+                dialog = SettingsDialog(options)
         try:
             path = r'C:\tools\ffmpeg.exe'
             dialog._on_setting_changed(SettingsDialog.TRANSCRIPTION_SECTION, 'ffmpeg_path', path)
@@ -92,7 +95,8 @@ class TestTranscriptionGlobalSettings(LoggedTestCase):
         options = Options()
         with patch.object(SettingsDialog, '_refresh_transcription_providers'), \
                 patch.object(SettingsDialog, '_initialise_translation_provider'):
-            dialog = SettingsDialog(options)
+            with self.assertLogs(level=logging.WARNING):
+                dialog = SettingsDialog(options)
         try:
             option_definition = SettingsDialog.SECTIONS[SettingsDialog.TRANSCRIPTION_SECTION]['ffmpeg_path']
             self.assertLoggedEqual(

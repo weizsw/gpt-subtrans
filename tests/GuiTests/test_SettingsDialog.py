@@ -1,4 +1,5 @@
 """Verify a transcription provider field writes to the settings of the provider its form was built for."""
+import logging
 from unittest.mock import patch
 
 from tests.GuiTestSupport import ConfigureOffscreenPlatform
@@ -31,7 +32,8 @@ class TestTranscriptionProviderSettingBinding(LoggedTestCase):
 
         with patch.object(SettingsDialog, '_refresh_transcription_providers'), \
                 patch.object(SettingsDialog, '_initialise_translation_provider'):
-            return SettingsDialog(options)
+            with self.assertLogs(level=logging.WARNING):
+                return SettingsDialog(options)
 
     def test_setting_is_written_to_the_provider_namespace(self) -> None:
         """A transcription provider field writes to its own namespace."""

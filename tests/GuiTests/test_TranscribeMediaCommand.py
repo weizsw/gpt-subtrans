@@ -1,4 +1,5 @@
 """Tests for queue-owned transcription execution."""
+import logging
 from datetime import timedelta
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -84,7 +85,8 @@ class TestTranscribeMediaCommand(LoggedTestCase):
         coordinator.CreateTranscription.side_effect = RuntimeError('provider failed')
         command = TranscribeMediaCommand(Mock(settings=SettingsType()), 'media.wav', SettingsType(), Options(), save_transcription=True)
         with patch('GuiSubtrans.Commands.TranscribeMediaCommand.TranscriptionCoordinator', return_value=coordinator):
-            result = command.execute()
+            with self.assertLogs(level=logging.ERROR):
+                result = command.execute()
 
         self.assertLoggedFalse('failed command returns failure', result)
         self.assertLoggedEqual('failure status recorded', TranscriptionStatus.FAILED, command.status)
@@ -116,7 +118,8 @@ class TestTranscribeMediaCommand(LoggedTestCase):
         self.coordinator.CreateTranscription.side_effect = RuntimeError('provider failed')
         command = TranscribeMediaCommand(self.provider, 'media.wav', SettingsType())
         with patch('GuiSubtrans.Commands.TranscribeMediaCommand.TranscriptionCoordinator', return_value=self.coordinator):
-            result = command.execute()
+            with self.assertLogs(level=logging.ERROR):
+                result = command.execute()
         self.assertLoggedFalse('failed command returns failure', result)
         self.assertLoggedIsNone('no fabricated subtitles', command.subtitles)
         self.assertLoggedEqual('error retained', 'provider failed', command.error)
@@ -125,7 +128,8 @@ class TestTranscribeMediaCommand(LoggedTestCase):
     def test_constructor_failure_is_reported(self) -> None:
         command = TranscribeMediaCommand(self.provider, 'media.wav', SettingsType())
         with patch('GuiSubtrans.Commands.TranscribeMediaCommand.TranscriptionCoordinator', side_effect=RuntimeError('ffmpeg unavailable')):
-            result = command.execute()
+            with self.assertLogs(level=logging.ERROR):
+                result = command.execute()
         self.assertLoggedFalse('setup failure returns failure', result)
         self.assertLoggedEqual('setup error retained', 'ffmpeg unavailable', command.error)
         self.assertLoggedEqual('setup failure status', TranscriptionStatus.FAILED, command.status)
