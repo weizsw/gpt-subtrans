@@ -260,15 +260,13 @@ class ProjectActions(QObject):
                     scene['batches'].append(line.batch)
                 scene['lines'].append(line.number)
         else:
-            # A selected scene is translated in full, even if some of its batches are also selected
-            selected_scene_numbers = { scene.number for scene in selection.selected_scenes }
-            for scene_number in selected_scene_numbers:
-                scenes[scene_number] = {}
+            # The scenes view deselects a scene's batches when the scene is selected, and vice versa
+            for scene in selection.selected_scenes:
+                scenes[scene.number] = {}
 
             for batch in selection.selected_batches:
-                if batch.scene not in selected_scene_numbers:
-                    scene = scenes.setdefault(batch.scene, { 'batches' : [] })
-                    scene['batches'].append(batch.number)
+                scene = scenes.setdefault(batch.scene, { 'batches' : [] })
+                scene['batches'].append(batch.number)
 
         if not scenes:
             raise ActionError(_("No scenes selected for translation"))

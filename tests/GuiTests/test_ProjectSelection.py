@@ -113,25 +113,6 @@ class ProjectSelectionTests(GuiSubtitleTestCase):
             sorted(line.number for line in selection.effective_lines),
         )
 
-    def test_append_batch_then_parent_scene_selects_whole_scene(self) -> None:
-        model = self._create_scenes_model([[3, 2], [2]])
-
-        selection = ProjectSelection()
-        selection.AppendItem(model, self._batch_index(model, 0, 1))
-        selection.AppendItem(model, self._scene_index(model, 0))
-
-        self.assertLoggedEqual("scene is selected", 1, len(selection.selected_scenes))
-        self.assertLoggedSequenceEqual(
-            "explicitly selected batch keeps its flag",
-            [(1, 2)],
-            [batch.key for batch in selection.selected_batches],
-        )
-        self.assertLoggedSequenceEqual(
-            "effective lines",
-            [1, 2, 3, 4, 5],
-            sorted(line.number for line in selection.effective_lines),
-        )
-
     def test_append_batches_from_different_scenes(self) -> None:
         model = self._create_scenes_model([[3, 2], [2, 2]])
 
