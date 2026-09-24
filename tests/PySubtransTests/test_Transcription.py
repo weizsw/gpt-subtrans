@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 import httpx
 
+from PySubtrans.Helpers.Speech import EstimateSpeechSeconds, SentenceEnds, SentenceRanges
 from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.Helpers.Tests import skip_if_debugger_attached
 from PySubtrans.Options import Options
@@ -24,12 +25,11 @@ from PySubtrans.Transcription.SilenceStream import SilenceStream
 from PySubtrans.Transcription.WordTiming import WordTiming
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionCoordinator import TranscriptionCoordinator, TranscriptionStatus
-from PySubtrans.Transcription.TranscriptionLines import (MIN_WORD_CAP_SECONDS, WORD_CAP_MULTIPLE, EstimateSpeechSeconds,
-                                                         SentenceEnds, SentenceRanges, TranscriptionLineBuilder,
-                                                         WordCoverage)
+from PySubtrans.Transcription.TranscriptionLines import MIN_WORD_CAP_SECONDS, WORD_CAP_MULTIPLE, TranscriptionLineBuilder
 from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionOutcome
 from PySubtrans.Transcription.TranscriptionProvider import OptionsScope, TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionResult, TranscriptionSegment
+from PySubtrans.Transcription.WordAlignment import WordCoverage
 
 from tests.Helpers import FakeClock
 

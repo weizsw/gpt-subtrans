@@ -10,8 +10,9 @@ from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.Torch.Runtime import TorchConfigOption
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionLines import (DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
-                                                         DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS, WordCoverage)
+                                                         DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS)
 from PySubtrans.Transcription.TranscriptionProvider import OptionsScope, TranscriptionProvider
+from PySubtrans.Transcription.WordAlignment import WordCoverage
 
 _QWEN_CHECKPOINTS : list[str] = [
     'Qwen/Qwen3-ASR-1.7B',

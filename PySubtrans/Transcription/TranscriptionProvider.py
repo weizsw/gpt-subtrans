@@ -13,7 +13,7 @@ from PySubtrans.Options import Options
 from PySubtrans.SettingsType import GuiSettingsType, SettingsType
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
-from PySubtrans.Transcription.TranscriptionLines import WordCoverage
+from PySubtrans.Transcription.WordAlignment import WordCoverage
 
 
 class OptionsScope(str, Enum):

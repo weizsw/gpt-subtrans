@@ -3,10 +3,10 @@ from datetime import timedelta
 
 from PySubtrans.Helpers.Localization import _
 from PySubtrans.Helpers.Parse import TryParseNonNegative
+from PySubtrans.Helpers.Speech import EstimateSpeechSeconds, SentenceEnds, SentenceRanges
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
-from PySubtrans.Transcription.TranscriptionLines import EstimateSpeechSeconds, SentenceEnds, SentenceRanges
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionResult, TranscriptionSegment
 
 # Longest a turn may last, as a multiple of the time its text takes to say.

@@ -2,21 +2,19 @@ from __future__ import annotations
 
 import logging
 from collections import Counter
-from dataclasses import dataclass, replace
+from dataclasses import replace
 from datetime import timedelta
-from difflib import SequenceMatcher
-from enum import Enum
 
 import regex
 
 from PySubtrans.Helpers.Localization import _
+from PySubtrans.Helpers.Speech import (SENTENCE_END_CHARS, SPOKEN_CHAR, EstimateSpeechSeconds, NominalSecondsPerChar,
+                                       SentenceRanges)
 from PySubtrans.Helpers.Text import JoinWords
 from PySubtrans.Transcription.AudioChunker import AudioChunk
+from PySubtrans.Transcription.WordAlignment import AlignedWord, AlignWords, CutPoints, WordCoverage
 from PySubtrans.Transcription.WordTiming import WordTiming
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionSegment
-
-# Sentence-ending punctuation across CJK and latin scripts
-SENTENCE_END_CHARS = frozenset('。！？!?\n…')
 
 # Clause punctuation (and a period, which is not a hard boundary) that makes
 # a good place to break an over-long utterance
@@ -44,24 +42,6 @@ SHORT_WORD_CHARS = 3
 # A word made of nothing but punctuation and spacing
 PUNCTUATION_ONLY = regex.compile(r'^[\p{P}\s]+$')
 
-# A character that is spoken, and so can be matched between a transcript and its words
-SPOKEN_CHAR = regex.compile(r'[^\p{P}\p{S}\s]')
-
-# Punctuation that opens what follows it, such as Spanish question marks, quotes and brackets
-OPENING_CHAR = regex.compile(r'[\p{Ps}\p{Pi}¿¡]')
-
-# Characters that may close a sentence after its end punctuation, such as quotes and brackets
-CLOSING_CHARS = regex.compile(r'[\p{Pe}\p{Pf}"\'\s]+$')
-
-# Scripts written with one character per syllable, which take longer to say per character
-SYLLABIC_CHAR = regex.compile(r'[\p{Han}\p{Hiragana}\p{Katakana}\p{Hangul}]')
-
-# Speaking rates for estimating how long text takes to say.
-# The syllabic rate is the median of OpenRouter parts for Cantonese dialogue.
-SYLLABIC_SECONDS_PER_CHAR = 0.2
-OTHER_SECONDS_PER_CHAR = 0.07
-MIN_SPEECH_SECONDS = 0.3
-
 # A word is capped at this multiple of its estimated speaking time
 WORD_CAP_MULTIPLE = 4.0
 MIN_WORD_CAP_SECONDS = 1.0
@@ -75,29 +55,6 @@ SQUEEZED_WORD_FRACTION = 0.1
 
 # A part whose matched words spell at least this share of its text is timed by them alone
 WELL_COVERED_FRACTION = 0.8
-
-
-class WordCoverage(Enum):
-    """
-    How much of its transcript a provider's words can be relied on to spell.
-
-    COMPLETE words miss at most the odd character, so they time a part by themselves.
-    PARTIAL words can miss whole stretches, so a part is given room for the text they missed.
-    """
-    COMPLETE = 'complete'
-    PARTIAL = 'partial'
-
-
-class SentenceEnds(Enum):
-    """
-    Which punctuation ends a sentence.
-
-    STRONG is question and exclamation marks, CJK full stops, ellipses and line breaks.
-    Text with word timings is left to them to divide at full stops.
-    ALL adds full stops, for text with no word timings to divide it.
-    """
-    STRONG = 'strong'
-    ALL = 'all'
 
 
 def SpanLabel(span : AudioChunk|TranscriptionSegment) -> str:
@@ -131,111 +88,6 @@ def CutText(text : str, lengths : list[int]) -> list[str]:
 
     pieces.append(text[position:].strip())
     return pieces
-
-
-def NominalSecondsPerChar(text : str) -> float:
-    """The normal time to say one spoken character of the text, from its script."""
-    syllabic = len(SYLLABIC_CHAR.findall(text))
-    other = sum(1 for char in text if char.isalnum()) - syllabic
-    if syllabic + other == 0:
-        return SYLLABIC_SECONDS_PER_CHAR
-
-    return (syllabic * SYLLABIC_SECONDS_PER_CHAR + other * OTHER_SECONDS_PER_CHAR) / (syllabic + other)
-
-
-def EstimateSpeechSeconds(text : str) -> float:
-    """Roughly how long text takes to say, from its character count and script."""
-    syllabic = len(SYLLABIC_CHAR.findall(text))
-    other = sum(1 for char in text if char.isalnum()) - syllabic
-    return max(MIN_SPEECH_SECONDS, syllabic * SYLLABIC_SECONDS_PER_CHAR + other * OTHER_SECONDS_PER_CHAR)
-
-
-def IsSentenceEnd(text : str, index : int, ends : SentenceEnds = SentenceEnds.STRONG) -> bool:
-    """
-    Whether the character at index ends a sentence.
-    A full stop counts only where the text breaks after it, so decimals do not.
-    """
-    if text[index] in SENTENCE_END_CHARS:
-        return True
-
-    return (ends == SentenceEnds.ALL and text[index] == '.'
-            and (index + 1 == len(text) or bool(CLOSING_CHARS.match(text[index + 1]))))
-
-
-def SentenceRanges(text : str, ends : SentenceEnds = SentenceEnds.STRONG) -> list[tuple[int, int]]:
-    """Ranges of the text ending at sentence punctuation, with any closing quotes or brackets."""
-    ranges : list[tuple[int, int]] = []
-    start = 0
-    index = 0
-
-    while index < len(text):
-        if IsSentenceEnd(text, index, ends):
-            end = index + 1
-            while end < len(text) and (IsSentenceEnd(text, end, ends) or CLOSING_CHARS.match(text[end])):
-                end += 1
-            ranges.append((start, end))
-            start = index = end
-        else:
-            index += 1
-
-    if start < len(text):
-        ranges.append((start, len(text)))
-
-    return ranges
-
-
-@dataclass
-class AlignedWord:
-    """A word matched to the transcript, with the range of transcript characters it matched and how many it matched."""
-    word : WordTiming
-    start : int
-    end : int
-    matched : int
-
-
-def AlignWords(text : str, words : list[WordTiming]) -> list[AlignedWord]:
-    """
-    Match words to the transcript they came from, character by character.
-
-    Only spoken characters are compared, so punctuation and spacing on either side do not matter.
-    Words with no matching character are left out.
-    Matching keeps order on both sides, so the result is in transcript order.
-    """
-    offsets = [index for index, char in enumerate(text) if SPOKEN_CHAR.match(char)]
-    owners = [index for index, word in enumerate(words) for char in word.text if SPOKEN_CHAR.match(char)]
-    word_chars = ''.join(char for word in words for char in word.text if SPOKEN_CHAR.match(char))
-    text_chars = ''.join(text[offset] for offset in offsets)
-
-    spans : dict[int, tuple[int, int, int]] = {}
-    matcher = SequenceMatcher(None, word_chars, text_chars, autojunk=False)
-    for word_index, text_index, size in matcher.get_matching_blocks():
-        for step in range(size):
-            owner = owners[word_index + step]
-            offset = offsets[text_index + step]
-            first, last, count = spans.get(owner, (offset, offset, 0))
-            spans[owner] = (min(first, offset), max(last, offset), count + 1)
-
-    return [AlignedWord(words[index], first, last + 1, count) for index, (first, last, count) in sorted(spans.items())]
-
-
-def CutPoints(text : str, aligned : list[AlignedWord], start : int, end : int) -> list[int]:
-    """
-    Divide text[start:end] among aligned words, so each word owns a slice holding its matched characters.
-
-    Characters the words missed go to the word before them, up to the last closing punctuation in the gap.
-    The rest go to the word after, so punctuation stays with the text it closes, and opening punctuation with the text it opens.
-    Returns one more cut than there are words.
-    """
-    cuts = [start]
-    for previous, word in zip(aligned, aligned[1:]):
-        gap = text[previous.end:word.start]
-        last_punctuation = max((index for index, char in enumerate(gap)
-                                if not SPOKEN_CHAR.match(char) and not char.isspace() and not OPENING_CHAR.match(char)),
-                               default=-1)
-        cuts.append(previous.end + last_punctuation + 1)
-
-    cuts.append(end)
-    return cuts
 
 
 class TranscriptionLineBuilder:
@@ -570,7 +422,8 @@ class TranscriptionLineBuilder:
         Set each part's chunk-relative span from its words.
 
         A run of parts without words shares the time between its timed neighbours by characters.
-        Between timed parts, each is given only as long as its text takes to say, so it does not stretch over silence.        When no part is timed, each fills its share of the chunk, up to the longest a line may last.
+        Between timed parts, each is given only as long as its text takes to say, so it does not stretch over silence.
+        When no part is timed, each fills its share of the chunk, up to the longest a line may last.
         """
         if not any(assigned):
             total = sum(len(CompactText(part.text)) for part in parts) or 1

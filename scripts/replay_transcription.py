@@ -32,10 +32,11 @@ from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleProcessor import SubtitleProcessor
 from PySubtrans.Subtitles import Subtitles
 from PySubtrans.Transcription.TranscriptionCapture import LoadCapture, LoadCaptureProvider
-from PySubtrans.Transcription.TranscriptionLines import TranscriptionLineBuilder, WordCoverage
+from PySubtrans.Transcription.TranscriptionLines import TranscriptionLineBuilder
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionRun import TranscriptionRun
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionSegment
+from PySubtrans.Transcription.WordAlignment import WordCoverage
 
 
 def BuildLines(segments : list[TranscriptionSegment], **overrides) -> list[TranscriptionSegment]:
