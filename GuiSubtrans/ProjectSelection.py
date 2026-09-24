@@ -1,4 +1,3 @@
-from itertools import groupby
 from typing import TypeAlias
 from PySide6.QtCore import Qt
 
@@ -68,6 +67,16 @@ class SelectionLine:
 #########################################################################
 
 class ProjectSelection():
+    """
+    Scenes, batches and lines selected in the project view.
+
+    Entries flagged as selected were chosen by the user.
+    Unselected entries are implicit members of the selection:
+    - lines and batches contained by a selected scene or batch
+    - parent scenes and batches of explicitly selected items, registered without their other children
+
+    Consequently every line in self.lines belongs to the selection, either explicitly or implicitly.
+    """
     def __init__(self) -> None:
         self.scenes  : dict[SelectionScene.Key, SelectionScene] = {}
         self.batches : dict[SelectionBatch.Key, SelectionBatch] = {}
@@ -100,22 +109,11 @@ class ProjectSelection():
     @property
     def effective_lines(self) -> list[SelectionLine]:
         """
-        Lines to act on: explicitly selected lines if any rows were individually
-        selected, otherwise every line belonging to an explicitly selected scene
-        or batch. AppendItem also populates self.lines with the unselected lines
-        of sibling batches while walking back up to their parent scene, so those
-        must be excluded rather than treated as part of the selection.
+        Lines to act on.
+        Explicitly selected lines take precedence if any rows were individually selected.
+        Otherwise every line belonging to a selected scene or batch.
         """
-        if self.selected_lines:
-            return self.selected_lines
-
-        selected_batch_keys = { batch.key for batch in self.selected_batches }
-        selected_scene_numbers = { scene.number for scene in self.selected_scenes }
-
-        return [
-            line for line in self.lines.values()
-            if (line.scene, line.batch) in selected_batch_keys or line.scene in selected_scene_numbers
-        ]
+        return self.selected_lines or list(self.lines.values())
 
     def Any(self) -> bool:
         return bool(self.scene_numbers or self.batch_numbers or self.lines)
@@ -206,44 +204,11 @@ class ProjectSelection():
 
         return False
 
-    def IsFirstOrLastInBatchSelected(self) -> bool:
-        """
-        Check whether the first or last line of any batch is selected
-        """
-        line_dict = {}
-        for line in list(self.lines.values()):
-            key = (line.scene, line.batch, line.number)
-            if key in line_dict:
-                line_dict[key].selected = line_dict[key].selected or line.selected
-            else:
-                line_dict[key] = line
-
-        for batch_lines in groupby(sorted(line_dict.values(), key=lambda x: (x.scene, x.batch, x.number)), key=lambda x: (x.scene, x.batch)):
-            batch_lines = list(batch_lines[1])
-            if batch_lines[0].selected or batch_lines[-1].selected:
-                return True
-
-        return False
-
     def IsFirstInSceneSelected(self) -> bool:
         """
         Check whether the first or last batch of any scene is selected
         """
         return bool(next((batch.number for batch in self.selected_batches if batch.number == 1), False))
-
-    def IsFirstOrLastInSceneSelected(self) -> bool:
-        """
-        Check whether the first or last batch of any scene is selected
-        """
-        scene_batches = {}
-        for scene in self.scenes:
-            scene_batches[scene] = [batch for batch in self.batches if batch[0] == scene]
-
-        for batch in self.selected_batches:
-            if batch.number == 1 or batch.number == scene_batches[batch][-1][1]:
-                return True
-
-        return False
 
     def GetHierarchy(self) -> dict:
         """
@@ -283,8 +248,11 @@ class ProjectSelection():
             if selected or not key in self.batches:
                 batch = SelectionBatch((item.scene, item.number), selected=selected, translated=item.translated)
                 self.batches[key] = batch
-                if not self.scenes.get(item.scene):
-                    self.AppendItem(model, model.parent(index), False)
+
+                # Register the parent scene without walking its other batches,
+                # so that sibling lines do not leak into the selection.
+                if item.scene not in self.scenes:
+                    self.scenes[item.scene] = SelectionScene(item.scene, False)
 
                 for line_number, line_item in item.lines.items():
                     self.lines[line_number] = SelectionLine(
@@ -304,6 +272,8 @@ class ProjectSelection():
             key = (line.scene, line.batch)
             if key not in self.batches:
                 self.batches[key] = SelectionBatch(key, False)
+
+            if line.scene not in self.scenes:
                 self.scenes[line.scene] = SelectionScene(line.scene, False)
 
     def __str__(self):
@@ -350,8 +320,8 @@ class ProjectSelection():
         if self.selected_lines:
             return f"{len(self.selected_lines)} lines selected"
         elif self.selected_batches:
-            selected_batch_numbers = [ batch.number for batch in self.selected_batches ]
-            batch_lines = [ x for x in self.lines.values() if x.batch in selected_batch_numbers ]
+            selected_batch_keys = { batch.key for batch in self.selected_batches }
+            batch_lines = [ x for x in self.lines.values() if (x.scene, x.batch) in selected_batch_keys ]
             if batch_lines:
                 return f"{len(batch_lines)} lines"
         elif self.lines:

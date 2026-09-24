@@ -1,8 +1,11 @@
+from PySide6.QtCore import QModelIndex
+
+from GuiSubtrans.GuiSubtitleTestCase import GuiSubtitleTestCase
 from GuiSubtrans.ProjectSelection import ProjectSelection, SelectionBatch, SelectionLine, SelectionScene
-from PySubtrans.Helpers.TestCases import LoggedTestCase
+from GuiSubtrans.ScenesBatchesModel import ScenesBatchesModel
 
 
-class ProjectSelectionTests(LoggedTestCase):
+class ProjectSelectionTests(GuiSubtitleTestCase):
     """Test resolution of explicit line selections vs batch/scene fallback selections."""
 
     def test_effective_lines_prefers_explicit_selection_over_implicit_batch_lines(self) -> None:
@@ -47,24 +50,6 @@ class ProjectSelectionTests(LoggedTestCase):
             selection.AllLinesTranslated(),
         )
 
-    def test_effective_lines_excludes_sibling_batches_touched_via_parent_scene_walk(self) -> None:
-        selection = ProjectSelection()
-
-        # Simulate AppendItem selecting batch (1, 1): it walks up to the parent scene to
-        # register it, which recursively adds every sibling batch's lines as implicit
-        # (unselected) members too - batch (1, 2) here was never selected by the user.
-        selection.scenes[1] = SelectionScene(1, selected=False)
-        selection.batches[(1, 1)] = SelectionBatch((1, 1), selected=True, translated=True)
-        selection.lines[1] = SelectionLine(1, 1, 1, False, translated=True)
-        selection.batches[(1, 2)] = SelectionBatch((1, 2), selected=False, translated=True)
-        selection.lines[2] = SelectionLine(1, 2, 2, False, translated=True)
-
-        self.assertLoggedSequenceEqual(
-            'only lines from the explicitly selected batch are included',
-            [1],
-            sorted(line.number for line in selection.effective_lines),
-        )
-
     def test_effective_lines_includes_all_batches_in_an_explicitly_selected_scene(self) -> None:
         selection = ProjectSelection()
 
@@ -80,4 +65,95 @@ class ProjectSelectionTests(LoggedTestCase):
             'every line in the selected scene is included',
             [1, 2],
             sorted(line.number for line in selection.effective_lines),
+        )
+
+    def _create_scenes_model(self, line_counts : list[list[int]]) -> ScenesBatchesModel:
+        """Create the scenes/batches tree model used by the project view."""
+        viewmodel = self.create_testable_viewmodel_from_line_counts(line_counts)
+        return ScenesBatchesModel(viewmodel)
+
+    def _scene_index(self, model : ScenesBatchesModel, scene_row : int) -> QModelIndex:
+        return model.index(scene_row, 0, QModelIndex())
+
+    def _batch_index(self, model : ScenesBatchesModel, scene_row : int, batch_row : int) -> QModelIndex:
+        return model.index(batch_row, 0, self._scene_index(model, scene_row))
+
+    def test_append_batch_does_not_include_sibling_batches(self) -> None:
+        # Scene 1 has batches of lines 1-3 and 4-5, scene 2 has lines 6-7
+        model = self._create_scenes_model([[3, 2], [2]])
+
+        selection = ProjectSelection()
+        selection.AppendItem(model, self._batch_index(model, 0, 0))
+
+        self.assertLoggedSequenceEqual("registered scenes", [1], selection.scene_numbers)
+        self.assertLoggedEqual("parent scene is not selected", 0, len(selection.selected_scenes))
+        self.assertLoggedSequenceEqual("registered batches", [(1, 1)], selection.batch_numbers)
+        self.assertLoggedSequenceEqual("lines in selection", [1, 2, 3], selection.line_numbers)
+        self.assertLoggedSequenceEqual(
+            "effective lines",
+            [1, 2, 3],
+            sorted(line.number for line in selection.effective_lines),
+        )
+
+    def test_append_scene_includes_all_its_batches(self) -> None:
+        model = self._create_scenes_model([[3, 2], [2]])
+
+        selection = ProjectSelection()
+        selection.AppendItem(model, self._scene_index(model, 0))
+
+        self.assertLoggedEqual("scene is selected", 1, len(selection.selected_scenes))
+        self.assertLoggedSequenceEqual("registered batches", [(1, 1), (1, 2)], selection.batch_numbers)
+        self.assertLoggedEqual("batches are implicit members", 0, len(selection.selected_batches))
+        self.assertLoggedSequenceEqual(
+            "effective lines",
+            [1, 2, 3, 4, 5],
+            sorted(line.number for line in selection.effective_lines),
+        )
+
+    def test_append_batch_then_parent_scene_selects_whole_scene(self) -> None:
+        model = self._create_scenes_model([[3, 2], [2]])
+
+        selection = ProjectSelection()
+        selection.AppendItem(model, self._batch_index(model, 0, 1))
+        selection.AppendItem(model, self._scene_index(model, 0))
+
+        self.assertLoggedEqual("scene is selected", 1, len(selection.selected_scenes))
+        self.assertLoggedSequenceEqual(
+            "explicitly selected batch keeps its flag",
+            [(1, 2)],
+            [batch.key for batch in selection.selected_batches],
+        )
+        self.assertLoggedSequenceEqual(
+            "effective lines",
+            [1, 2, 3, 4, 5],
+            sorted(line.number for line in selection.effective_lines),
+        )
+
+    def test_append_batches_from_different_scenes(self) -> None:
+        model = self._create_scenes_model([[3, 2], [2, 2]])
+
+        selection = ProjectSelection()
+        selection.AppendItem(model, self._batch_index(model, 0, 1))
+        selection.AppendItem(model, self._batch_index(model, 1, 0))
+
+        self.assertLoggedSequenceEqual("registered scenes", [1, 2], selection.scene_numbers)
+        self.assertLoggedSequenceEqual("registered batches", [(1, 2), (2, 1)], selection.batch_numbers)
+        self.assertLoggedSequenceEqual(
+            "effective lines",
+            [4, 5, 6, 7],
+            sorted(line.number for line in selection.effective_lines),
+        )
+
+    def test_selected_lines_do_not_replace_selected_parent_scene(self) -> None:
+        model = self._create_scenes_model([[3, 2]])
+
+        selection = ProjectSelection()
+        selection.AppendItem(model, self._scene_index(model, 0))
+        selection.AddSelectedLines([SelectionLine(1, 1, 2, True, translated=False)])
+
+        self.assertLoggedEqual("scene remains selected", 1, len(selection.selected_scenes))
+        self.assertLoggedSequenceEqual(
+            "explicit line selection takes precedence",
+            [2],
+            [line.number for line in selection.effective_lines],
         )
