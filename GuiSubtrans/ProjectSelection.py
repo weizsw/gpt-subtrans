@@ -73,14 +73,8 @@ class ProjectSelection():
     Scenes, batches and lines selected in the project view.
 
     Entries flagged as selected were chosen by the user.
-    Unselected entries are implicit members of the selection:
-    - lines and batches contained by a selected scene or batch
-    - parent scenes and batches of explicitly selected items, registered without their other children
-
-    Consequently every line in self.lines belongs to the selection, either explicitly or implicitly.
-
-    Anything that depends on the project structure (e.g. batch boundaries) is captured when items are added.
-    The selection never refers back to the view model afterwards.
+    Unselected entries are the contents of a selected scene or batch, or the parents of a selected item.
+    Structural details such as batch boundaries are captured when items are added.
     """
     def __init__(self) -> None:
         self.scenes  : dict[SelectionScene.Key, SelectionScene] = {}
@@ -114,17 +108,14 @@ class ProjectSelection():
     @property
     def effective_lines(self) -> list[SelectionLine]:
         """
-        Lines to act on.
-        Explicitly selected lines take precedence if any rows were individually selected.
-        Otherwise every line belonging to a selected scene or batch.
+        Selected lines if there are any, otherwise all lines in the selected scenes and batches.
         """
         return self.selected_lines or list(self.lines.values())
 
     @property
     def effective_batch_numbers(self) -> list[SelectionBatch.Key]:
         """
-        Batches covered by the scene/batch selection.
-        Explicitly selected batches plus every batch of an explicitly selected scene.
+        Selected batches plus all batches in selected scenes.
         """
         selected_scene_numbers = { scene.number for scene in self.selected_scenes }
         return sorted(
@@ -261,8 +252,7 @@ class ProjectSelection():
                 batch = SelectionBatch((item.scene, item.number), selected=selected, translated=item.translated)
                 self.batches[key] = batch
 
-                # Register the parent scene without walking its other batches,
-                # so that sibling lines do not leak into the selection.
+                # Register the parent scene only, not its other batches
                 if item.scene not in self.scenes:
                     self.scenes[item.scene] = SelectionScene(item.scene, False)
 
@@ -279,8 +269,7 @@ class ProjectSelection():
 
     def AddLineItems(self, line_items : list[LineItem]):
         """
-        Add line items selected in the subtitle view to the selection.
-        Batch boundaries are resolved from the view model here, so later queries do not depend on it.
+        Add line items selected in the subtitle view
         """
         selected_lines = []
         for line_item in line_items:
