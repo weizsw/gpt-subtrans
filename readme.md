@@ -541,7 +541,7 @@ python scripts/batch_translate.py ./subtitles ./translated --provider openai --m
 python scripts/batch_translate.py ./subtitles ./translated --provider openai --output-format srt
 
 # Use additional options
-python scripts/batch_translate.py ./subtitles ./translated --provider openai --option max_batch_size=40 --option preprocess_subtitles=false
+python scripts/batch_translate.py ./subtitles ./translated --provider openai --option max_batch_size=150 --option postprocess_subtitles=true
 ```
 
 ### Developers

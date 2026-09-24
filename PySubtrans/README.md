@@ -362,7 +362,7 @@ The parameters are:
 from PySubtrans import batch_subtitles, init_subtitles
 
 subtitles = init_subtitles("movie.srt", auto_batch=False)
-batch_subtitles(subtitles, scene_threshold=90.0, min_batch_size=2, max_batch_size=40)
+batch_subtitles(subtitles, scene_threshold=90.0, min_batch_size=2, max_batch_size=100)
 
 print(f"Created {subtitles.scenecount} scenes")
 ```
@@ -406,7 +406,7 @@ lines = [
 ]
 
 subtitles = Subtitles()
-batcher = SubtitleBatcher({"scene_threshold" : 30, "max_batch_size" : 50})
+batcher = SubtitleBatcher({"scene_threshold" : 30, "max_batch_size" : 150})
 subtitles.scenes = batcher.BatchSubtitles(lines)
 ```
 
@@ -472,7 +472,7 @@ json_data = {
 }
 
 # Build subtitles programmatically
-builder = SubtitleBuilder(max_batch_size=5)
+builder = SubtitleBuilder(max_batch_size=100)
 
 for scene_data in json_data["scenes"]:
     builder.AddScene(summary=scene_data["summary"])

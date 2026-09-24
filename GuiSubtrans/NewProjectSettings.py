@@ -32,7 +32,7 @@ class NewProjectSettings(QDialog):
         'model': (str, _("AI model to use as the translator")),
         'scene_threshold': (float, _("Number of seconds gap to consider it a new scene")),
         'min_batch_size': (int, _("Fewest lines to send in separate batch")),
-        'max_batch_size': (int, _("Most lines to send in each batch")),
+        'max_batch_size': (int, _("Most lines to send in each batch (modern LLMs can easily handle 100+ lines)")),
         'preprocess_subtitles': (bool, _("Preprocess subtitles before batching")),
         'build_terminology_map': (bool, _("Build a terminology map during translation to keep terminology consistent")),
         'instruction_file': (str, _("Detailed instructions for the translator")),
