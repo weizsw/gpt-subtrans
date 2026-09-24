@@ -303,7 +303,10 @@ class ProjectSelection():
 
     def __str__(self):
         if self.selected_lines:
-            return f"{self.str_lines} in {self.str_batches}"
+            return f"{self.str_lines} selected in {self.str_batches}"
+        elif self.selected_scenes and self.selected_batches:
+            selected_batches = self._count(len(self.selected_batches), "batch", "batches")
+            return f"{self.str_scenes} and {selected_batches} with {self.str_lines}"
         elif self.selected_scenes:
             return f"{self.str_scenes} with {self.str_lines} in {self.str_batches}"
         elif self.selected_batches:
@@ -328,12 +331,7 @@ class ProjectSelection():
 
     @property
     def str_lines(self):
-        if self.selected_lines:
-            return f"{len(self.selected_lines)} lines selected"
-        elif self.lines:
-            return self._count(len(self.lines), "line", "lines")
-        else:
-            return "nothing selected"
+        return self._count(len(self.effective_lines), "line", "lines")
 
     def _count(self, num, singular, plural):
         if num == 0:
