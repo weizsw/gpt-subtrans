@@ -5,6 +5,7 @@ from collections import Counter
 from dataclasses import dataclass, replace
 from datetime import timedelta
 from difflib import SequenceMatcher
+from enum import Enum
 
 import regex
 
@@ -66,6 +67,23 @@ MIN_WORD_CAP_SECONDS = 1.0
 UNRELIABLE_WORD_MULTIPLE = 8.0
 MIN_UNRELIABLE_WORD_SECONDS = 2.0
 
+# A spoken word lasting under this fraction of its estimate has been squeezed by the aligner, and is not used for timing
+SQUEEZED_WORD_FRACTION = 0.1
+
+# A part whose matched words spell at least this share of its text is timed by them alone
+WELL_COVERED_FRACTION = 0.8
+
+
+class WordCoverage(Enum):
+    """
+    How much of its transcript a provider's words can be relied on to spell.
+
+    COMPLETE words miss at most the odd character, so they time a part by themselves.
+    PARTIAL words can miss whole stretches, so a part is given room for the text they missed.
+    """
+    COMPLETE = 'complete'
+    PARTIAL = 'partial'
+
 
 def SpanLabel(span : AudioChunk|TranscriptionSegment) -> str:
     """Human-readable start-end label for a chunk or segment, in seconds."""
@@ -100,17 +118,21 @@ def CutText(text : str, lengths : list[int]) -> list[str]:
     return pieces
 
 
+def NominalSecondsPerChar(text : str) -> float:
+    """The normal time to say one spoken character of the text, from its script."""
+    syllabic = len(SYLLABIC_CHAR.findall(text))
+    other = sum(1 for char in text if char.isalnum()) - syllabic
+    if syllabic + other == 0:
+        return SYLLABIC_SECONDS_PER_CHAR
+
+    return (syllabic * SYLLABIC_SECONDS_PER_CHAR + other * OTHER_SECONDS_PER_CHAR) / (syllabic + other)
+
+
 def EstimateSpeechSeconds(text : str) -> float:
     """Roughly how long text takes to say, from its character count and script."""
     syllabic = len(SYLLABIC_CHAR.findall(text))
     other = sum(1 for char in text if char.isalnum()) - syllabic
     return max(MIN_SPEECH_SECONDS, syllabic * SYLLABIC_SECONDS_PER_CHAR + other * OTHER_SECONDS_PER_CHAR)
-
-
-def EndsSentence(text : str) -> bool:
-    """Whether text ends with sentence punctuation, ignoring closing quotes and brackets."""
-    text = CLOSING_CHARS.sub('', text)
-    return bool(text) and text[-1] in SENTENCE_END_CHARS
 
 
 def SentenceRanges(text : str) -> list[tuple[int, int]]:
@@ -205,7 +227,7 @@ class TranscriptionLineBuilder:
                  min_line_seconds : float = 0.8, merge_eligible_gap : float = DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
                  same_speaker_merge_eligible_gap : float = DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS,
                  max_newlines : int = 2, can_merge_different_speakers : bool = True,
-                 min_gap : float = DEFAULT_MIN_GAP_SECONDS):
+                 min_gap : float = DEFAULT_MIN_GAP_SECONDS, word_coverage : WordCoverage = WordCoverage.COMPLETE):
         self.max_line_chars : int = max_line_chars
         self.max_line_seconds : float = max_line_seconds
         self.min_split_chars : int = min_split_chars
@@ -215,6 +237,7 @@ class TranscriptionLineBuilder:
         self.max_newlines : int = max_newlines
         self.can_merge_different_speakers : bool = can_merge_different_speakers
         self.min_gap : float = min_gap
+        self.word_coverage : WordCoverage = word_coverage
 
     def LinesForSegment(self, segment : TranscriptionSegment) -> list[TranscriptionSegment]:
         """
@@ -369,6 +392,7 @@ class TranscriptionLineBuilder:
         Parts no word can be matched to are placed between their neighbours by their share of characters.
         """
         text = segment.text.strip()
+        words = [word for word in words if not self._is_squeezed(word)]
         aligned = AlignWords(text, self._extend_to_punctuation(words))
 
         if any(char in SENTENCE_END_CHARS for char in text):
@@ -385,9 +409,64 @@ class TranscriptionLineBuilder:
                 SpanLabel(segment)))
 
         self._time_parts(parts, assigned, segment.end - segment.start)
+        if self.word_coverage == WordCoverage.PARTIAL:
+            self._fill_sparse_parts(parts, self._character_counts(text, ranges, aligned), segment.end - segment.start)
 
         kept = [index for index, part in enumerate(parts) if part.text]
         return self._fit_parts(segment, [parts[index] for index in kept], [assigned[index] for index in kept])
+
+    @staticmethod
+    def _is_squeezed(word : WordTiming) -> bool:
+        """Whether a spoken word is far too brief for its text, as when an aligner crams a run of words together."""
+        if PUNCTUATION_ONLY.match(word.text):
+            return False
+
+        return (word.end - word.start).total_seconds() < SQUEEZED_WORD_FRACTION * EstimateSpeechSeconds(word.text)
+
+    @staticmethod
+    def _character_counts(text : str, ranges : list[tuple[int, int]], aligned : list[AlignedWord]) -> list[tuple[int, int, int]]:
+        """
+        Count the spoken characters in each range: all of them, those its matched words spell,
+        and those before its first matched word.
+        """
+        counts : list[tuple[int, int, int]] = []
+        for start, end in ranges:
+            members = [word for word in aligned if start <= word.start < end]
+            spoken = sum(1 for char in text[start:end] if SPOKEN_CHAR.match(char))
+            matched = min(spoken, sum(1 for word in members for char in word.word.text if SPOKEN_CHAR.match(char)))
+            leading = sum(1 for char in text[start:members[0].start] if SPOKEN_CHAR.match(char)) if members else 0
+            counts.append((spoken, matched, leading))
+
+        return counts
+
+    def _fill_sparse_parts(self, parts : list[TranscriptionSegment], counts : list[tuple[int, int, int]], duration : timedelta) -> None:
+        """
+        Make room for the text a part's words missed, at the pace its matched words were spoken.
+
+        A part is timed by its matched words, so where they spell little of its text the part is too short.
+        Unmatched text before the first matched word starts the part earlier, and the part is extended
+        to hold all its text, never overlapping its neighbours.
+        The pace is never slower than a normal speaking rate, so a pause inside the words does not stretch the part.
+        Parts the words spell well keep their words' timing.
+        """
+        min_gap = timedelta(seconds=self.min_gap)
+        for index, (part, (spoken, matched, leading)) in enumerate(zip(parts, counts)):
+            if not matched or matched >= WELL_COVERED_FRACTION * spoken:
+                continue
+
+            nominal = NominalSecondsPerChar(part.text)
+            span = (part.end - part.start).total_seconds()
+            pace = min(span / matched, nominal) if span > 0.0 else nominal
+
+            earliest = parts[index - 1].end + min_gap if index > 0 else timedelta(0)
+            start = max(part.start - timedelta(seconds=leading * pace), earliest)
+            if start < part.start:
+                part.start = start
+
+            latest = parts[index + 1].start - min_gap if index + 1 < len(parts) else duration
+            end = min(part.start + timedelta(seconds=spoken * pace), latest)
+            if end > part.end:
+                part.end = end
 
     @staticmethod
     def _extend_to_punctuation(words : list[WordTiming]) -> list[WordTiming]:

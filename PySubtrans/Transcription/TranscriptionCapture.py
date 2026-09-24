@@ -102,6 +102,15 @@ def DeserializeSegment(data : dict[str, Any]) -> TranscriptionSegment:
         parts=[DeserializeSegment(part) for part in data.get('parts', [])])
 
 
+def LoadCaptureProvider(path : str) -> str|None:
+    """The name of the provider a capture was taken from, if it was recorded."""
+    with open(path, 'r', encoding='utf-8') as file:
+        document = json.load(file)
+
+    provider = document.get('provider')
+    return str(provider) if provider else None
+
+
 def LoadCapture(path : str) -> list[TranscriptionSegment]:
     """Read a captured transcription back as provider segments."""
     with open(path, 'r', encoding='utf-8') as file:

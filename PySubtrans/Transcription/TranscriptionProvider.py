@@ -13,6 +13,7 @@ from PySubtrans.Options import Options
 from PySubtrans.SettingsType import GuiSettingsType, SettingsType
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
+from PySubtrans.Transcription.TranscriptionLines import WordCoverage
 
 
 class OptionsScope(str, Enum):
@@ -32,6 +33,9 @@ class TranscriptionProvider:
     """
     # Optional no-key walkthrough; keyed providers define information_noapikey
     information_noapikey : str|None = None
+
+    # How much of the transcript the provider's word timings spell, which decides how lines are timed from them
+    word_coverage : WordCoverage = WordCoverage.COMPLETE
 
     def __init__(self, name : str, settings : SettingsType):
         self.name : str = name

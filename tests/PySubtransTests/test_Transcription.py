@@ -25,7 +25,7 @@ from PySubtrans.Transcription.WordTiming import WordTiming
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionCoordinator import TranscriptionCoordinator, TranscriptionStatus
 from PySubtrans.Transcription.TranscriptionLines import (MIN_WORD_CAP_SECONDS, WORD_CAP_MULTIPLE, EstimateSpeechSeconds,
-                                                         TranscriptionLineBuilder)
+                                                         TranscriptionLineBuilder, WordCoverage)
 from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionOutcome
 from PySubtrans.Transcription.TranscriptionProvider import OptionsScope, TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionResult, TranscriptionSegment
@@ -1086,6 +1086,65 @@ class TestDerivedParts(LoggedTestCase):
         self.assertLoggedLessEqual("first lasts about its speaking time", (lines[0].end - lines[0].start).total_seconds(), 1.0)
         self.assertLoggedEqual("second timed by its words", timedelta(seconds=130), lines[1].start)
 
+    def test_squeezed_words_do_not_time_their_part(self):
+        """Words crammed into far less time than their text takes are ignored, like runaway words."""
+        squeezed = [_word(char, 10.0 + 0.01 * index, 10.0 + 0.01 * (index + 1)) for index, char in enumerate("你好朋友")]
+        words = squeezed + _uniform_words(["我", "们", "走", "吧"], 0.2, start=20.0)
+        lines = self._lines("你好朋友。我们走吧。", words)
+
+        self.assertLoggedEqual("placed between its neighbours, not at the squeezed words", timedelta(seconds=100), lines[0].start)
+        self.assertLoggedEqual("lasts its speaking time", timedelta(seconds=100 + EstimateSpeechSeconds("你好朋友。")), lines[0].end)
+
+    @staticmethod
+    def _partial(**settings) -> TranscriptionLineBuilder:
+        """A builder for words that can miss stretches of the transcript, with no minimum line length to mask the timing."""
+        return TranscriptionLineBuilder(max_line_chars=120, max_line_seconds=4.0, min_line_seconds=0.1,
+                                        word_coverage=WordCoverage.PARTIAL, **settings)
+
+    def test_part_is_extended_to_hold_its_unmatched_text(self):
+        """With partial word coverage, a part is extended to hold all its text, at the pace of its words."""
+        words = [_word("对", 0.0, 0.1), _word("住", 0.1, 0.2)]
+        lines = self._lines("对唔住对唔住，西伯。", words, self._partial())
+
+        self.assertLoggedEqual("eight characters at 0.1s each", timedelta(seconds=100.8), lines[0].end)
+
+    def test_complete_coverage_keeps_its_words_timing(self):
+        """With complete word coverage, a part keeps the span of its words, however little of its text they spell."""
+        words = [_word("对", 0.0, 0.1), _word("住", 0.1, 0.2)]
+        builder = TranscriptionLineBuilder(max_line_chars=120, max_line_seconds=4.0, min_line_seconds=0.1)
+        lines = self._lines("对唔住对唔住，西伯。", words, builder)
+
+        self.assertLoggedEqual("words' own end", timedelta(seconds=100.2), lines[0].end)
+
+    def test_slow_words_do_not_stretch_the_part(self):
+        """Words spoken with a pause between them set a pace no slower than normal speech."""
+        words = [_word("对", 0.0, 0.2), _word("住", 2.0, 2.2)]
+        lines = self._lines("对唔住对唔住，西伯。", words, self._partial())
+
+        self.assertLoggedEqual("words' own end, already longer than the text needs", timedelta(seconds=102.2), lines[0].end)
+
+    def test_well_covered_part_keeps_its_words_timing(self):
+        """A part its words spell almost entirely is not extended, however briefly they were spoken."""
+        words = _uniform_words(list("对唔住对唔住"), seconds_each=0.1) + _uniform_words(["我", "们"], 0.2, start=5.0)
+        lines = self._lines("对唔住对唔住。我们。", words, self._partial())
+
+        self.assertLoggedEqual("words' own end", timedelta(seconds=100.6), lines[0].end)
+
+    def test_leading_text_moves_the_start_earlier(self):
+        """With partial word coverage, text before a part's first matched word starts it earlier, at the pace of its words."""
+        words = [_word("西", 10.0, 10.1), _word("伯", 10.1, 10.2)]
+        lines = self._lines("喂，同我冇关噶喎西伯。", words, self._partial())
+
+        self.assertLoggedEqual("seven characters earlier at 0.1s each", timedelta(seconds=109.3), lines[0].start)
+
+    def test_leading_text_stops_short_of_the_part_before(self):
+        """A part moved earlier never starts before the previous part has ended."""
+        words = [_word("你", 0.0, 0.3), _word("好", 0.3, 0.6), _word("西", 1.5, 1.7), _word("伯", 1.7, 1.9)]
+        lines = self._lines("你好。喂，同我冇关噶喎西伯。", words, self._partial(can_merge_different_speakers=False))
+
+        self.assertLoggedEqual("line count", 2, len(lines))
+        self.assertLoggedLessEqual("no overlap", lines[0].end, lines[1].start)
+
     def test_unrelated_words_are_not_used(self):
         """Words that match nothing in the transcript leave it to be placed by length."""
         words = [_word("别的", 1.0, 1.8), _word("东西", 1.8, 2.5)]
@@ -1111,6 +1170,14 @@ class TestLineBuilderWiring(LoggedTestCase):
         self.assertLoggedEqual("max seconds", 5.5, coordinator.line_builder.max_line_seconds)
         self.assertLoggedEqual("min split chars", 6, coordinator.line_builder.min_split_chars)
         self.assertLoggedEqual("min gap", 0.1, coordinator.line_builder.min_gap)
+
+    def test_builder_takes_the_provider_word_coverage(self):
+        """A provider whose words can miss stretches of the transcript configures the builder for it."""
+        provider = FakeTranscriptionProvider()
+        provider.word_coverage = WordCoverage.PARTIAL
+        coordinator = TranscriptionCoordinator(provider)
+
+        self.assertLoggedEqual("word coverage", WordCoverage.PARTIAL, coordinator.line_builder.word_coverage)
 
     def test_builder_defaults(self):
         """Missing settings fall back to the documented defaults."""

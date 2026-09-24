@@ -10,7 +10,7 @@ from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.Torch.Runtime import TorchConfigOption
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionLines import (DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
-                                                         DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS)
+                                                         DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS, WordCoverage)
 from PySubtrans.Transcription.TranscriptionProvider import OptionsScope, TranscriptionProvider
 
 _QWEN_CHECKPOINTS : list[str] = [
@@ -43,6 +43,9 @@ try:
         """)
 
         aligner_models = [_ALIGNER_CHECKPOINT]
+
+        # The forced aligner drops stretches of the transcript and crams others into a moment
+        word_coverage = WordCoverage.PARTIAL
 
         @property
         def recommended_min_chunk_seconds(self) -> float:

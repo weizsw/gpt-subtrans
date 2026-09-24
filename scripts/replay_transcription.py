@@ -31,8 +31,9 @@ from PySubtrans.Options import Options
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleProcessor import SubtitleProcessor
 from PySubtrans.Subtitles import Subtitles
-from PySubtrans.Transcription.TranscriptionCapture import LoadCapture
-from PySubtrans.Transcription.TranscriptionLines import TranscriptionLineBuilder
+from PySubtrans.Transcription.TranscriptionCapture import LoadCapture, LoadCaptureProvider
+from PySubtrans.Transcription.TranscriptionLines import TranscriptionLineBuilder, WordCoverage
+from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionRun import TranscriptionRun
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionSegment
 
@@ -57,6 +58,14 @@ def BuildLines(segments : list[TranscriptionSegment], **overrides) -> list[Trans
         lines.extend(builder.LinesForSegment(segment))
 
     return lines
+
+
+def ProviderWordCoverage(capture : str) -> WordCoverage:
+    """The word coverage of the provider a capture came from, as a transcription run would use it."""
+    name = LoadCaptureProvider(capture)
+    providers = {key.casefold(): provider for key, provider in TranscriptionProvider.get_providers().items()}
+    provider = providers.get(name.casefold()) if name else None
+    return provider.word_coverage if provider is not None else WordCoverage.COMPLETE
 
 
 def SaveLines(lines : list[TranscriptionSegment], path : str, postprocess : bool) -> int:
@@ -115,13 +124,13 @@ def Describe(segments : list[TranscriptionSegment]) -> None:
     print(f"{backwards} words start before their predecessor, in {affected} chunks")
 
     # How much of each chunk transcript the word stream reproduces
-    ratios = [WordCoverage(segment) for segment in segments if segment.words and segment.text]
+    ratios = [WordSimilarity(segment) for segment in segments if segment.words and segment.text]
     if ratios:
         print(f"word/transcript similarity: min {min(ratios):.2f}, "
               f"median {statistics.median(ratios):.2f}, max {max(ratios):.2f}")
 
 
-def WordCoverage(segment : TranscriptionSegment) -> float:
+def WordSimilarity(segment : TranscriptionSegment) -> float:
     """Similarity between the joined word stream and the chunk transcript, ignoring whitespace."""
     words = ''.join(''.join(word.text.split()) for word in segment.words)
     text = ''.join(segment.text.split())
@@ -195,6 +204,8 @@ def main() -> int:
     parser.add_argument('--merge-eligible-gap', type=float, help="Widest gap that can be merged across")
     parser.add_argument('--same-speaker-gap', type=float, help="As above, for one speaker continuing")
     parser.add_argument('--no-merge-speakers', action='store_true', help="Keep separate speakers on separate lines")
+    parser.add_argument('--word-coverage', choices=[coverage.value for coverage in WordCoverage],
+                        help="How much of the transcript the words spell (default: the capture provider's)")
     parser.add_argument('--source', choices=('auto', 'parts', 'words'), default='auto',
                         help="Build lines from parts or words (default: whatever the builder prefers)")
     parser.add_argument('--quiet', action='store_true', help="Print only the summary")
@@ -218,6 +229,7 @@ def main() -> int:
         'merge_eligible_gap': args.merge_eligible_gap,
         'same_speaker_merge_eligible_gap': args.same_speaker_gap,
         'can_merge_different_speakers': False if args.no_merge_speakers else None,
+        'word_coverage': WordCoverage(args.word_coverage) if args.word_coverage else ProviderWordCoverage(args.capture),
     }
 
     if args.compare:

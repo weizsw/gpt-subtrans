@@ -65,7 +65,8 @@ class TranscriptionCoordinator:
                 or DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS,
             max_newlines=self.settings.get_int('max_newlines') or 2,
             can_merge_different_speakers=line_settings.get_bool('can_merge_different_speakers', True),
-            min_gap=min_gap if min_gap is not None else DEFAULT_MIN_GAP_SECONDS)
+            min_gap=min_gap if min_gap is not None else DEFAULT_MIN_GAP_SECONDS,
+            word_coverage=provider.word_coverage)
 
         self.events : TranscriptionEvents = TranscriptionEvents()
         self._active_client : TranscriptionClient|None = None
