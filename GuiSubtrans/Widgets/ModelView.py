@@ -114,9 +114,9 @@ class ModelView(QWidget):
         for index in selected_indexes:
             selection.AppendItem(model, index)
 
-        selected_lines = self.content_view.GetSelectedLines()
-        if selected_lines:
-            selection.AddSelectedLines(selected_lines)
+        selected_line_items = self.content_view.GetSelectedLineItems()
+        if selected_line_items:
+            selection.AddLineItems(selected_line_items)
 
         return selection
 

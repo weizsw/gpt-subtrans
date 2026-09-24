@@ -242,7 +242,7 @@ class ProjectViewModel(QStandardItemModel):
                         line_item.line_model['scene'] = scene_item.number
                         line_item.line_model['batch'] = batch_item.number
 
-                batch_item.lines = { item.number: item for item in line_items }
+                batch_item.ResetLineItems(line_items)
 
     #############################################################################
 
@@ -508,14 +508,8 @@ class ProjectViewModel(QStandardItemModel):
         if not scene_item:
             raise ViewModelError(f"Scene {scene_number} not found")
         batch_item : BatchItem = scene_item.batches[batch_number]
-        if line_number not in batch_item.lines.keys():
+        if not batch_item.RemoveLineItem(line_number):
             raise ViewModelError(f"Line {line_number} not found in {scene_number} batch {batch_number}")
-
-        line_item = batch_item.lines[line_number]
-        line_index = self.indexFromItem(line_item)
-        batch_item.removeRow(line_index.row())
-
-        del batch_item.lines[line_number]
 
         batch_item.emitDataChanged()
 
@@ -530,14 +524,7 @@ class ProjectViewModel(QStandardItemModel):
         if not batch_item:
             raise ViewModelError(f"Batch {batch_number} not found in scene {scene_number}")
         for line_number in reversed(line_numbers):
-            if line_number in batch_item.lines.keys():
-                line_item = batch_item.lines[line_number]
-                line_index = self.indexFromItem(line_item)
-                batch_item.removeRow(line_index.row())
-
-                del batch_item.lines[line_number]
-
-            else:
+            if not batch_item.RemoveLineItem(line_number):
                 unfound_lines.append(line_number)
 
         if unfound_lines:

@@ -250,27 +250,28 @@ class ProjectActions(QObject):
         if not self.datamodel:
             raise ActionError(_("No datamodel provided"))
 
-        multithreaded = len(selection.scenes) > 1 and self.datamodel.allow_multithreaded_translation
+        scenes : dict[int, dict] = {}
 
-        scenes = { scene.number : {} for scene in selection.selected_scenes }
+        if selection.selected_lines:
+            # Lines picked in the subtitle view take precedence over the scene/batch selection
+            for line in selection.selected_lines:
+                scene = scenes.setdefault(line.scene, { 'batches' : [], 'lines' : [] })
+                if line.batch not in scene['batches']:
+                    scene['batches'].append(line.batch)
+                scene['lines'].append(line.number)
+        else:
+            # The scenes view deselects a scene's batches when the scene is selected, and vice versa
+            for scene in selection.selected_scenes:
+                scenes[scene.number] = {}
 
-        for scene in selection.scenes.values():
-            line_numbers = [ line.number for line in selection.selected_lines if line.scene == scene.number ]
-
-            if line_numbers:
-                # Extract unique batch numbers from the selected lines
-                batch_numbers = list(set([ line.batch for line in selection.selected_lines if line.scene == scene.number ]))
-            else:
-                batch_numbers = [ batch.number for batch in selection.batches.values() if batch.selected and batch.scene == scene.number ]
-
-            if batch_numbers:
-                scenes[scene.number] = {
-                    'batches' : batch_numbers,
-                    'lines' : line_numbers,
-                }
+            for batch in selection.selected_batches:
+                scene = scenes.setdefault(batch.scene, { 'batches' : [] })
+                scene['batches'].append(batch.number)
 
         if not scenes:
             raise ActionError(_("No scenes selected for translation"))
+
+        multithreaded = len(scenes) > 1 and self.datamodel.allow_multithreaded_translation
 
         command = StartTranslationCommand(self.datamodel, multithreaded=multithreaded, resume=False, scenes = scenes)
 

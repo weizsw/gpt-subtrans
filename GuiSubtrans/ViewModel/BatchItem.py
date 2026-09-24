@@ -181,6 +181,25 @@ class BatchItem(ViewModelItem):
         self._invalidate_first_and_last()
         self.setData(self.batch_model, Qt.ItemDataRole.UserRole)
 
+    def RemoveLineItem(self, line_number : int) -> bool:
+        """
+        Remove a line item from the batch, returning False if it was not found
+        """
+        line_item = self.lines.pop(line_number, None)
+        if line_item is None:
+            return False
+
+        self.removeRow(line_item.row())
+        self._invalidate_first_and_last()
+        return True
+
+    def ResetLineItems(self, line_items : list[LineItem]):
+        """
+        Rebuild the line lookup after the child rows have been rearranged
+        """
+        self.lines = { item.number: item for item in line_items }
+        self._invalidate_first_and_last()
+
     def AddTranslation(self, line_number : int, translation_text : str|None):
         """
         Add a translation to the line item

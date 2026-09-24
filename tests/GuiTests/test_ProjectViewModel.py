@@ -141,6 +141,22 @@ class ProjectViewModelTests(GuiSubtitleTestCase):
         # Verify modelReset was emitted for structural change (removing a line)
         viewmodel.assert_signal_emitted('modelReset', expected_count=1)
 
+    def test_remove_lines_updates_batch_bounds(self):
+        viewmodel : TestableViewModel = self.create_testable_viewmodel_from_line_counts([[4]])
+        batch_item = viewmodel.model[1].batches[1]
+
+        # Read the bounds first so that they are cached
+        self.assertLoggedEqual("initial first line", 1, batch_item.first_line_number)
+        self.assertLoggedEqual("initial last line", 4, batch_item.last_line_number)
+
+        update = ModelUpdate()
+        update.lines.remove((1, 1, 1))
+        update.lines.remove((1, 1, 4))
+        update.ApplyToViewModel(viewmodel)
+
+        self.assertLoggedEqual("first line after removal", 2, batch_item.first_line_number)
+        self.assertLoggedEqual("last line after removal", 3, batch_item.last_line_number)
+
     def test_add_new_batch(self):
         base_counts = [[2, 2], [1, 1]]
         subtitles = self.create_test_subtitles(base_counts)
