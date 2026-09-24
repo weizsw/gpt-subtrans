@@ -281,17 +281,19 @@ class TestGeminiParsing(LoggedTestCase):
             annotation("就", "spk:0", "0.500s", "0.600s"),
             annotation("师", "spk:1", "2.600s", "2.700s"),
             annotation("x", "spk:1", "3s", "3s"),
+            annotation("backwards", "spk:1", "3.5s", "3.4s"),
             annotation("y", None, "4s", "5s"),
             type("Other", (), {'type': 'text', 'text': 'ignored'})(),
         ]
         words = _parse_word_annotations(annotations)
 
-        self.assertLoggedEqual("word count", 3, len(words))
+        self.assertLoggedEqual("word count, keeping the zero-length word", 4, len(words))
+        self.assertLoggedEqual("zero-length word", "x", words[2].text)
         self.assertLoggedEqual("first speaker", "spk:0", words[0].speaker)
         self.assertLoggedEqual("second speaker", "spk:1", words[1].speaker)
         self.assertLoggedEqual("first start", timedelta(seconds=0.5), words[0].start)
-        self.assertLoggedEqual("bare seconds", timedelta(seconds=4.0), words[2].start)
-        self.assertLoggedEqual("unlabelled speaker", None, words[2].speaker)
+        self.assertLoggedEqual("bare seconds", timedelta(seconds=4.0), words[3].start)
+        self.assertLoggedEqual("unlabelled speaker", None, words[3].speaker)
 
     def test_offset_parsing(self):
         """Offset strings convert robustly, garbage drops out."""

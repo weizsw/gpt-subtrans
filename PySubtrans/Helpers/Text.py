@@ -116,13 +116,16 @@ def Linearise(lines : str|list[str]) -> str:
     lines = [ str(line).strip() for line in lines ]
     return " | ".join(lines)
 
+# Spanish opening marks, which Unicode classes as other punctuation rather than opening punctuation
+INVERTED_OPENING_MARKS = '¿¡'
+
 def NeedsSpace(previous : str, current : str) -> bool:
     """
     Whether a space is needed between two adjacent word tokens.
 
     Handles Latin scripts (space between words), CJK (no space between
     ideographs), and punctuation (no space before closing marks or after
-    opening ones). Straight quotes use parity to distinguish open/close.
+    opening ones, including Spanish ¿ and ¡). Straight quotes use parity to distinguish open/close.
 
     Examples: ['Hello', 'world'] -> 'Hello world'
               ['你好', '世界']   -> '你好世界'
@@ -142,10 +145,10 @@ def NeedsSpace(previous : str, current : str) -> bool:
     if first == '"':
         if previous.count('"') % 2:
             return False
-    elif first_category.startswith('P') and first_category not in ('Ps', 'Pi'):
+    elif first_category.startswith('P') and first_category not in ('Ps', 'Pi') and first not in INVERTED_OPENING_MARKS:
         return False
 
-    if last in "'-\u2019" or last_category in ('Ps', 'Pi'):
+    if last in "'-\u2019" or last_category in ('Ps', 'Pi') or last in INVERTED_OPENING_MARKS:
         return False
     if last == '"':
         return previous.count('"') % 2 == 0

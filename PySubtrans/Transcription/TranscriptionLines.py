@@ -47,6 +47,9 @@ PUNCTUATION_ONLY = regex.compile(r'^[\p{P}\s]+$')
 # A character that is spoken, and so can be matched between a transcript and its words
 SPOKEN_CHAR = regex.compile(r'[^\p{P}\p{S}\s]')
 
+# Punctuation that opens what follows it, such as Spanish question marks, quotes and brackets
+OPENING_CHAR = regex.compile(r'[\p{Ps}\p{Pi}¿¡]')
+
 # Characters that may close a sentence after its end punctuation, such as quotes and brackets
 CLOSING_CHARS = regex.compile(r'[\p{Pe}\p{Pf}"\'\s]+$')
 
@@ -194,14 +197,15 @@ def CutPoints(text : str, aligned : list[AlignedWord], start : int, end : int) -
     """
     Divide text[start:end] among aligned words, so each word owns a slice holding its matched characters.
 
-    Characters the words missed go to the word before them, up to the last punctuation in the gap.
-    The rest go to the word after, so punctuation stays with the text it closes.
+    Characters the words missed go to the word before them, up to the last closing punctuation in the gap.
+    The rest go to the word after, so punctuation stays with the text it closes, and opening punctuation with the text it opens.
     Returns one more cut than there are words.
     """
     cuts = [start]
     for previous, word in zip(aligned, aligned[1:]):
         gap = text[previous.end:word.start]
-        last_punctuation = max((index for index, char in enumerate(gap) if not SPOKEN_CHAR.match(char) and not char.isspace()),
+        last_punctuation = max((index for index, char in enumerate(gap)
+                                if not SPOKEN_CHAR.match(char) and not char.isspace() and not OPENING_CHAR.match(char)),
                                default=-1)
         cuts.append(previous.end + last_punctuation + 1)
 
@@ -392,7 +396,9 @@ class TranscriptionLineBuilder:
         Parts no word can be matched to are placed between their neighbours by their share of characters.
         """
         text = segment.text.strip()
-        words = [word for word in words if not self._is_squeezed(word)]
+        if self.word_coverage == WordCoverage.PARTIAL:
+            # An aligner that drops text also crams runs of words into a moment
+            words = [word for word in words if not self._is_squeezed(word)]
         aligned = AlignWords(text, self._extend_to_punctuation(words))
 
         if any(char in SENTENCE_END_CHARS for char in text):

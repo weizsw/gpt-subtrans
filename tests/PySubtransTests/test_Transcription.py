@@ -988,6 +988,14 @@ class TestPartsFirst(LoggedTestCase):
 
         self.assertLoggedEqual("line count", 2, len(lines))
 
+    def test_split_keeps_opening_punctuation_with_its_sentence(self):
+        """A part split at its words puts an opening question mark at the start of the next piece."""
+        parts = [_part("¿Te vas ahora? ¿Por qué no te quedas?", 0.0, 8.0)]
+        words = _uniform_words(["Te", "vas", "ahora", "Por", "qué", "no", "te", "quedas"], seconds_each=0.8)
+        lines = self._lines(parts, words)
+
+        self.assertLoggedEqual("texts", ["¿Te vas ahora?", "¿Por qué no te quedas?"], [line.text for line in lines])
+
     def test_words_missing_characters_still_split_the_part(self):
         """Words that drop a character and all punctuation still split a long part, and every character is kept."""
         parts = [_part("你好，朋友。我们走吧！", 0.0, 8.0)]
@@ -1064,6 +1072,14 @@ class TestDerivedParts(LoggedTestCase):
         self.assertLoggedEqual("speakers", ["A", "B"], [line.speaker for line in lines])
         self.assertLoggedEqual("texts", ["你好朋友", "我们走吧。"], [line.text for line in lines])
 
+    def test_opening_punctuation_stays_with_the_text_it_opens(self):
+        """A Spanish question mark opens the next speaker's line rather than closing the previous one."""
+        words = ([_word("Tenemos", 0.0, 0.3, "A"), _word("que", 0.3, 0.5, "A"), _word("hablar", 0.5, 1.0, "A")]
+                 + [_word("Hablar", 2.0, 2.5, "B")])
+        lines = self._lines("Tenemos que hablar. ¿Hablar?", words)
+
+        self.assertLoggedEqual("texts", ["Tenemos que hablar.", "¿Hablar?"], [line.text for line in lines])
+
     def test_long_part_is_split_at_its_words(self):
         """A derived part over the duration limit is split like a provider part."""
         text = "你好朋友我们走吧真的很好。"
@@ -1087,10 +1103,10 @@ class TestDerivedParts(LoggedTestCase):
         self.assertLoggedEqual("second timed by its words", timedelta(seconds=130), lines[1].start)
 
     def test_squeezed_words_do_not_time_their_part(self):
-        """Words crammed into far less time than their text takes are ignored, like runaway words."""
+        """With partial word coverage, words crammed into far less time than their text takes are ignored, like runaway words."""
         squeezed = [_word(char, 10.0 + 0.01 * index, 10.0 + 0.01 * (index + 1)) for index, char in enumerate("你好朋友")]
         words = squeezed + _uniform_words(["我", "们", "走", "吧"], 0.2, start=20.0)
-        lines = self._lines("你好朋友。我们走吧。", words)
+        lines = self._lines("你好朋友。我们走吧。", words, self._partial())
 
         self.assertLoggedEqual("placed between its neighbours, not at the squeezed words", timedelta(seconds=100), lines[0].start)
         self.assertLoggedEqual("lasts its speaking time", timedelta(seconds=100 + EstimateSpeechSeconds("你好朋友。")), lines[0].end)
@@ -1100,6 +1116,13 @@ class TestDerivedParts(LoggedTestCase):
         """A builder for words that can miss stretches of the transcript, with no minimum line length to mask the timing."""
         return TranscriptionLineBuilder(max_line_chars=120, max_line_seconds=4.0, min_line_seconds=0.1,
                                         word_coverage=WordCoverage.PARTIAL, **settings)
+
+    def test_zero_length_words_still_place_their_part(self):
+        """With complete word coverage, a word stamped with no duration still marks where its part was said."""
+        words = [_word("Sí", 10.0, 10.0), _word("No", 12.0, 12.2)]
+        lines = self._lines("Sí. No.", words, TranscriptionLineBuilder(max_line_chars=120, max_line_seconds=4.0))
+
+        self.assertLoggedEqual("placed at its word", timedelta(seconds=110), lines[0].start)
 
     def test_part_is_extended_to_hold_its_unmatched_text(self):
         """With partial word coverage, a part is extended to hold all its text, at the pace of its words."""
