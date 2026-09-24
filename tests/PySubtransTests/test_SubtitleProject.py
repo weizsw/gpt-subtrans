@@ -696,10 +696,14 @@ Modified subtitle line 2
         project.SaveProjectFile(self.test_project_file)
 
         new_project = SubtitleProject()
+        new_project.InitialiseProject(self.test_srt_file)
+        previous_subtitles = new_project.subtitles
+
         with self.assertRaises(SubtitleError) as cm:
             new_project.ReadProjectFile(self.test_project_file)
 
         log_input_expected_error(self.test_project_file, SubtitleError, cm.exception)
+        self.assertLoggedIs("previous subtitles retained", previous_subtitles, new_project.subtitles)
 
 
 if __name__ == '__main__':
