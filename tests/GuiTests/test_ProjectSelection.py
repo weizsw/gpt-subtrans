@@ -212,3 +212,31 @@ class ProjectSelectionTests(GuiSubtitleTestCase):
             [(1, 1), (1, 2), (2, 2)],
             selection.effective_batch_numbers,
         )
+
+    def test_str_describes_each_kind_of_selection(self) -> None:
+        # Scene 1: batch 1 = lines 1-3, batch 2 = lines 4-5. Scene 2: batch 1 = lines 6-7
+        viewmodel = self.create_testable_viewmodel_from_line_counts([[3, 2], [2]])
+        model = ScenesBatchesModel(viewmodel)
+
+        cases : list[tuple[str, list[tuple[int, int|None]], list[int], str]] = [
+            ("nothing", [], [], "Nothing selected"),
+            ("one batch", [(0, 0)], [], "1 batch with 3 lines"),
+            ("batches in different scenes", [(0, 0), (1, 0)], [], "2 batches with 5 lines"),
+            ("one scene", [(0, None)], [], "1 scene with 5 lines in 2 batches"),
+            ("two scenes", [(0, None), (1, None)], [], "2 scenes with 7 lines in 3 batches"),
+            ("scene and batch from another scene", [(0, None), (1, 0)], [], "1 scene and 1 batch with 7 lines"),
+            ("one line", [], [2], "1 line selected in 1 batch"),
+            ("lines across batches", [], [3, 4], "2 lines selected in 2 batches"),
+            ("line within a selected batch", [(0, 0)], [1], "1 line selected in 1 batch"),
+            ("lines within a selected scene", [(0, None)], [1, 4], "2 lines selected in 2 batches"),
+        ]
+
+        for description, tree_items, line_numbers, expected in cases:
+            selection = ProjectSelection()
+            for scene_row, batch_row in tree_items:
+                index = self._scene_index(model, scene_row) if batch_row is None else self._batch_index(model, scene_row, batch_row)
+                selection.AppendItem(model, index)
+
+            selection.AddLineItems(self._line_items(viewmodel, line_numbers))
+
+            self.assertLoggedEqual(description, expected, str(selection))
