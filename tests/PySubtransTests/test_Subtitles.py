@@ -9,6 +9,7 @@ from PySubtrans.Helpers.Tests import log_info
 from PySubtrans.Helpers.SubtitleHelpers import MergeSubtitles, MergeTranslations, FindSplitPoint, GetProportionalDuration
 from PySubtrans.SubtitleProcessor import SubtitleProcessor
 from PySubtrans.SubtitleBatcher import SubtitleBatcher
+from PySubtrans.Formats.SrtFileHandler import SrtFileHandler
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.Subtitles import SaveSettings, Subtitles
 
@@ -361,6 +362,43 @@ class SubtitleTimingTests(LoggedTestCase):
         self.assertLoggedEqual("previous end trimmed", timedelta(seconds=2.45), source[0].end)
         self.assertLoggedEqual("next start unchanged", timedelta(seconds=2.5), source[1].start)
         self.assertLoggedEqual("non-overlapping end unchanged", timedelta(seconds=2.8), source[1].end)
+
+class SubtitleLoadTests(LoggedTestCase):
+
+    def test_LoadSubtitlesFromString_renumbers_duplicate_line_numbers(self):
+        srt_content = (
+            "1\n00:00:01,000 --> 00:00:02,000\nFirst line\n\n"
+            "2\n00:00:03,000 --> 00:00:04,000\nSecond line\n\n"
+            "2\n00:00:05,000 --> 00:00:06,000\nDuplicate line\n\n"
+        )
+        subtitles = Subtitles()
+        subtitles.LoadSubtitlesFromString(srt_content, SrtFileHandler())
+
+        line_numbers = [line.number for line in subtitles.originals or []]
+        self.assertLoggedSequenceEqual("renumbered lines", [1, 2, 3], line_numbers, input_value=srt_content)
+
+    def test_LoadSubtitlesFromString_renumbers_duplicates_from_start_line_number(self):
+        srt_content = (
+            "101\n00:00:01,000 --> 00:00:02,000\nFirst line\n\n"
+            "102\n00:00:03,000 --> 00:00:04,000\nSecond line\n\n"
+            "102\n00:00:05,000 --> 00:00:06,000\nDuplicate line\n\n"
+        )
+        subtitles = Subtitles()
+        subtitles.LoadSubtitlesFromString(srt_content, SrtFileHandler())
+
+        line_numbers = [line.number for line in subtitles.originals or []]
+        self.assertLoggedSequenceEqual("renumbered lines", [101, 102, 103], line_numbers, input_value=srt_content)
+
+    def test_LoadSubtitlesFromString_renumbers_zero_indices(self):
+        srt_content = (
+            "0\n00:00:01,000 --> 00:00:02,000\nFirst line\n\n"
+            "0\n00:00:03,000 --> 00:00:04,000\nSecond line\n\n"
+        )
+        subtitles = Subtitles()
+        subtitles.LoadSubtitlesFromString(srt_content, SrtFileHandler())
+
+        line_numbers = [line.number for line in subtitles.originals or []]
+        self.assertLoggedSequenceEqual("renumbered lines", [1, 2], line_numbers, input_value=srt_content)
 
 if __name__ == '__main__':
     unittest.main()

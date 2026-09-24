@@ -11,7 +11,7 @@ from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.SubtitleLine import SubtitleLine
 from PySubtrans.SubtitleScene import SubtitleScene
 from PySubtrans.SubtitleBatch import SubtitleBatch
-from PySubtrans.Subtitles import Subtitles
+from PySubtrans.Subtitles import HasDuplicateLineNumbers, Subtitles
 from PySubtrans.SubtitleProcessor import SubtitleProcessor
 from PySubtrans.SubtitleBatcher import SubtitleBatcher
 
@@ -221,7 +221,8 @@ class SubtitleEditor:
 
     def Sanitise(self) -> None:
         """
-        Remove invalid lines, empty batches and empty scenes
+        Remove invalid lines, empty batches and empty scenes.
+        Renumber lines if original line numbers are not unique.
         """
         for scene in self.subtitles.scenes:
             scene.batches = [batch for batch in scene.batches if batch.originals]
@@ -240,6 +241,48 @@ class SubtitleEditor:
 
         self.subtitles.scenes = [scene for scene in self.subtitles.scenes if scene.batches]
         self.RenumberScenes()
+
+        originals = [line for scene in self.subtitles.scenes for batch in scene.batches for line in batch.originals]
+        if HasDuplicateLineNumbers(originals):
+            logging.warning(_("Renumbering subtitle lines due to duplicate indices"))
+            self.RenumberLines()
+
+    def RenumberLines(self) -> None:
+        """
+        Number original lines sequentially from the first line number, renumbering translated lines to match
+        """
+        originals = self.subtitles.originals or []
+        line_number = (originals[0].number if originals else 1) or 1
+
+        for scene in self.subtitles.scenes:
+            for batch in scene.batches:
+                # Keep the existing translated lines, which include any postprocessing.
+                # Where a batch contains duplicate numbers, pair them with the originals in order.
+                old_translated : dict[int, list[SubtitleLine]] = {}
+                for translated_line in batch.translated or []:
+                    old_translated.setdefault(translated_line.number, []).append(translated_line)
+
+                translated_lines : list[SubtitleLine] = []
+                renumbered = False
+                for line in batch.originals:
+                    candidates = old_translated.get(line.number)
+                    renumbered = renumbered or line.number != line_number
+                    line.number = line_number
+                    line_number += 1
+
+                    if candidates:
+                        translated_line = candidates.pop(0)
+                        translated_line.number = line.number
+                        translated_lines.append(translated_line)
+
+                batch.translated = translated_lines
+
+                # The stored response refers to the old line numbers, so reparsing it would misassign translations
+                if renumbered:
+                    batch.translation = None
+
+        # Reassign scenes to refresh the derived line lists and start line number
+        self.subtitles.scenes = self.subtitles.scenes
 
     def RenumberScenes(self) -> None:
         """
