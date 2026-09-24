@@ -88,6 +88,18 @@ class WordCoverage(Enum):
     PARTIAL = 'partial'
 
 
+class SentenceEnds(Enum):
+    """
+    Which punctuation ends a sentence.
+
+    STRONG is question and exclamation marks, CJK full stops, ellipses and line breaks.
+    Text with word timings is left to them to divide at full stops.
+    ALL adds full stops, for text with no word timings to divide it.
+    """
+    STRONG = 'strong'
+    ALL = 'all'
+
+
 def SpanLabel(span : AudioChunk|TranscriptionSegment) -> str:
     """Human-readable start-end label for a chunk or segment, in seconds."""
     return f"{span.start.total_seconds():.1f}s-{span.end.total_seconds():.1f}s"
@@ -138,16 +150,28 @@ def EstimateSpeechSeconds(text : str) -> float:
     return max(MIN_SPEECH_SECONDS, syllabic * SYLLABIC_SECONDS_PER_CHAR + other * OTHER_SECONDS_PER_CHAR)
 
 
-def SentenceRanges(text : str) -> list[tuple[int, int]]:
+def IsSentenceEnd(text : str, index : int, ends : SentenceEnds = SentenceEnds.STRONG) -> bool:
+    """
+    Whether the character at index ends a sentence.
+    A full stop counts only where the text breaks after it, so decimals do not.
+    """
+    if text[index] in SENTENCE_END_CHARS:
+        return True
+
+    return (ends == SentenceEnds.ALL and text[index] == '.'
+            and (index + 1 == len(text) or bool(CLOSING_CHARS.match(text[index + 1]))))
+
+
+def SentenceRanges(text : str, ends : SentenceEnds = SentenceEnds.STRONG) -> list[tuple[int, int]]:
     """Ranges of the text ending at sentence punctuation, with any closing quotes or brackets."""
     ranges : list[tuple[int, int]] = []
     start = 0
     index = 0
 
     while index < len(text):
-        if text[index] in SENTENCE_END_CHARS:
+        if IsSentenceEnd(text, index, ends):
             end = index + 1
-            while end < len(text) and (text[end] in SENTENCE_END_CHARS or CLOSING_CHARS.match(text[end])):
+            while end < len(text) and (IsSentenceEnd(text, end, ends) or CLOSING_CHARS.match(text[end])):
                 end += 1
             ranges.append((start, end))
             start = index = end
@@ -162,10 +186,11 @@ def SentenceRanges(text : str) -> list[tuple[int, int]]:
 
 @dataclass
 class AlignedWord:
-    """A word matched to the transcript, with the range of transcript characters it matched."""
+    """A word matched to the transcript, with the range of transcript characters it matched and how many it matched."""
     word : WordTiming
     start : int
     end : int
+    matched : int
 
 
 def AlignWords(text : str, words : list[WordTiming]) -> list[AlignedWord]:
@@ -181,16 +206,16 @@ def AlignWords(text : str, words : list[WordTiming]) -> list[AlignedWord]:
     word_chars = ''.join(char for word in words for char in word.text if SPOKEN_CHAR.match(char))
     text_chars = ''.join(text[offset] for offset in offsets)
 
-    spans : dict[int, tuple[int, int]] = {}
+    spans : dict[int, tuple[int, int, int]] = {}
     matcher = SequenceMatcher(None, word_chars, text_chars, autojunk=False)
     for word_index, text_index, size in matcher.get_matching_blocks():
         for step in range(size):
             owner = owners[word_index + step]
             offset = offsets[text_index + step]
-            first, last = spans.get(owner, (offset, offset))
-            spans[owner] = (min(first, offset), max(last, offset))
+            first, last, count = spans.get(owner, (offset, offset, 0))
+            spans[owner] = (min(first, offset), max(last, offset), count + 1)
 
-    return [AlignedWord(words[index], first, last + 1) for index, (first, last) in sorted(spans.items())]
+    return [AlignedWord(words[index], first, last + 1, count) for index, (first, last, count) in sorted(spans.items())]
 
 
 def CutPoints(text : str, aligned : list[AlignedWord], start : int, end : int) -> list[int]:
@@ -432,14 +457,14 @@ class TranscriptionLineBuilder:
     @staticmethod
     def _character_counts(text : str, ranges : list[tuple[int, int]], aligned : list[AlignedWord]) -> list[tuple[int, int, int]]:
         """
-        Count the spoken characters in each range: all of them, those its matched words spell,
+        Count the spoken characters in each range: all of them, those its words matched,
         and those before its first matched word.
         """
         counts : list[tuple[int, int, int]] = []
         for start, end in ranges:
             members = [word for word in aligned if start <= word.start < end]
             spoken = sum(1 for char in text[start:end] if SPOKEN_CHAR.match(char))
-            matched = min(spoken, sum(1 for word in members for char in word.word.text if SPOKEN_CHAR.match(char)))
+            matched = sum(word.matched for word in members)
             leading = sum(1 for char in text[start:members[0].start] if SPOKEN_CHAR.match(char)) if members else 0
             counts.append((spoken, matched, leading))
 
@@ -545,8 +570,7 @@ class TranscriptionLineBuilder:
         Set each part's chunk-relative span from its words.
 
         A run of parts without words shares the time between its timed neighbours by characters.
-        Between timed parts, each is given only as long as its text takes to say, so it does not stretch over silence.
-        When no part is timed, each fills its share of the chunk, up to the longest a line may last.
+        Between timed parts, each is given only as long as its text takes to say, so it does not stretch over silence.        When no part is timed, each fills its share of the chunk, up to the longest a line may last.
         """
         if not any(assigned):
             total = sum(len(CompactText(part.text)) for part in parts) or 1

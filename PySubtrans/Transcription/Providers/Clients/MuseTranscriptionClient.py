@@ -6,7 +6,7 @@ from PySubtrans.Helpers.Parse import TryParseNonNegative
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
-from PySubtrans.Transcription.TranscriptionLines import EstimateSpeechSeconds, SentenceRanges
+from PySubtrans.Transcription.TranscriptionLines import EstimateSpeechSeconds, SentenceEnds, SentenceRanges
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionResult, TranscriptionSegment
 
 # Longest a turn may last, as a multiple of the time its text takes to say.
@@ -171,7 +171,7 @@ def _parse_muse_payload(payload : dict, chunk_seconds : float|None = None, inclu
             end = start + speech if following is None else min(start + speech, following)
 
         speaker = entry.get('speaker') if include_speakers else None
-        sentences = [entry_text[first:last].strip() for first, last in SentenceRanges(entry_text)]
+        sentences = [entry_text[first:last].strip() for first, last in SentenceRanges(entry_text, SentenceEnds.ALL)]
         sentences = [sentence for sentence in sentences if sentence]
         for sentence, (sentence_start, sentence_end) in _place_sentences(sentences, start, end):
             parts.append(TranscriptionSegment(

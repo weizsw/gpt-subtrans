@@ -206,6 +206,20 @@ class TestMuseTranscription(LoggedTestCase):
         self.assertLoggedEqual("last ends with the turn", timedelta(seconds=30.0), parts[1].end)
         self.assertLoggedLess("last starts late in the turn", timedelta(seconds=20.0), parts[1].start)
 
+    def test_full_stops_divide_a_turn(self):
+        """Sentences ended by full stops are placed separately, so the last ends with the turn."""
+
+        payload = {
+            'transcript': 'Wait. I know where he went.',
+            'turns': [
+                {'speaker': 'A', 'transcript': 'Wait. I know where he went.', 'startMs': 3000, 'endMs': 30000},
+            ],
+        }
+        _text, parts = _parse_muse_payload(payload)
+
+        self.assertLoggedEqual("texts", ["Wait.", "I know where he went."], [part.text for part in parts])
+        self.assertLoggedEqual("last ends with the turn", timedelta(seconds=30.0), parts[1].end)
+
     def test_short_turn_shares_its_span_between_sentences(self):
         """A turn too short for its sentences divides its span by their characters."""
 

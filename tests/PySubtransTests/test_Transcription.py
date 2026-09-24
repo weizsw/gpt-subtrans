@@ -25,7 +25,8 @@ from PySubtrans.Transcription.WordTiming import WordTiming
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionCoordinator import TranscriptionCoordinator, TranscriptionStatus
 from PySubtrans.Transcription.TranscriptionLines import (MIN_WORD_CAP_SECONDS, WORD_CAP_MULTIPLE, EstimateSpeechSeconds,
-                                                         TranscriptionLineBuilder, WordCoverage)
+                                                         SentenceEnds, SentenceRanges, TranscriptionLineBuilder,
+                                                         WordCoverage)
 from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionOutcome
 from PySubtrans.Transcription.TranscriptionProvider import OptionsScope, TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionResult, TranscriptionSegment
@@ -1167,6 +1168,20 @@ class TestDerivedParts(LoggedTestCase):
 
         self.assertLoggedEqual("line count", 2, len(lines))
         self.assertLoggedLessEqual("no overlap", lines[0].end, lines[1].start)
+
+    def test_word_matching_one_character_does_not_cover_its_part(self):
+        """With partial word coverage, a word counts only the characters it matched, so its part is still extended."""
+        words = [_word("张三李四王五好赵钱孙", 10.0, 10.3)]
+        lines = self._lines("你好朋友我们走吧。", words, self._partial())
+
+        self.assertLoggedGreater("extended past the word", lines[0].end, timedelta(seconds=110.3))
+
+    def test_full_stops_end_sentences_only_when_asked(self):
+        """A full stop ends a sentence where the text breaks after it, and only with SentenceEnds.ALL."""
+        text = "It costs 3.5 dollars. That's all."
+        self.assertLoggedEqual("all ends", ["It costs 3.5 dollars.", "That's all."],
+                               [text[start:end].strip() for start, end in SentenceRanges(text, SentenceEnds.ALL)])
+        self.assertLoggedEqual("strong ends", [text], [text[start:end] for start, end in SentenceRanges(text)])
 
     def test_unrelated_words_are_not_used(self):
         """Words that match nothing in the transcript leave it to be placed by length."""
