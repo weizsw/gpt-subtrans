@@ -943,6 +943,54 @@ class SubtitleEditorTests(SubtitleTestCase):
                 input_value=error_message,
             )
 
+    def test_sanitise_renumbers_duplicates_from_start_line_number(self):
+        """Sanitise should renumber duplicates from the first line number and rebuild translations from the originals"""
+        subtitles = BuildSubtitlesFromLineCounts([[3], [2]])
+        for line in subtitles.originals or []:
+            line.number += 100
+
+        batch = subtitles.scenes[0].batches[0]
+        batch.originals[1].number = batch.originals[0].number
+
+        # Two translated lines share a number, and the third line only has a fuzzy match
+        batch.originals[0].translation = "Translation 0"
+        batch.originals[1].translation = "Translation 1"
+        batch.originals[2].translation = "#Fuzzy: Translation 2"
+        batch.translated = [line.translated for line in batch.originals[:2] if line.translated]
+
+        with SubtitleEditor(subtitles) as editor:
+            editor.Sanitise()
+
+        line_numbers = [line.number for line in subtitles.originals or []]
+        self.assertLoggedSequenceEqual("renumbered from start line number", [101, 102, 103, 104, 105], line_numbers)
+        self.assertLoggedEqual("start line number", 101, subtitles.start_line_number)
+
+        translated = subtitles.scenes[0].batches[0].translated
+        translated_numbers = [line.number for line in translated]
+        translated_texts = [line.text for line in translated]
+        self.assertLoggedSequenceEqual("translated line numbers", [101, 102], translated_numbers)
+        self.assertLoggedSequenceEqual("translated line text", ["Translation 0", "Translation 1"], translated_texts)
+
+    def test_sanitise_renumber_keeps_translations_without_stored_translation(self):
+        """Renumbering should keep translated lines when the original has no stored translation"""
+        subtitles = BuildSubtitlesFromLineCounts([[2], [2]])
+        first_batch = subtitles.scenes[0].batches[0]
+        second_batch = subtitles.scenes[1].batches[0]
+
+        duplicate_line = second_batch.originals[0]
+        duplicate_line.number = first_batch.originals[0].number
+        translated_line = duplicate_line.copy()
+        translated_line.text = "Translated"
+        second_batch.translated = [translated_line]
+
+        with SubtitleEditor(subtitles) as editor:
+            editor.Sanitise()
+
+        translated = second_batch.translated
+        self.assertLoggedEqual("translated line count", 1, len(translated))
+        self.assertLoggedEqual("translated line number", second_batch.originals[0].number, translated[0].number)
+        self.assertLoggedEqual("translated line text", "Translated", translated[0].text)
+
 
 if __name__ == '__main__':
     unittest.main()

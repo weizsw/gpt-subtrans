@@ -249,21 +249,39 @@ class SubtitleEditor:
 
     def RenumberLines(self) -> None:
         """
-        Number original lines sequentially, remapping translated lines within each batch to match
+        Number original lines sequentially from the first line number, rebuilding translated lines to match
         """
-        line_number = 1
+        originals = self.subtitles.originals or []
+        line_number = (originals[0].number if originals else 1) or 1
+
         for scene in self.subtitles.scenes:
             for batch in scene.batches:
-                # Translated lines are matched to originals by number within their batch.
-                # If a batch contains duplicates the first original with that number wins.
-                number_map : dict[int, int] = {}
+                old_translated : dict[int, SubtitleLine] = {}
+                for translated_line in batch.translated or []:
+                    old_translated.setdefault(translated_line.number, translated_line)
+
+                translated_lines : list[SubtitleLine] = []
                 for line in batch.originals:
-                    number_map.setdefault(line.number, line_number)
+                    old_line = old_translated.get(line.number)
                     line.number = line_number
                     line_number += 1
 
-                for line in batch.translated or []:
-                    line.number = number_map.get(line.number, line.number)
+                    # Only lines that already had a translated line keep one, so fuzzy matches are not promoted
+                    if old_line is None:
+                        continue
+
+                    # Rebuild from the original's own translation, which is unambiguous when numbers were duplicated.
+                    # Fall back to the old translated line if the original has no stored translation.
+                    new_line = line.translated
+                    if new_line:
+                        new_line.original = line.text
+                    else:
+                        new_line = old_line.copy()
+                        new_line.number = line.number
+
+                    translated_lines.append(new_line)
+
+                batch.translated = translated_lines
 
         # Reassign scenes to refresh the derived line lists and start line number
         self.subtitles.scenes = self.subtitles.scenes

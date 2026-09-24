@@ -377,6 +377,18 @@ class SubtitleLoadTests(LoggedTestCase):
         line_numbers = [line.number for line in subtitles.originals or []]
         self.assertLoggedSequenceEqual("renumbered lines", [1, 2, 3], line_numbers, input_value=srt_content)
 
+    def test_LoadSubtitlesFromString_renumbers_duplicates_from_start_line_number(self):
+        srt_content = (
+            "101\n00:00:01,000 --> 00:00:02,000\nFirst line\n\n"
+            "102\n00:00:03,000 --> 00:00:04,000\nSecond line\n\n"
+            "102\n00:00:05,000 --> 00:00:06,000\nDuplicate line\n\n"
+        )
+        subtitles = Subtitles()
+        subtitles.LoadSubtitlesFromString(srt_content, SrtFileHandler())
+
+        line_numbers = [line.number for line in subtitles.originals or []]
+        self.assertLoggedSequenceEqual("renumbered lines", [101, 102, 103], line_numbers, input_value=srt_content)
+
     def test_LoadSubtitlesFromString_renumbers_zero_indices(self):
         srt_content = (
             "0\n00:00:01,000 --> 00:00:02,000\nFirst line\n\n"

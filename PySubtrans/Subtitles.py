@@ -378,7 +378,9 @@ class Subtitles:
         else:
             return
 
-        for line_number, line in enumerate(lines, start=1):
+        # Preserve the starting offset (e.g. for split files)
+        start_line_number = lines[0].number or 1
+        for line_number, line in enumerate(lines, start=start_line_number):
             line.number = line_number
 
     def _extend_short_subtitles(self, lines : list[SubtitleLine], save_settings : SaveSettings) -> list[SubtitleLine]:
