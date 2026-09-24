@@ -945,7 +945,7 @@ class SubtitleEditorTests(SubtitleTestCase):
             )
 
     def test_sanitise_renumbers_duplicates_from_start_line_number(self):
-        """Sanitise should renumber duplicates from the first line number and rebuild translations from the originals"""
+        """Sanitise should renumber duplicates from the first line number and keep the final translated text"""
         subtitles = BuildSubtitlesFromLineCounts([[3], [2]])
         for line in subtitles.originals or []:
             line.number += 100
@@ -957,7 +957,12 @@ class SubtitleEditorTests(SubtitleTestCase):
         batch.originals[0].translation = "Translation 0"
         batch.originals[1].translation = "Translation 1"
         batch.originals[2].translation = "#Fuzzy: Translation 2"
-        batch.translated = [line.translated for line in batch.originals[:2] if line.translated]
+        translated_lines = [line.translated for line in batch.originals[:2] if line.translated]
+
+        # Postprocessing updates the translated lines but not the originals' stored translation
+        for index, translated_line in enumerate(translated_lines):
+            translated_line.text = f"Postprocessed {index}"
+        batch.translated = translated_lines
 
         # Only the batch whose line numbers change should lose its stored response
         unchanged_batch = subtitles.scenes[1].batches[0]
@@ -978,10 +983,10 @@ class SubtitleEditorTests(SubtitleTestCase):
         translated_numbers = [line.number for line in translated]
         translated_texts = [line.text for line in translated]
         self.assertLoggedSequenceEqual("translated line numbers", [101, 102], translated_numbers)
-        self.assertLoggedSequenceEqual("translated line text", ["Translation 0", "Translation 1"], translated_texts)
+        self.assertLoggedSequenceEqual("translated line text", ["Postprocessed 0", "Postprocessed 1"], translated_texts)
 
-    def test_sanitise_renumber_keeps_translations_without_stored_translation(self):
-        """Renumbering should keep translated lines when the original has no stored translation"""
+    def test_sanitise_renumber_moves_translations_with_originals(self):
+        """Renumbering should keep translated lines attached to their originals across batches"""
         subtitles = BuildSubtitlesFromLineCounts([[2], [2]])
         first_batch = subtitles.scenes[0].batches[0]
         second_batch = subtitles.scenes[1].batches[0]
