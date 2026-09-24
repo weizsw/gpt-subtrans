@@ -30,6 +30,10 @@ class BatchItem(ViewModelItem):
             'translated': batch.translation is not None
         }
 
+        # cache on demand
+        self._first_line_num: int|None = None
+        self._last_line_num: int|None = None
+
         if batch.translation and isinstance(batch.translation, Translation):
             self.batch_model.update({
                 'response': batch.translation.FormatResponse(),
@@ -95,12 +99,15 @@ class BatchItem(ViewModelItem):
 
     @property
     def first_line_number(self) -> int|None:
-        # Computed on demand, as self.lines is modified and replaced directly by the view model
-        return min(self.lines.keys(), default=None)
+        if not self._first_line_num:
+            self._update_first_and_last()
+        return self._first_line_num
 
     @property
     def last_line_number(self) -> int|None:
-        return max(self.lines.keys(), default=None)
+        if not self._last_line_num:
+            self._update_first_and_last()
+        return self._last_line_num
 
     @property
     def has_errors(self) -> bool:
@@ -171,7 +178,27 @@ class BatchItem(ViewModelItem):
                 self.lines[line_number] = line_item
                 break
 
+        self._invalidate_first_and_last()
         self.setData(self.batch_model, Qt.ItemDataRole.UserRole)
+
+    def RemoveLineItem(self, line_number : int) -> bool:
+        """
+        Remove a line item from the batch, returning False if it was not found
+        """
+        line_item = self.lines.pop(line_number, None)
+        if line_item is None:
+            return False
+
+        self.removeRow(line_item.row())
+        self._invalidate_first_and_last()
+        return True
+
+    def ResetLineItems(self, line_items : list[LineItem]):
+        """
+        Rebuild the line lookup after the child rows have been rearranged
+        """
+        self.lines = { item.number: item for item in line_items }
+        self._invalidate_first_and_last()
 
     def AddTranslation(self, line_number : int, translation_text : str|None):
         """
@@ -206,6 +233,15 @@ class BatchItem(ViewModelItem):
                 'errors' : self.has_errors
             }
         }
+
+    def _update_first_and_last(self) -> None:
+        line_numbers = [ num for num in self.lines.keys() if num ] if self.lines else None
+        self._first_line_num = min(line_numbers) if line_numbers else None
+        self._last_line_num = max(line_numbers) if line_numbers else None
+
+    def _invalidate_first_and_last(self) -> None:
+        self._first_line_num = None
+        self._last_line_num = None
 
     def _get_errors(self, errors: list[Any]) -> list[str]:
         if errors:
