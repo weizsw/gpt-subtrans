@@ -12,6 +12,7 @@ from PySubtrans.SubtitleBatcher import SubtitleBatcher
 from PySubtrans.SubtitleEditor import SubtitleEditor
 from PySubtrans.SubtitleLine import SubtitleLine
 from PySubtrans.Subtitles import Subtitles
+from PySubtrans.Translation import Translation
 from ..TestData.chinese_dinner import chinese_dinner_data
 
 class SubtitleEditorTests(SubtitleTestCase):
@@ -958,8 +959,16 @@ class SubtitleEditorTests(SubtitleTestCase):
         batch.originals[2].translation = "#Fuzzy: Translation 2"
         batch.translated = [line.translated for line in batch.originals[:2] if line.translated]
 
+        # Only the batch whose line numbers change should lose its stored response
+        unchanged_batch = subtitles.scenes[1].batches[0]
+        batch.translation = Translation({'text': "Response 1"})
+        unchanged_batch.translation = Translation({'text': "Response 2"})
+
         with SubtitleEditor(subtitles) as editor:
             editor.Sanitise()
+
+        self.assertLoggedIsNone("renumbered batch response cleared", subtitles.scenes[0].batches[0].translation)
+        self.assertLoggedIsNotNone("unchanged batch response kept", subtitles.scenes[1].batches[0].translation)
 
         line_numbers = [line.number for line in subtitles.originals or []]
         self.assertLoggedSequenceEqual("renumbered from start line number", [101, 102, 103, 104, 105], line_numbers)

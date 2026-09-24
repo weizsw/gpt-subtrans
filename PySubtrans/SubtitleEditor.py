@@ -261,8 +261,10 @@ class SubtitleEditor:
                     old_translated.setdefault(translated_line.number, translated_line)
 
                 translated_lines : list[SubtitleLine] = []
+                renumbered = False
                 for line in batch.originals:
                     old_line = old_translated.get(line.number)
+                    renumbered = renumbered or line.number != line_number
                     line.number = line_number
                     line_number += 1
 
@@ -282,6 +284,10 @@ class SubtitleEditor:
                     translated_lines.append(new_line)
 
                 batch.translated = translated_lines
+
+                # The stored response refers to the old line numbers, so reparsing it would misassign translations
+                if renumbered:
+                    batch.translation = None
 
         # Reassign scenes to refresh the derived line lists and start line number
         self.subtitles.scenes = self.subtitles.scenes
