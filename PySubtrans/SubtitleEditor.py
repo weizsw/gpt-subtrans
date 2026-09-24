@@ -11,7 +11,7 @@ from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.SubtitleLine import SubtitleLine
 from PySubtrans.SubtitleScene import SubtitleScene
 from PySubtrans.SubtitleBatch import SubtitleBatch
-from PySubtrans.Subtitles import Subtitles
+from PySubtrans.Subtitles import Subtitles, ValidateUniqueLineNumbers
 from PySubtrans.SubtitleProcessor import SubtitleProcessor
 from PySubtrans.SubtitleBatcher import SubtitleBatcher
 
@@ -221,7 +221,8 @@ class SubtitleEditor:
 
     def Sanitise(self) -> None:
         """
-        Remove invalid lines, empty batches and empty scenes
+        Remove invalid lines, empty batches and empty scenes.
+        Raise a SubtitleError if original line numbers are not unique.
         """
         for scene in self.subtitles.scenes:
             scene.batches = [batch for batch in scene.batches if batch.originals]
@@ -240,6 +241,10 @@ class SubtitleEditor:
 
         self.subtitles.scenes = [scene for scene in self.subtitles.scenes if scene.batches]
         self.RenumberScenes()
+
+        # Duplicate line numbers would corrupt translation matching, so reject rather than renumber
+        originals = [line for scene in self.subtitles.scenes for batch in scene.batches for line in batch.originals]
+        ValidateUniqueLineNumbers(originals)
 
     def RenumberScenes(self) -> None:
         """

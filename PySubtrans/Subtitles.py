@@ -26,6 +26,25 @@ FORMATTING_TAG_PATTERN = regex.compile(r'<[^>]*>|\{\\[^}]*\}')
 GRAPHEME_PATTERN = regex.compile(r'\X')
 DURATION_EPSILON = timedelta(milliseconds=50)
 
+def ValidateUniqueLineNumbers(lines : list[SubtitleLine]|None) -> None:
+    """
+    Raise a SubtitleError if any line numbers are duplicated.
+    Line numbers must identify subtitles uniquely.
+    """
+    if not lines:
+        return
+
+    seen : set[int] = set()
+    duplicates : set[int] = set()
+    for line in lines:
+        if line.number in seen:
+            duplicates.add(line.number)
+        seen.add(line.number)
+
+    if duplicates:
+        duplicate_list = ", ".join(str(number) for number in sorted(duplicates))
+        raise SubtitleError(_("Duplicate subtitle line numbers: {}").format(duplicate_list))
+
 class SaveSettings:
     """Settings applied only while writing translated subtitles."""
 
@@ -244,8 +263,10 @@ class Subtitles:
             logging.info(_("Error parsing file... attempting format detection"))
             data = SubtitleFormatRegistry.detect_format_and_load_file(self.sourcepath)
 
+        self._renumber_if_needed(data.lines)
+        ValidateUniqueLineNumbers(data.lines)
+
         with self.lock:
-            self._renumber_if_needed(data.lines)
             self.originals = data.lines
             self.metadata = data.metadata
             self.file_format = data.detected_format
@@ -260,6 +281,7 @@ class Subtitles:
             with self.lock:
                 data = file_handler.parse_string(subtitles_string)
                 self._renumber_if_needed(data.lines)
+                ValidateUniqueLineNumbers(data.lines)
                 self.originals = data.lines
                 self.metadata = data.metadata
                 self.file_format = data.detected_format

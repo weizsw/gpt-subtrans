@@ -4,9 +4,10 @@ import unittest
 from typing import cast
 
 from PySubtrans.Helpers.TestCases import SubtitleTestCase
-from PySubtrans.Helpers.Tests import skip_if_debugger_attached
+from PySubtrans.Helpers.Tests import log_input_expected_error, skip_if_debugger_attached
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleBatcher import SubtitleBatcher
+from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.SubtitleProject import SubtitleProject
 from PySubtrans.SubtitleScene import SubtitleScene
 from PySubtrans.SubtitleTranslator import SubtitleTranslator
@@ -677,6 +678,28 @@ Modified subtitle line 2
             "terminology_map",
             new_project.subtitles.settings,
         )
+
+    @skip_if_debugger_attached
+    def test_read_project_rejects_duplicate_line_numbers(self):
+        """ReadProjectFile should reject a project with duplicate original line numbers"""
+        project = SubtitleProject(persistent=True)
+        project.InitialiseProject(self.test_srt_file)
+
+        batcher = SubtitleBatcher(self.options)
+        with project.GetEditor() as editor:
+            editor.AutoBatch(batcher)
+
+        originals = project.subtitles.scenes[0].batches[0].originals
+        self.assertLoggedGreater("batch line count", len(originals), 1)
+        originals[1].number = originals[0].number
+
+        project.SaveProjectFile(self.test_project_file)
+
+        new_project = SubtitleProject()
+        with self.assertRaises(SubtitleError) as cm:
+            new_project.ReadProjectFile(self.test_project_file)
+
+        log_input_expected_error(self.test_project_file, SubtitleError, cm.exception)
 
 
 if __name__ == '__main__':
