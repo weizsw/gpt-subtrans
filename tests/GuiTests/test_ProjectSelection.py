@@ -3,6 +3,9 @@ from PySide6.QtCore import QModelIndex
 from GuiSubtrans.GuiSubtitleTestCase import GuiSubtitleTestCase
 from GuiSubtrans.ProjectSelection import ProjectSelection, SelectionBatch, SelectionLine, SelectionScene
 from GuiSubtrans.ScenesBatchesModel import ScenesBatchesModel
+from GuiSubtrans.ViewModel.LineItem import LineItem
+from GuiSubtrans.ViewModel.TestableViewModel import TestableViewModel
+from GuiSubtrans.ViewModel.ViewModelUpdate import ModelUpdate
 
 
 class ProjectSelectionTests(GuiSubtitleTestCase):
@@ -156,4 +159,75 @@ class ProjectSelectionTests(GuiSubtitleTestCase):
             "explicit line selection takes precedence",
             [2],
             [line.number for line in selection.effective_lines],
+        )
+
+    def _line_items(self, viewmodel : TestableViewModel, line_numbers : list[int]) -> list[LineItem]:
+        line_items = [ viewmodel.GetLineItem(number) for number in line_numbers ]
+        return [ item for item in line_items if item is not None ]
+
+    def test_first_line_in_batch_detected_without_tree_selection(self) -> None:
+        # Nothing selected in the scenes tree, so the subtitle view shows every line
+        viewmodel = self.create_testable_viewmodel_from_line_counts([[3, 2]])
+
+        middle_line = ProjectSelection()
+        middle_line.AddLineItems(self._line_items(viewmodel, [2]))
+        self.assertLoggedFalse("middle line is not first in batch", middle_line.IsFirstInBatchSelected())
+
+        first_of_second_batch = ProjectSelection()
+        first_of_second_batch.AddLineItems(self._line_items(viewmodel, [4]))
+        self.assertLoggedTrue("first line of second batch", first_of_second_batch.IsFirstInBatchSelected())
+
+    def test_first_line_in_batch_detected_with_batch_selected(self) -> None:
+        viewmodel = self.create_testable_viewmodel_from_line_counts([[3, 2]])
+        model = ScenesBatchesModel(viewmodel)
+
+        selection = ProjectSelection()
+        selection.AppendItem(model, self._batch_index(model, 0, 1))
+        selection.AddLineItems(self._line_items(viewmodel, [5]))
+        self.assertLoggedFalse("last line is not first in batch", selection.IsFirstInBatchSelected())
+
+        selection = ProjectSelection()
+        selection.AppendItem(model, self._batch_index(model, 0, 1))
+        selection.AddLineItems(self._line_items(viewmodel, [4]))
+        self.assertLoggedTrue("first line of selected batch", selection.IsFirstInBatchSelected())
+
+    def test_first_line_in_batch_follows_line_removal(self) -> None:
+        viewmodel = self.create_testable_viewmodel_from_line_counts([[3]])
+
+        # Resolve the batch bounds before removing the first line
+        selection = ProjectSelection()
+        selection.AddLineItems(self._line_items(viewmodel, [1]))
+        self.assertLoggedTrue("line 1 starts the batch", selection.IsFirstInBatchSelected())
+
+        update = ModelUpdate()
+        update.lines.remove((1, 1, 1))
+        update.ApplyToViewModel(viewmodel)
+
+        selection = ProjectSelection()
+        selection.AddLineItems(self._line_items(viewmodel, [2]))
+        self.assertLoggedTrue("line 2 starts the batch after line 1 is removed", selection.IsFirstInBatchSelected())
+
+    def test_all_lines_in_same_batch_distinguishes_scenes(self) -> None:
+        viewmodel = self.create_testable_viewmodel_from_line_counts([[2], [2]])
+
+        # Lines 2 and 3 are both in batch 1, but of different scenes
+        selection = ProjectSelection()
+        selection.AddLineItems(self._line_items(viewmodel, [2, 3]))
+        self.assertLoggedFalse("lines in different scenes", selection.AllLinesInSameBatch())
+
+        selection = ProjectSelection()
+        selection.AddLineItems(self._line_items(viewmodel, [3, 4]))
+        self.assertLoggedTrue("lines in the same batch", selection.AllLinesInSameBatch())
+
+    def test_effective_batch_numbers_combines_scenes_and_batches(self) -> None:
+        model = self._create_scenes_model([[3, 2], [2, 2]])
+
+        selection = ProjectSelection()
+        selection.AppendItem(model, self._scene_index(model, 0))
+        selection.AppendItem(model, self._batch_index(model, 1, 1))
+
+        self.assertLoggedSequenceEqual(
+            "batches of the selected scene plus the selected batch",
+            [(1, 1), (1, 2), (2, 2)],
+            selection.effective_batch_numbers,
         )

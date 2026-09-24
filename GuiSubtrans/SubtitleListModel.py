@@ -43,12 +43,7 @@ class SubtitleListModel(QAbstractProxyModel):
 
         If no selection is made, show all lines.
         """
-        if selection.selected_batches:
-            batch_numbers = [(batch.scene, batch.number) for batch in selection.selected_batches]
-        elif selection.selected_scenes:
-            batch_numbers = selection.batch_numbers
-        else:
-            batch_numbers = self.viewmodel.GetBatchNumbers()
+        batch_numbers = selection.effective_batch_numbers or self.viewmodel.GetBatchNumbers()
 
         if sorted(batch_numbers) != self.selected_batch_numbers:
             self.ShowSelectedBatches(batch_numbers)

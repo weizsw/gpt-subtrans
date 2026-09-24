@@ -64,8 +64,8 @@ class ContentView(QWidget):
             task_type = settings.get('task_type', DEFAULT_TASK_TYPE)
             self.selection_view.SetTaskType(task_type)
 
-    def GetSelectedLines(self):
-        return self.subtitle_view.GetSelectedLines()
+    def GetSelectedLineItems(self) -> list[LineItem]:
+        return self.subtitle_view.GetSelectedLineItems()
 
     def ClearSelectedLines(self):
         self.subtitle_view.ClearSelectedLines()

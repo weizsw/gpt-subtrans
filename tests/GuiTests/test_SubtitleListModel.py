@@ -2,7 +2,7 @@ from PySide6.QtCore import Qt
 
 from GuiSubtrans.Commands.MergeLinesCommand import MergeLinesCommand
 from GuiSubtrans.GuiSubtitleTestCase import GuiSubtitleTestCase
-from GuiSubtrans.ProjectSelection import ProjectSelection, SelectionBatch
+from GuiSubtrans.ProjectSelection import ProjectSelection, SelectionBatch, SelectionScene
 from GuiSubtrans.SubtitleListModel import SubtitleListModel
 from GuiSubtrans.ViewModel.LineItem import LineItem
 from GuiSubtrans.ViewModel.TestableViewModel import TestableViewModel
@@ -62,4 +62,23 @@ class SubtitleListModelTests(GuiSubtitleTestCase):
             "visible line numbers after undo",
             [108, 109, 110, 111],
             [item.number for item in restored_items if isinstance(item, LineItem)],
+        )
+
+    def test_mixed_scene_and_batch_selection_shows_both(self) -> None:
+        """Selecting a scene and a batch in another scene must show the lines of both."""
+        viewmodel : TestableViewModel = self.create_testable_viewmodel_from_line_counts([[2, 2], [2, 2]])
+        proxy = SubtitleListModel(viewmodel)
+
+        selection = ProjectSelection()
+        selection.scenes[1] = SelectionScene(1, selected=True)
+        selection.batches[(1, 1)] = SelectionBatch((1, 1), selected=False)
+        selection.batches[(1, 2)] = SelectionBatch((1, 2), selected=False)
+        selection.scenes[2] = SelectionScene(2, selected=False)
+        selection.batches[(2, 2)] = SelectionBatch((2, 2), selected=True)
+        proxy.ShowSelection(selection)
+
+        self.assertLoggedSequenceEqual(
+            "visible batches",
+            [(1, 1), (1, 2), (2, 2)],
+            proxy.selected_batch_numbers,
         )
