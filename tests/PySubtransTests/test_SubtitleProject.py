@@ -4,10 +4,9 @@ import unittest
 from typing import cast
 
 from PySubtrans.Helpers.TestCases import SubtitleTestCase
-from PySubtrans.Helpers.Tests import log_input_expected_error, skip_if_debugger_attached
+from PySubtrans.Helpers.Tests import skip_if_debugger_attached
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleBatcher import SubtitleBatcher
-from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.SubtitleProject import SubtitleProject
 from PySubtrans.SubtitleScene import SubtitleScene
 from PySubtrans.SubtitleTranslator import SubtitleTranslator
@@ -679,9 +678,8 @@ Modified subtitle line 2
             new_project.subtitles.settings,
         )
 
-    @skip_if_debugger_attached
-    def test_read_project_rejects_duplicate_line_numbers(self):
-        """ReadProjectFile should reject a project with duplicate original line numbers"""
+    def test_read_project_renumbers_duplicate_line_numbers(self):
+        """ReadProjectFile should renumber duplicate line numbers and keep translations matched"""
         project = SubtitleProject(persistent=True)
         project.InitialiseProject(self.test_srt_file)
 
@@ -689,21 +687,30 @@ Modified subtitle line 2
         with project.GetEditor() as editor:
             editor.AutoBatch(batcher)
 
-        originals = project.subtitles.scenes[0].batches[0].originals
-        self.assertLoggedGreater("batch line count", len(originals), 1)
-        originals[1].number = originals[0].number
+        self.assertLoggedGreater("scene count", project.subtitles.scenecount, 1)
+        first_batch = project.subtitles.scenes[0].batches[0]
+        second_batch = project.subtitles.scenes[1].batches[0]
+
+        # Duplicate a line number across batches, with a translation for the duplicate
+        duplicate_line = second_batch.originals[0]
+        duplicate_line.number = first_batch.originals[0].number
+        translated_line = duplicate_line.copy()
+        translated_line.text = "Translated"
+        second_batch.translated = [translated_line]
 
         project.SaveProjectFile(self.test_project_file)
 
         new_project = SubtitleProject()
-        new_project.InitialiseProject(self.test_srt_file)
-        previous_subtitles = new_project.subtitles
+        new_project.ReadProjectFile(self.test_project_file)
 
-        with self.assertRaises(SubtitleError) as cm:
-            new_project.ReadProjectFile(self.test_project_file)
+        line_numbers = [line.number for line in new_project.subtitles.originals or []]
+        expected_numbers = list(range(1, len(line_numbers) + 1))
+        self.assertLoggedSequenceEqual("sequential line numbers", expected_numbers, line_numbers)
 
-        log_input_expected_error(self.test_project_file, SubtitleError, cm.exception)
-        self.assertLoggedIs("previous subtitles retained", previous_subtitles, new_project.subtitles)
+        reloaded_batch = new_project.subtitles.scenes[1].batches[0]
+        reloaded_translated = reloaded_batch.translated or []
+        self.assertLoggedEqual("translated line count", 1, len(reloaded_translated))
+        self.assertLoggedEqual("translation follows its original", reloaded_batch.originals[0].number, reloaded_translated[0].number)
 
 
 if __name__ == '__main__':

@@ -5,13 +5,12 @@ from datetime import timedelta
 from PySubtrans.SubtitleLine import SubtitleLine
 from PySubtrans.Helpers.Text import split_sequences, standard_filler_words
 from PySubtrans.Helpers.TestCases import LoggedTestCase
-from PySubtrans.Helpers.Tests import log_info, log_input_expected_error, skip_if_debugger_attached
+from PySubtrans.Helpers.Tests import log_info
 from PySubtrans.Helpers.SubtitleHelpers import MergeSubtitles, MergeTranslations, FindSplitPoint, GetProportionalDuration
 from PySubtrans.SubtitleProcessor import SubtitleProcessor
 from PySubtrans.SubtitleBatcher import SubtitleBatcher
 from PySubtrans.Formats.SrtFileHandler import SrtFileHandler
 from PySubtrans.SettingsType import SettingsType
-from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Subtitles import SaveSettings, Subtitles
 
 
@@ -366,20 +365,17 @@ class SubtitleTimingTests(LoggedTestCase):
 
 class SubtitleLoadTests(LoggedTestCase):
 
-    @skip_if_debugger_attached
-    def test_LoadSubtitlesFromString_rejects_duplicate_line_numbers(self):
+    def test_LoadSubtitlesFromString_renumbers_duplicate_line_numbers(self):
         srt_content = (
             "1\n00:00:01,000 --> 00:00:02,000\nFirst line\n\n"
             "2\n00:00:03,000 --> 00:00:04,000\nSecond line\n\n"
             "2\n00:00:05,000 --> 00:00:06,000\nDuplicate line\n\n"
         )
         subtitles = Subtitles()
+        subtitles.LoadSubtitlesFromString(srt_content, SrtFileHandler())
 
-        with self.assertRaises(SubtitleError) as cm:
-            subtitles.LoadSubtitlesFromString(srt_content, SrtFileHandler())
-
-        log_input_expected_error(srt_content, SubtitleError, cm.exception)
-        self.assertLoggedIsNone("originals not loaded", subtitles.originals)
+        line_numbers = [line.number for line in subtitles.originals or []]
+        self.assertLoggedSequenceEqual("renumbered lines", [1, 2, 3], line_numbers, input_value=srt_content)
 
     def test_LoadSubtitlesFromString_renumbers_zero_indices(self):
         srt_content = (
@@ -390,7 +386,7 @@ class SubtitleLoadTests(LoggedTestCase):
         subtitles.LoadSubtitlesFromString(srt_content, SrtFileHandler())
 
         line_numbers = [line.number for line in subtitles.originals or []]
-        self.assertLoggedSequenceEqual("renumbered lines", [1, 2], line_numbers)
+        self.assertLoggedSequenceEqual("renumbered lines", [1, 2], line_numbers, input_value=srt_content)
 
 if __name__ == '__main__':
     unittest.main()

@@ -26,24 +26,13 @@ FORMATTING_TAG_PATTERN = regex.compile(r'<[^>]*>|\{\\[^}]*\}')
 GRAPHEME_PATTERN = regex.compile(r'\X')
 DURATION_EPSILON = timedelta(milliseconds=50)
 
-def ValidateUniqueLineNumbers(lines : list[SubtitleLine]|None) -> None:
+def HasDuplicateLineNumbers(lines : list[SubtitleLine]) -> bool:
     """
-    Raise a SubtitleError if any line numbers are duplicated.
+    Check whether any line numbers are repeated.
     Line numbers must identify subtitles uniquely.
     """
-    if not lines:
-        return
-
-    seen : set[int] = set()
-    duplicates : set[int] = set()
-    for line in lines:
-        if line.number in seen:
-            duplicates.add(line.number)
-        seen.add(line.number)
-
-    if duplicates:
-        duplicate_list = ", ".join(str(number) for number in sorted(duplicates))
-        raise SubtitleError(_("Duplicate subtitle line numbers: {}").format(duplicate_list))
+    line_numbers = [line.number for line in lines]
+    return len(set(line_numbers)) != len(line_numbers)
 
 class SaveSettings:
     """Settings applied only while writing translated subtitles."""
@@ -263,10 +252,8 @@ class Subtitles:
             logging.info(_("Error parsing file... attempting format detection"))
             data = SubtitleFormatRegistry.detect_format_and_load_file(self.sourcepath)
 
-        self._renumber_if_needed(data.lines)
-        ValidateUniqueLineNumbers(data.lines)
-
         with self.lock:
+            self._renumber_if_needed(data.lines)
             self.originals = data.lines
             self.metadata = data.metadata
             self.file_format = data.detected_format
@@ -281,7 +268,6 @@ class Subtitles:
             with self.lock:
                 data = file_handler.parse_string(subtitles_string)
                 self._renumber_if_needed(data.lines)
-                ValidateUniqueLineNumbers(data.lines)
                 self.originals = data.lines
                 self.metadata = data.metadata
                 self.file_format = data.detected_format
@@ -380,12 +366,20 @@ class Subtitles:
 
     def _renumber_if_needed(self, lines : list[SubtitleLine]|None) -> None:
         """
-        Renumber subtitle lines if any have number 0 (indicating missing/invalid indices)
+        Renumber subtitle lines if any have number 0 (indicating missing/invalid indices) or numbers are duplicated
         """
-        if lines and any(line.number == 0 for line in lines):
+        if not lines:
+            return
+
+        if any(line.number == 0 for line in lines):
             logging.warning(_("Renumbering subtitle lines due to missing indices"))
-            for line_number, line in enumerate(lines, start=1):
-                line.number = line_number
+        elif HasDuplicateLineNumbers(lines):
+            logging.warning(_("Renumbering subtitle lines due to duplicate indices"))
+        else:
+            return
+
+        for line_number, line in enumerate(lines, start=1):
+            line.number = line_number
 
     def _extend_short_subtitles(self, lines : list[SubtitleLine], save_settings : SaveSettings) -> list[SubtitleLine]:
         """Extend output subtitle durations without changing the stored lines."""

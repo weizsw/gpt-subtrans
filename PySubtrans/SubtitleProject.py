@@ -369,13 +369,11 @@ class SubtitleProject:
                 logging.info(_("Reading project data from {}").format(str(filepath)))
 
                 with open(filepath, 'r', encoding=default_encoding, newline='') as f:
-                    subtitles : Subtitles = json.load(f, cls=SubtitleDecoder)
+                    self.subtitles: Subtitles = json.load(f, cls=SubtitleDecoder)
 
-                # Validate before replacing the active subtitles, so a rejected file leaves the project unchanged
-                with SubtitleEditor(subtitles) as editor:
+                with SubtitleEditor(self.subtitles) as editor:
                     editor.Sanitise()
 
-                self.subtitles = subtitles
                 return self.subtitles
 
         except FileNotFoundError:
