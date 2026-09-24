@@ -70,8 +70,8 @@ else:
 
             @property
             def recommended_max_chunk_seconds(self) -> float:
-                """The Files API handles multi-minute chunks comfortably."""
-                return 1200.0
+                """Very long chunks can silently drop whole scenes, which transcribe fine in shorter chunks."""
+                return 900.0
 
             @property
             def supports_diarization(self) -> bool:
