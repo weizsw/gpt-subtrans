@@ -67,6 +67,7 @@ class TestTranscriptionRegressions(LoggedTestCase):
 
     def test_dialogue_survives_postprocessing(self) -> None:
         """Post-processing preserves merged turns and clears attribution."""
+        self.provider.texts = ['I say! Of course! Indeed!']
         self.provider.words = [
             WordTiming('I say!', timedelta(), timedelta(seconds=0.5), 'A'),
             WordTiming('Of course!', timedelta(seconds=0.6), timedelta(seconds=0.8), 'B'),

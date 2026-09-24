@@ -13,7 +13,6 @@ import httpx
 
 from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.Helpers.Tests import skip_if_debugger_attached
-from PySubtrans.Helpers.Text import JoinWords
 from PySubtrans.Options import Options
 from PySubtrans.SettingsType import GuiSettingsType, SettingsType
 from PySubtrans.SubtitleBuilder import SubtitleBuilder
@@ -25,7 +24,8 @@ from PySubtrans.Transcription.SilenceStream import SilenceStream
 from PySubtrans.Transcription.WordTiming import WordTiming
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionCoordinator import TranscriptionCoordinator, TranscriptionStatus
-from PySubtrans.Transcription.TranscriptionLines import TranscriptionLineBuilder
+from PySubtrans.Transcription.TranscriptionLines import (MIN_WORD_CAP_SECONDS, WORD_CAP_MULTIPLE, EstimateSpeechSeconds,
+                                                         TranscriptionLineBuilder)
 from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionOutcome
 from PySubtrans.Transcription.TranscriptionProvider import OptionsScope, TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionResult, TranscriptionSegment
@@ -42,10 +42,12 @@ def setUpModule() -> None:
 
 class FakeTranscriptionClient(TranscriptionClient):
     def __init__(self, settings : SettingsType|None = None, texts : list[str]|None = None,
-                 words : list[WordTiming]|None = None, timestamps : bool = True):
+                 words : list[WordTiming]|None = None, timestamps : bool = True,
+                 parts : list[TranscriptionSegment]|None = None):
         super().__init__(settings or SettingsType())
         self.texts : list[str] = texts if texts is not None else ["hello world"]
         self.words : list[WordTiming] = words or []
+        self.parts : list[TranscriptionSegment] = parts or []
         self.timed : bool = timestamps
         self.calls : int = 0
 
@@ -57,7 +59,7 @@ class FakeTranscriptionClient(TranscriptionClient):
     def _transcribe_chunk(self, audio_bytes : bytes, audio_format : str) -> TranscriptionResult:
         self.calls += 1
         text = self.texts[(self.calls - 1) % len(self.texts)] if self.texts else ""
-        return TranscriptionResult(text=text, language=self.language, words=list(self.words))
+        return TranscriptionResult(text=text, language=self.language, words=list(self.words), parts=list(self.parts))
 
 class FailingTranscriptionClient(FakeTranscriptionClient):
     """Fake client with scripted backend failures for abort testing."""
@@ -94,10 +96,12 @@ class FakeTranscriptionProvider(TranscriptionProvider):
     name = "Fake Transcription"
 
     def __init__(self, settings : SettingsType|None = None, texts : list[str]|None = None,
-                 words : list[WordTiming]|None = None, timestamps : bool = True):
+                 words : list[WordTiming]|None = None, timestamps : bool = True,
+                 parts : list[TranscriptionSegment]|None = None):
         super().__init__(self.name, settings or SettingsType())
         self.texts : list[str]|None = texts
         self.words : list[WordTiming]|None = words
+        self.parts : list[TranscriptionSegment]|None = parts
         self.timed : bool = timestamps
         self.client : FakeTranscriptionClient|None = None
 
@@ -107,7 +111,7 @@ class FakeTranscriptionProvider(TranscriptionProvider):
 
     def GetTranscriptionClient(self, settings : SettingsType) -> TranscriptionClient:
         """Client returning the canned responses."""
-        self.client = FakeTranscriptionClient(settings, self.texts, self.words, self.timed)
+        self.client = FakeTranscriptionClient(settings, self.texts, self.words, self.timed, self.parts)
         return self.client
 
     def GetOptions(self, settings : SettingsType, scope : OptionsScope = OptionsScope.ALL) -> GuiSettingsType:
@@ -313,8 +317,10 @@ class TestWordGrouping(LoggedTestCase):
         return _default_builder()
 
     def _scene_lines(self, builder : TranscriptionLineBuilder, text : str, words : list[WordTiming], language : str|None = "Chinese"):
+        # A transcript would take precedence over the words, so it is left out to test word grouping
         chunk = AudioChunk(start=timedelta(seconds=100), end=timedelta(seconds=160))
-        segment = TranscriptionSegment(start=chunk.start, end=chunk.end, text=text, language=language, words=words)
+        segment = TranscriptionSegment(start=chunk.start, end=chunk.end, text="" if words else text,
+                                       language=language, words=words)
         return builder.LinesForSegment(segment)
 
     def test_aligned_words_group_into_true_lines(self):
@@ -337,22 +343,25 @@ class TestWordGrouping(LoggedTestCase):
         longest = max((line.end - line.start).total_seconds() for line in lines)
         self.assertLoggedLessEqual("longest line within the limit", longest, 4.0)
 
-    def test_runaway_word_is_capped_at_the_line_limit(self):
-        """A word stamped across most of the chunk lasts no longer than a line may."""
+    def test_runaway_word_is_capped_by_its_length(self):
+        """A word stamped across most of the chunk lasts no longer than a generous multiple of its speaking time."""
         words = [_word("嗨", 0.1, 50.0), _word("你好", 55.0, 56.0)]
         lines = self._scene_lines(self._builder(), "嗨你好", words)
 
         self.assertLoggedEqual("line count", 2, len(lines))
-        self.assertLoggedEqual("capped end", timedelta(seconds=104.1), lines[0].end)
+        expected = min(4.0, max(MIN_WORD_CAP_SECONDS, WORD_CAP_MULTIPLE * EstimateSpeechSeconds("嗨")))
+        self.assertLoggedEqual("capped end", timedelta(seconds=100.1 + expected), lines[0].end)
 
-    def test_no_words_stays_scene_line(self):
-        """Untimed scenes stay one honest line over the chunk span."""
-        builder = self._builder()
-        with self.assertLogs(level=logging.WARNING):
-            lines = self._scene_lines(builder, "some text", [], language="Thai")
+    def test_transcript_without_words_is_placed_by_length(self):
+        """Sentences with no word timings share the chunk span by characters, each within the line limit."""
+        with self.assertLogs(level=logging.INFO):
+            lines = self._scene_lines(self._builder(), "你好。我们走吧。", [])
 
-        self.assertLoggedEqual("line count", 1, len(lines))
-        self.assertLoggedEqual("span preserved", timedelta(seconds=160), lines[0].end)
+        self.assertLoggedEqual("line count", 2, len(lines))
+        self.assertLoggedEqual("first starts with the chunk", timedelta(seconds=100), lines[0].start)
+        self.assertLoggedEqual("second starts at its share", timedelta(seconds=100 + 60 * 3 / 8), lines[1].start)
+        for line in lines:
+            self.assertLoggedLessEqual("within the line limit", (line.end - line.start).total_seconds(), 4.0)
 
     def test_latin_words_spaced(self):
         """Latin words join with spaces, CJK without."""
@@ -555,8 +564,8 @@ class TestOverlongUtteranceSplitting(LoggedTestCase):
 
     def _lines(self, builder : TranscriptionLineBuilder, words : list[WordTiming]):
         chunk = AudioChunk(start=timedelta(seconds=100), end=timedelta(seconds=160))
-        text = JoinWords([w.text for w in words])
-        segment = TranscriptionSegment(start=chunk.start, end=chunk.end, text=text, language="English", words=words)
+        # Without a transcript, so the words are grouped directly
+        segment = TranscriptionSegment(start=chunk.start, end=chunk.end, language="English", words=words)
         return builder.LinesForSegment(segment)
 
     def test_uniform_timings_split_at_centre(self):
@@ -645,12 +654,12 @@ class TestOverlongUtteranceSplitting(LoggedTestCase):
 
     def test_min_split_chars_rejects_short_fragments(self):
         """A boundary that would leave a fragment under min_split_chars is skipped."""
-        words = [_word("hello", 0.0, 1.0), _word("big", 1.0, 2.0), _word("wide", 2.0, 4.5), _word("world", 4.5, 8.0)]
+        words = [_word("hello", 0.0, 0.5), _word("big", 0.5, 0.8), _word("wide", 0.8, 2.0), _word("world", 2.0, 3.4)]
 
-        loose = self._lines(TranscriptionLineBuilder(max_line_chars=200, max_line_seconds=7.0, min_split_chars=3), words)
+        loose = self._lines(TranscriptionLineBuilder(max_line_chars=200, max_line_seconds=3.0, min_split_chars=3), words)
         self.assertLoggedEqual("loose first text", "hello big wide", loose[0].text)
 
-        strict = self._lines(TranscriptionLineBuilder(max_line_chars=200, max_line_seconds=7.0, min_split_chars=8), words)
+        strict = self._lines(TranscriptionLineBuilder(max_line_chars=200, max_line_seconds=3.0, min_split_chars=8), words)
         self.assertLoggedEqual("strict line count", 2, len(strict))
         self.assertLoggedEqual("strict first text", "hello big", strict[0].text)
         self.assertLoggedEqual("strict second text", "wide world", strict[1].text)
@@ -760,17 +769,16 @@ class TestOverlongSpans(LoggedTestCase):
 
         self.assertLoggedEqual("line count", 2, len(lines))
 
-    def test_whole_chunk_fallback_flags_warning(self):
-        """A flat-text chunk span is flagged when it runs long."""
+    def test_untimed_chunk_is_not_one_long_line(self):
+        """A transcript with no timings is held to the line limit rather than spread over the whole chunk."""
         builder = self._builder()
         segment = TranscriptionSegment(start=timedelta(seconds=100), end=timedelta(seconds=160),
                                        text="monologue", language="Chinese")
-        with self.assertLogs(level=logging.WARNING):
+        with self.assertLogs(level=logging.INFO):
             lines = builder.LinesForSegment(segment)
-            flagged = builder.WarnIfOverlong(lines[0])
 
         self.assertLoggedEqual("line count", 1, len(lines))
-        self.assertLoggedEqual("flagged", True, flagged)
+        self.assertLoggedEqual("duration", timedelta(seconds=4), lines[0].end - lines[0].start)
 
     def test_timed_line_no_warning(self):
         """Word-timed lines are already capped, so they never flag."""
@@ -980,6 +988,114 @@ class TestPartsFirst(LoggedTestCase):
 
         self.assertLoggedEqual("line count", 2, len(lines))
 
+    def test_words_missing_characters_still_split_the_part(self):
+        """Words that drop a character and all punctuation still split a long part, and every character is kept."""
+        parts = [_part("你好，朋友。我们走吧！", 0.0, 8.0)]
+        words = _uniform_words(["你好", "友", "我们", "走吧"], seconds_each=1.5)
+        lines = self._lines(parts, words)
+
+        self.assertLoggedEqual("line count", 2, len(lines))
+        self.assertLoggedEqual("first piece", "你好，朋友。", lines[0].text)
+        self.assertLoggedEqual("second piece", "我们走吧！", lines[1].text)
+
+
+class TestDerivedParts(LoggedTestCase):
+    """A transcript with words but no provider parts is cut into parts timed by its words."""
+    def _lines(self, text : str, words : list[WordTiming],
+               builder : TranscriptionLineBuilder|None = None) -> list[TranscriptionSegment]:
+        segment = TranscriptionSegment(start=timedelta(seconds=100), end=timedelta(seconds=160),
+                                       text=text, language="Chinese", words=words)
+        return (builder or _default_builder()).LinesForSegment(segment)
+
+    def test_transcript_characters_missing_from_the_words_are_kept(self):
+        """The transcript supplies the text, including characters the words dropped."""
+        words = [_word("杀", 0.0, 0.2), _word("精", 0.2, 0.4), _word("细", 0.6, 0.8), _word("佬", 0.8, 1.0)]
+        lines = self._lines("杀精人，细佬。", words)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("text", "杀精人，细佬。", lines[0].text)
+
+    def test_parts_end_at_sentence_punctuation(self):
+        """Words without punctuation are cut where the transcript ends a sentence."""
+        words = _uniform_words(["你", "好"], seconds_each=0.2) + _uniform_words(["我", "们", "走", "吧"], 0.2, start=1.5)
+        lines = self._lines("你好。我们走吧！", words)
+
+        self.assertLoggedEqual("line count", 2, len(lines))
+        self.assertLoggedEqual("first text", "你好。", lines[0].text)
+        self.assertLoggedEqual("second text", "我们走吧！", lines[1].text)
+        self.assertLoggedEqual("second starts at its first word", timedelta(seconds=101.5), lines[1].start)
+
+    def test_pause_inside_a_sentence_does_not_cut_it(self):
+        """With punctuation to go by, a pause mid-sentence leaves the sentence whole."""
+        words = [_word("我", 0.0, 0.2), _word("们", 0.2, 0.4), _word("走", 0.4, 0.6), _word("吧", 2.0, 2.2)]
+        lines = self._lines("我们走，吧。", words)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+
+    def test_unpunctuated_transcript_is_cut_at_pauses(self):
+        """Without punctuation, a pause in the words ends a part."""
+        words = _uniform_words(["你", "好", "朋", "友"], seconds_each=0.2) + _uniform_words(["我", "们", "走", "吧"], 0.2, start=3.0)
+        lines = self._lines("你好朋友我们走吧", words)
+
+        self.assertLoggedEqual("texts", ["你好朋友", "我们走吧"], [line.text for line in lines])
+
+    def test_unpunctuated_transcript_is_cut_at_speaker_changes(self):
+        """Without punctuation, a change of speaker ends a part, and each part takes its words' speaker."""
+        words = ([_word(char, 0.2 * index, 0.2 * (index + 1), "A") for index, char in enumerate("你好朋友")]
+                 + [_word(char, 0.8 + 0.2 * index, 0.8 + 0.2 * (index + 1), "B") for index, char in enumerate("我们走吧")])
+        lines = self._lines("你好朋友我们走吧", words)
+
+        self.assertLoggedEqual("texts", ["你好朋友", "我们走吧"], [line.text for line in lines])
+        self.assertLoggedEqual("speakers", ["A", "B"], [line.speaker for line in lines])
+
+    def test_timed_punctuation_ends_its_part(self):
+        """A punctuation word marks where its utterance ends, so the part runs to it."""
+        words = [_word("你", 0.0, 0.1), _word("好", 0.1, 0.2), _word("？", 1.2, 1.3)] + _uniform_words(["走", "吧"], 0.2, start=3.0)
+        lines = self._lines("你好？走吧。", words)
+
+        self.assertLoggedEqual("first end", timedelta(seconds=101.3), lines[0].end)
+
+    def test_punctuated_sentence_is_cut_where_the_speaker_changes(self):
+        """A sentence voiced by two speakers becomes a part for each."""
+        words = ([_word(char, 0.3 * index, 0.3 * (index + 1), "A") for index, char in enumerate("你好朋友")]
+                 + [_word(char, 1.2 + 0.3 * index, 1.2 + 0.3 * (index + 1), "B") for index, char in enumerate("我们走吧")])
+        lines = self._lines("你好朋友我们走吧。", words)
+
+        self.assertLoggedEqual("speakers", ["A", "B"], [line.speaker for line in lines])
+        self.assertLoggedEqual("texts", ["你好朋友", "我们走吧。"], [line.text for line in lines])
+
+    def test_long_part_is_split_at_its_words(self):
+        """A derived part over the duration limit is split like a provider part."""
+        text = "你好朋友我们走吧真的很好。"
+        words = _uniform_words(list("你好朋友我们走吧真的很好"), seconds_each=0.5)
+        lines = self._lines(text, words)
+
+        self.assertLoggedGreater("split", len(lines), 1)
+        self.assertLoggedEqual("text kept", text, ''.join(line.text for line in lines))
+        for line in lines:
+            self.assertLoggedLessEqual("within the limit", (line.end - line.start).total_seconds(), 4.0)
+
+    def test_runaway_words_do_not_time_their_part(self):
+        """Words stretched far beyond their text are ignored, so their sentence is placed by length instead."""
+        words = ([_word("声", 7.36, 12.15), _word("咩", 16.94, 21.73)]
+                 + _uniform_words(["我", "们", "走", "吧"], 0.2, start=30.0))
+        lines = self._lines("好声咩？我们走吧。", words)
+
+        self.assertLoggedEqual("first text", "好声咩？", lines[0].text)
+        self.assertLoggedEqual("first starts with the chunk", timedelta(seconds=100), lines[0].start)
+        self.assertLoggedLessEqual("first lasts about its speaking time", (lines[0].end - lines[0].start).total_seconds(), 1.0)
+        self.assertLoggedEqual("second timed by its words", timedelta(seconds=130), lines[1].start)
+
+    def test_unrelated_words_are_not_used(self):
+        """Words that match nothing in the transcript leave it to be placed by length."""
+        words = [_word("别的", 1.0, 1.8), _word("东西", 1.8, 2.5)]
+        with self.assertLogs(level=logging.INFO):
+            lines = self._lines("要不要跳进去？", words)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("text", "要不要跳进去？", lines[0].text)
+        self.assertLoggedLessEqual("within the limit", (lines[0].end - lines[0].start).total_seconds(), 4.0)
+
 
 class TestLineBuilderWiring(LoggedTestCase):
     def test_builder_limits_come_from_settings(self):
@@ -1154,8 +1270,9 @@ class TestSilenceGate(LoggedTestCase):
         self.assertLoggedEqual("no requests sent", 0, provider.client.calls)
 
 class TestTranscriptionCoordinator(LoggedTestCase):
-    def _coordinator(self, texts : list[str]|None = None, words : list[WordTiming]|None = None):
-        provider = FakeTranscriptionProvider(SettingsType(), texts, words)
+    def _coordinator(self, texts : list[str]|None = None, words : list[WordTiming]|None = None,
+                     parts : list[TranscriptionSegment]|None = None):
+        provider = FakeTranscriptionProvider(SettingsType(), texts, words, parts=parts)
         coordinator = TranscriptionCoordinator(provider, SettingsType({'min_chunk_seconds': 1.0}))
         return coordinator, provider
 
@@ -1416,7 +1533,9 @@ class TestTranscriptionCoordinator(LoggedTestCase):
     def test_preprocesses_like_loaded_files(self):
         """Long flat lines split on duration under the post-process toggle."""
         text = "First sentence here. Second sentence here. Third sentence here. Fourth sentence here."
-        coordinator, _unused_provider = self._coordinator([text])
+        # A provider part spanning the chunk, since a bare transcript is cut into timed parts
+        part = TranscriptionSegment(start=timedelta(seconds=0), end=timedelta(seconds=60), text=text)
+        coordinator, _unused_provider = self._coordinator([text], parts=[part])
         stub_media(self, coordinator, [
             AudioChunk(start=timedelta(seconds=0), end=timedelta(seconds=60)),
         ])
@@ -1437,7 +1556,9 @@ class TestTranscriptionCoordinator(LoggedTestCase):
     def test_skips_preprocess_when_toggled_off(self):
         """Unchecking post-process keeps long flat lines whole."""
         text = "First sentence here. Second sentence here. Third sentence here. Fourth sentence here."
-        coordinator, _unused_provider = self._coordinator([text])
+        # A provider part spanning the chunk, since a bare transcript is cut into timed parts
+        part = TranscriptionSegment(start=timedelta(seconds=0), end=timedelta(seconds=60), text=text)
+        coordinator, _unused_provider = self._coordinator([text], parts=[part])
         stub_media(self, coordinator, [
             AudioChunk(start=timedelta(seconds=0), end=timedelta(seconds=60)),
         ])

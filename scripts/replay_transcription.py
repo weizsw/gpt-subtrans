@@ -23,6 +23,8 @@ from dataclasses import replace
 from datetime import timedelta
 from difflib import SequenceMatcher
 
+import regex
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from PySubtrans.Options import Options
@@ -145,8 +147,14 @@ def Splittable(line : TranscriptionSegment, min_line_seconds : float) -> bool:
     return False
 
 
-def Report(lines : list[TranscriptionSegment], min_line_seconds : float, max_newlines : int, quiet : bool = False) -> None:
-    """Print each line, flagging the ones worth looking at."""
+def SpokenText(text : str) -> str:
+    """Text without whitespace or dialogue markers, for counting how much of a transcript survived."""
+    return ''.join(regex.sub(r'^- ', '', row) for row in text.split('\n')).replace(' ', '')
+
+
+def Report(lines : list[TranscriptionSegment], min_line_seconds : float, max_newlines : int, quiet : bool = False,
+           transcript_chars : int = 0) -> None:
+    """Print each line, flagging the ones worth looking at, and how much of the transcript the lines hold."""
     short = 0
     stacked = 0
     splittable = 0
@@ -172,6 +180,10 @@ def Report(lines : list[TranscriptionSegment], min_line_seconds : float, max_new
     print(f"\n{len(lines)} lines, {short} under {min_line_seconds}s, "
           f"{stacked} at the newline limit ({splittable} splittable)")
 
+    if transcript_chars:
+        output_chars = sum(len(SpokenText(line.text)) for line in lines)
+        print(f"{output_chars} of {transcript_chars} transcript characters in the lines ({output_chars / transcript_chars:.0%})")
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Replay a captured transcription through the line builder")
@@ -196,6 +208,7 @@ def main() -> int:
     segments = LoadCapture(args.capture)
     Describe(segments)
     segments = SelectSource(segments, args.source)
+    transcript_chars = sum(len(SpokenText(segment.text)) for segment in segments)
 
     overrides = {
         'min_line_seconds': args.min_line_duration,
@@ -214,12 +227,13 @@ def main() -> int:
             trial = dict(overrides)
             trial[setting] = float(value) if '.' in value else int(value)
             lines = BuildLines(segments, **trial)
-            Report(lines, float(trial.get('min_line_seconds') or 0.8), int(trial.get('max_newlines') or 2), args.quiet)
+            Report(lines, float(trial.get('min_line_seconds') or 0.8), int(trial.get('max_newlines') or 2), args.quiet,
+                   transcript_chars)
         return 0
 
     print()
     lines = BuildLines(segments, **overrides)
-    Report(lines, overrides['min_line_seconds'] or 0.8, overrides['max_newlines'] or 2, args.quiet)
+    Report(lines, overrides['min_line_seconds'] or 0.8, overrides['max_newlines'] or 2, args.quiet, transcript_chars)
 
     if args.output:
         count = SaveLines(lines, args.output, args.postprocess)

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 import logging
-from dataclasses import replace
+from collections import Counter
+from dataclasses import dataclass, replace
 from datetime import timedelta
+from difflib import SequenceMatcher
 
 import regex
 
@@ -41,6 +43,29 @@ SHORT_WORD_CHARS = 3
 # A word made of nothing but punctuation and spacing
 PUNCTUATION_ONLY = regex.compile(r'^[\p{P}\s]+$')
 
+# A character that is spoken, and so can be matched between a transcript and its words
+SPOKEN_CHAR = regex.compile(r'[^\p{P}\p{S}\s]')
+
+# Characters that may close a sentence after its end punctuation, such as quotes and brackets
+CLOSING_CHARS = regex.compile(r'[\p{Pe}\p{Pf}"\'\s]+$')
+
+# Scripts written with one character per syllable, which take longer to say per character
+SYLLABIC_CHAR = regex.compile(r'[\p{Han}\p{Hiragana}\p{Katakana}\p{Hangul}]')
+
+# Speaking rates for estimating how long text takes to say.
+# The syllabic rate is the median of OpenRouter parts for Cantonese dialogue.
+SYLLABIC_SECONDS_PER_CHAR = 0.2
+OTHER_SECONDS_PER_CHAR = 0.07
+MIN_SPEECH_SECONDS = 0.3
+
+# A word is capped at this multiple of its estimated speaking time
+WORD_CAP_MULTIPLE = 4.0
+MIN_WORD_CAP_SECONDS = 1.0
+
+# A word lasting this multiple of its estimate is an aligner failure, and is not used for timing
+UNRELIABLE_WORD_MULTIPLE = 8.0
+MIN_UNRELIABLE_WORD_SECONDS = 2.0
+
 
 def SpanLabel(span : AudioChunk|TranscriptionSegment) -> str:
     """Human-readable start-end label for a chunk or segment, in seconds."""
@@ -75,15 +100,105 @@ def CutText(text : str, lengths : list[int]) -> list[str]:
     return pieces
 
 
+def EstimateSpeechSeconds(text : str) -> float:
+    """Roughly how long text takes to say, from its character count and script."""
+    syllabic = len(SYLLABIC_CHAR.findall(text))
+    other = sum(1 for char in text if char.isalnum()) - syllabic
+    return max(MIN_SPEECH_SECONDS, syllabic * SYLLABIC_SECONDS_PER_CHAR + other * OTHER_SECONDS_PER_CHAR)
+
+
+def EndsSentence(text : str) -> bool:
+    """Whether text ends with sentence punctuation, ignoring closing quotes and brackets."""
+    text = CLOSING_CHARS.sub('', text)
+    return bool(text) and text[-1] in SENTENCE_END_CHARS
+
+
+def SentenceRanges(text : str) -> list[tuple[int, int]]:
+    """Ranges of the text ending at sentence punctuation, with any closing quotes or brackets."""
+    ranges : list[tuple[int, int]] = []
+    start = 0
+    index = 0
+
+    while index < len(text):
+        if text[index] in SENTENCE_END_CHARS:
+            end = index + 1
+            while end < len(text) and (text[end] in SENTENCE_END_CHARS or CLOSING_CHARS.match(text[end])):
+                end += 1
+            ranges.append((start, end))
+            start = index = end
+        else:
+            index += 1
+
+    if start < len(text):
+        ranges.append((start, len(text)))
+
+    return ranges
+
+
+@dataclass
+class AlignedWord:
+    """A word matched to the transcript, with the range of transcript characters it matched."""
+    word : WordTiming
+    start : int
+    end : int
+
+
+def AlignWords(text : str, words : list[WordTiming]) -> list[AlignedWord]:
+    """
+    Match words to the transcript they came from, character by character.
+
+    Only spoken characters are compared, so punctuation and spacing on either side do not matter.
+    Words with no matching character are left out.
+    Matching keeps order on both sides, so the result is in transcript order.
+    """
+    offsets = [index for index, char in enumerate(text) if SPOKEN_CHAR.match(char)]
+    owners = [index for index, word in enumerate(words) for char in word.text if SPOKEN_CHAR.match(char)]
+    word_chars = ''.join(char for word in words for char in word.text if SPOKEN_CHAR.match(char))
+    text_chars = ''.join(text[offset] for offset in offsets)
+
+    spans : dict[int, tuple[int, int]] = {}
+    matcher = SequenceMatcher(None, word_chars, text_chars, autojunk=False)
+    for word_index, text_index, size in matcher.get_matching_blocks():
+        for step in range(size):
+            owner = owners[word_index + step]
+            offset = offsets[text_index + step]
+            first, last = spans.get(owner, (offset, offset))
+            spans[owner] = (min(first, offset), max(last, offset))
+
+    return [AlignedWord(words[index], first, last + 1) for index, (first, last) in sorted(spans.items())]
+
+
+def CutPoints(text : str, aligned : list[AlignedWord], start : int, end : int) -> list[int]:
+    """
+    Divide text[start:end] among aligned words, so each word owns a slice holding its matched characters.
+
+    Characters the words missed go to the word before them, up to the last punctuation in the gap.
+    The rest go to the word after, so punctuation stays with the text it closes.
+    Returns one more cut than there are words.
+    """
+    cuts = [start]
+    for previous, word in zip(aligned, aligned[1:]):
+        gap = text[previous.end:word.start]
+        last_punctuation = max((index for index, char in enumerate(gap) if not SPOKEN_CHAR.match(char) and not char.isspace()),
+                               default=-1)
+        cuts.append(previous.end + last_punctuation + 1)
+
+    cuts.append(end)
+    return cuts
+
+
 class TranscriptionLineBuilder:
     """
     Turns transcribed chunks into timed subtitle lines.
 
     Provider sub-segments are the lines when there are any; word timings
     only split the ones over the character or duration limit. Without
-    sub-segments, word timings group into utterances at pauses, speaker
-    changes and sentence punctuation, and over-long utterances are split
-    at their best pause. Brief slivers merge into their neighbours.
+    sub-segments, the chunk transcript is cut into parts and timed by its
+    words, so the transcript supplies the text and the words only the
+    timing. With words and no transcript, words group into utterances at
+    pauses, speaker changes and sentence punctuation, and over-long
+    utterances are split at their best pause. Brief slivers merge into
+    their neighbours.
     No provider or audio dependencies.
     """
     def __init__(self, max_line_chars : int, max_line_seconds : float, min_split_chars : int = 3,
@@ -106,19 +221,20 @@ class TranscriptionLineBuilder:
         Turn a transcribed chunk into timed subtitle lines.
 
         Provider sub-segments become rebased lines, split by word timings
-        where they run over a limit. Without sub-segments, word timings
-        group into lines. Either way brief slivers are merged back into
-        their neighbours. A chunk with neither stays one line over its
-        true chunk span: coarse but honest, and the text was already paid
-        for, so it is kept rather than thrown away.
+        where they run over a limit. Without sub-segments, the chunk
+        transcript is cut into parts timed by its words, which are then
+        treated the same way. Words alone, with no transcript, group into
+        lines. Either way brief slivers are merged back into their
+        neighbours. A chunk with nothing but a span stays one line.
         """
-        words = [self._capped_word(word) for word in segment.words]
-
         if segment.parts:
-            return self._lines_from_parts(segment, words)
+            return self._lines_from_parts(segment, self._timing_words(segment.words))
 
-        if words:
-            lines = self._group_words(words, segment)
+        if segment.text.strip():
+            return self._lines_from_transcript(segment, self._timing_words(segment.words))
+
+        if segment.words:
+            lines = self._group_words([self._capped_word(word) for word in segment.words], segment)
             return lines or [segment]
 
         self.WarnIfOverlong(segment)
@@ -162,23 +278,37 @@ class TranscriptionLineBuilder:
 
     def _capped_word(self, word : WordTiming) -> WordTiming:
         """
-        Limit a word to the longest a line may last.
-        Engines occasionally stamp a word across most of a chunk, and no single word outlasts a whole line.
+        Limit a word to a generous multiple of the time its text takes to say, and never beyond a whole line.
+        Engines occasionally stamp a word across most of a chunk.
         """
-        if (word.end - word.start).total_seconds() <= self.max_line_seconds:
+        cap = min(self.max_line_seconds, max(MIN_WORD_CAP_SECONDS, WORD_CAP_MULTIPLE * EstimateSpeechSeconds(word.text)))
+        if (word.end - word.start).total_seconds() <= cap:
             return word
 
-        return WordTiming(text=word.text, start=word.start,
-                          end=word.start + timedelta(seconds=self.max_line_seconds), speaker=word.speaker)
+        return WordTiming(text=word.text, start=word.start, end=word.start + timedelta(seconds=cap), speaker=word.speaker)
+
+    def _timing_words(self, words : list[WordTiming]) -> list[WordTiming]:
+        """
+        Words fit to time a transcript: capped, and without those whose span is too long for their text to be real.
+        """
+        reliable = [word for word in words if (word.end - word.start).total_seconds()
+                    <= max(MIN_UNRELIABLE_WORD_SECONDS, UNRELIABLE_WORD_MULTIPLE * EstimateSpeechSeconds(word.text))]
+        return [self._capped_word(word) for word in reliable]
 
     def _lines_from_parts(self, segment : TranscriptionSegment, words : list[WordTiming]) -> list[TranscriptionSegment]:
         """
         Rebase the provider's sub-segments into lines, splitting any over a limit.
         """
         parts = [part for part in segment.parts if part.text.strip()]
+        return self._fit_parts(segment, parts, self._assign_words(parts, words))
 
+    def _fit_parts(self, segment : TranscriptionSegment, parts : list[TranscriptionSegment],
+                   assigned : list[list[WordTiming]]) -> list[TranscriptionSegment]:
+        """
+        Turn chunk-relative parts and their words into lines, then merge slivers.
+        """
         lines : list[TranscriptionSegment] = []
-        for part, part_words in zip(parts, self._assign_words(parts, words)):
+        for part, part_words in zip(parts, assigned):
             lines.extend(self._fit_part(part, part_words, segment))
 
         # Providers that segment for us still strand fragments, which
@@ -189,33 +319,190 @@ class TranscriptionLineBuilder:
 
         return merged or [segment]
 
-    @staticmethod
-    def _assign_words(parts : list[TranscriptionSegment], words : list[WordTiming]) -> list[list[WordTiming]]:
+    def _assign_words(self, parts : list[TranscriptionSegment], words : list[WordTiming]) -> list[list[WordTiming]]:
         """
         Share words out among the parts that transcribe them, matching text in order.
 
         Timings are not consulted, since they are the unreliable half.
-        Once the texts disagree, no later part is given any words.
+        Each word is respelled with the slice of part text it covers, so a part's words spell it exactly,
+        including characters and punctuation the words themselves left out.
+        """
+        text = '\n'.join(part.text for part in parts)
+
+        ranges : list[tuple[int, int]] = []
+        position = 0
+        for part in parts:
+            ranges.append((position, position + len(part.text)))
+            position += len(part.text) + 1
+
+        return self._assign_to_ranges(text, ranges, AlignWords(text, words))
+
+    @staticmethod
+    def _assign_to_ranges(text : str, ranges : list[tuple[int, int]],
+                          aligned : list[AlignedWord]) -> list[list[WordTiming]]:
+        """
+        Give each range of the text the aligned words that start in it, respelled with their slices of it.
         """
         assigned : list[list[WordTiming]] = []
         index = 0
 
-        for part in parts:
-            target = CompactText(part.text)
-            taken : list[WordTiming] = []
-            text = ''
-            while index < len(words) and len(text) < len(target):
-                text += CompactText(words[index].text)
-                taken.append(words[index])
+        for start, end in ranges:
+            members : list[AlignedWord] = []
+            while index < len(aligned) and aligned[index].start < end:
+                if aligned[index].start >= start:
+                    members.append(aligned[index])
                 index += 1
 
-            if text != target:
-                break
+            cuts = CutPoints(text, members, start, end)
+            assigned.append([WordTiming(text=text[cuts[i]:cuts[i + 1]].strip(), start=member.word.start,
+                                        end=member.word.end, speaker=member.word.speaker)
+                             for i, member in enumerate(members)])
 
-            assigned.append(taken)
-
-        assigned.extend([] for _ in range(len(parts) - len(assigned)))
         return assigned
+
+    def _lines_from_transcript(self, segment : TranscriptionSegment, words : list[WordTiming]) -> list[TranscriptionSegment]:
+        """
+        Cut the chunk transcript into parts timed by its words, then treat them as provider parts.
+
+        The transcript is the text: words drop characters and punctuation, so they only give the timing.
+        Parts end at sentence punctuation where the transcript has it, and otherwise at pauses and speaker changes.
+        Parts no word can be matched to are placed between their neighbours by their share of characters.
+        """
+        text = segment.text.strip()
+        aligned = AlignWords(text, self._extend_to_punctuation(words))
+
+        if any(char in SENTENCE_END_CHARS for char in text):
+            ranges = self._split_at_speaker_changes(text, SentenceRanges(text), aligned)
+        else:
+            ranges = self._pause_ranges(text, aligned)
+
+        assigned = self._assign_to_ranges(text, ranges, aligned)
+        parts = [TranscriptionSegment(text=text[start:end].strip(), speaker=self._majority_speaker(part_words))
+                 for (start, end), part_words in zip(ranges, assigned)]
+
+        if not aligned:
+            logging.info(_("Chunk {}: no word timings match the transcript, so lines are placed by length").format(
+                SpanLabel(segment)))
+
+        self._time_parts(parts, assigned, segment.end - segment.start)
+
+        kept = [index for index, part in enumerate(parts) if part.text]
+        return self._fit_parts(segment, [parts[index] for index in kept], [assigned[index] for index in kept])
+
+    @staticmethod
+    def _extend_to_punctuation(words : list[WordTiming]) -> list[WordTiming]:
+        """
+        Extend each word to the end of any punctuation-only words after it.
+        Engines that time punctuation place it where the utterance ends, so a part closed by it ends there too.
+        """
+        extended : list[WordTiming] = []
+        spoken : int|None = None
+        for word in words:
+            if not PUNCTUATION_ONLY.match(word.text):
+                spoken = len(extended)
+            elif spoken is not None and word.end > extended[spoken].end:
+                previous = extended[spoken]
+                extended[spoken] = WordTiming(text=previous.text, start=previous.start, end=word.end, speaker=previous.speaker)
+            extended.append(word)
+
+        return extended
+
+    @staticmethod
+    def _split_at_speaker_changes(text : str, ranges : list[tuple[int, int]],
+                                  aligned : list[AlignedWord]) -> list[tuple[int, int]]:
+        """Divide ranges where the speaker of their words changes."""
+        split : list[tuple[int, int]] = []
+        index = 0
+
+        for start, end in ranges:
+            members : list[AlignedWord] = []
+            while index < len(aligned) and aligned[index].start < end:
+                if aligned[index].start >= start:
+                    members.append(aligned[index])
+                index += 1
+
+            cuts = CutPoints(text, members, start, end)
+            for position in range(1, len(members)):
+                previous, word = members[position - 1].word, members[position].word
+                if previous.speaker is not None and word.speaker is not None and previous.speaker != word.speaker:
+                    split.append((start, cuts[position]))
+                    start = cuts[position]
+
+            split.append((start, end))
+
+        return split
+
+    def _pause_ranges(self, text : str, aligned : list[AlignedWord]) -> list[tuple[int, int]]:
+        """Ranges of an unpunctuated text, cut where its words pause or change speaker."""
+        if not aligned:
+            return [(0, len(text))]
+
+        cuts = CutPoints(text, aligned, 0, len(text))
+        ranges : list[tuple[int, int]] = []
+        start = 0
+
+        for index in range(1, len(aligned)):
+            if self._is_hard_boundary(aligned[index - 1].word, aligned[index].word):
+                ranges.append((start, cuts[index]))
+                start = cuts[index]
+
+        ranges.append((start, len(text)))
+        return ranges
+
+    @staticmethod
+    def _majority_speaker(words : list[WordTiming]) -> str|None:
+        """The speaker of most of the words, if any carry one."""
+        speakers = Counter(word.speaker for word in words if word.speaker is not None)
+        return speakers.most_common(1)[0][0] if speakers else None
+
+    def _time_parts(self, parts : list[TranscriptionSegment], assigned : list[list[WordTiming]], duration : timedelta) -> None:
+        """
+        Set each part's chunk-relative span from its words.
+
+        A run of parts without words shares the time between its timed neighbours by characters.
+        Between timed parts, each is given only as long as its text takes to say, so it does not stretch over silence.
+        When no part is timed, each fills its share of the chunk, up to the longest a line may last.
+        """
+        if not any(assigned):
+            total = sum(len(CompactText(part.text)) for part in parts) or 1
+            longest = timedelta(seconds=self.max_line_seconds)
+            position = 0
+            for part in parts:
+                part.start = duration * (position / total)
+                position += len(CompactText(part.text))
+                part.end = min(duration * (position / total), part.start + longest)
+            return
+
+        for part, words in zip(parts, assigned):
+            if words:
+                part.start = min(word.start for word in words)
+                part.end = max(word.end for word in words)
+
+        index = 0
+        while index < len(parts):
+            if assigned[index]:
+                index += 1
+                continue
+
+            run_end = index
+            while run_end < len(parts) and not assigned[run_end]:
+                run_end += 1
+
+            after = parts[index - 1].end if index > 0 else timedelta(0)
+            before = parts[run_end].start if run_end < len(parts) else duration
+            gap = max(timedelta(0), before - after)
+            run = parts[index:run_end]
+            total = sum(len(CompactText(part.text)) for part in run) or 1
+
+            position = 0
+            for offset, part in enumerate(run):
+                part.start = after + gap * (position / total)
+                position += len(CompactText(part.text))
+                room = after + gap * (position / total) - part.start if offset + 1 < len(run) else before - part.start
+                speech = timedelta(seconds=EstimateSpeechSeconds(part.text))
+                part.end = part.start + (min(speech, room) if room > timedelta(0) else speech)
+
+            index = run_end
 
     def _fit_part(self, part : TranscriptionSegment, words : list[WordTiming],
                   segment : TranscriptionSegment) -> list[TranscriptionSegment]:
