@@ -140,7 +140,8 @@ class TranscriptCutter:
         self._place_untimed_runs(parts, assigned, duration)
 
     def _spread_untimed(self, parts : list[TranscriptionSegment], duration : timedelta) -> None:
-        """Give each part its share of the chunk by characters, up to the longest a line may last."""
+        """Give each part its share of the chunk by characters, up to a line's length or the time its text takes to say."""
+        # Text that takes longer to say than a line may last is left long, so that subtitle post-processing splits it by duration
         total = sum(len(CompactText(part.text)) for part in parts) or 1
         longest = timedelta(seconds=self.settings.max_line_seconds)
         position = 0
@@ -148,7 +149,8 @@ class TranscriptCutter:
         for part in parts:
             part.start = duration * (position / total)
             position += len(CompactText(part.text))
-            part.end = min(duration * (position / total), part.start + longest)
+            speech = timedelta(seconds=EstimateSpeechSeconds(part.text))
+            part.end = min(duration * (position / total), part.start + max(longest, speech))
 
     def _place_untimed_runs(self, parts : list[TranscriptionSegment], assigned : list[list[WordTiming]], duration : timedelta) -> None:
         """Share the time between timed parts among the untimed parts in it, by characters."""

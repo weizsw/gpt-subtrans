@@ -787,6 +787,20 @@ class TestOverlongSpans(LoggedTestCase):
         self.assertLoggedEqual("line count", 1, len(lines))
         self.assertLoggedEqual("duration", timedelta(seconds=4), lines[0].end - lines[0].start)
 
+    def test_long_untimed_transcript_is_left_for_splitting(self):
+        """A long transcript with no timings keeps the time it takes to say, so post-processing can split it by duration."""
+        builder = self._builder()
+        text = " ".join(["word"] * 60)
+        segment = TranscriptionSegment(start=timedelta(seconds=100), end=timedelta(seconds=160),
+                                       text=text, language="English")
+        with self.assertLogs(level=logging.INFO):
+            lines = builder.LinesForSegment(segment)
+
+        self.assertLoggedEqual("line count", 1, len(lines))
+        self.assertLoggedEqual("duration", timedelta(seconds=EstimateSpeechSeconds(text)), lines[0].end - lines[0].start)
+        self.assertLoggedGreater("longer than one line", (lines[0].end - lines[0].start).total_seconds(),
+                                 builder.settings.max_line_seconds)
+
     def test_timed_line_no_warning(self):
         """Word-timed lines are already capped, so they never flag."""
         builder = self._builder()
@@ -1188,6 +1202,21 @@ class TestDerivedParts(LoggedTestCase):
         self.assertLoggedEqual("all ends", ["It costs 3.5 dollars.", "That's all."],
                                [text[start:end].strip() for start, end in SentenceRanges(text, SentenceEnds.ALL)])
         self.assertLoggedEqual("strong ends", [text], [text[start:end] for start, end in SentenceRanges(text)])
+
+    def test_abbreviations_do_not_end_sentences(self):
+        """Initials and dotted abbreviations do not end a sentence at their full stop."""
+        cases = {
+            "We met J. Smith there. It rained.": ["We met J. Smith there.", "It rained."],
+            "He moved to the U.S.A. last year.": ["He moved to the U.S.A. last year."],
+            "Bring snacks, e.g. crisps. Then go.": ["Bring snacks, e.g. crisps.", "Then go."],
+            "Meet me at 3. Then we go.": ["Meet me at 3.", "Then we go."],
+            "Wait. I know.": ["Wait.", "I know."],
+        }
+
+        for text, expected in cases.items():
+            self.assertLoggedEqual("sentences", expected,
+                                   [text[start:end].strip() for start, end in SentenceRanges(text, SentenceEnds.ALL)],
+                                   input_value=text)
 
     def test_transcript_without_words_is_cut_at_full_stops(self):
         """With no words to divide it, a transcript is cut at full stops, and its sentences spread across the chunk."""
