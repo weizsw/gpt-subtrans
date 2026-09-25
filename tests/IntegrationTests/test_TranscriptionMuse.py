@@ -7,8 +7,8 @@ from unittest.mock import Mock, patch
 from PySubtrans.Helpers.Speech import EstimateSpeechSeconds
 from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.SettingsType import SettingsType
-from PySubtrans.Transcription.TranscriptionLines import (DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
-                                                         DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS)
+from PySubtrans.Transcription.LineSettings import (DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
+                                                   DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS)
 from PySubtrans.Transcription.TranscriptionProvider import OptionsScope
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider

@@ -31,6 +31,7 @@ from PySubtrans.Options import Options
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleProcessor import SubtitleProcessor
 from PySubtrans.Subtitles import Subtitles
+from PySubtrans.Transcription.LineSettings import LineSettings
 from PySubtrans.Transcription.TranscriptionCapture import LoadCapture, LoadCaptureProvider
 from PySubtrans.Transcription.TranscriptionLines import TranscriptionLineBuilder
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
@@ -52,7 +53,7 @@ def BuildLines(segments : list[TranscriptionSegment], **overrides) -> list[Trans
     }
     settings.update({key: value for key, value in overrides.items() if value is not None})
 
-    builder = TranscriptionLineBuilder(**settings)
+    builder = TranscriptionLineBuilder(LineSettings(**settings))
 
     lines : list[TranscriptionSegment] = []
     for segment in segments:

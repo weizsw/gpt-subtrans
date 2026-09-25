@@ -163,6 +163,29 @@ def JoinWords(words : list[str]) -> str:
         text += word
     return text.strip()
 
+def CompactText(text : str) -> str:
+    """Text with all whitespace removed, for comparing transcripts that space words differently."""
+    return ''.join(text.split())
+
+def CutText(text : str, lengths : list[int]) -> list[str]:
+    """Cut text into pieces holding the given numbers of non-whitespace characters, the last taking the remainder."""
+    pieces : list[str] = []
+    position = 0
+
+    for length in lengths[:-1]:
+        seen = 0
+        end = position
+        while end < len(text) and seen < length:
+            if not text[end].isspace():
+                seen += 1
+            end += 1
+
+        pieces.append(text[position:end].strip())
+        position = end
+
+    pieces.append(text[position:].strip())
+    return pieces
+
 def ConvertWhitespaceBlocksToNewlines(text : str) -> str:
     """
     Convert blocks of 3 or more spaces or chinese commas to newlines, unless the text contains newlines already

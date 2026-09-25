@@ -4,8 +4,6 @@ from PySubtrans.Helpers.Localization import _
 from PySubtrans.Options import env_float
 from PySubtrans.SettingsType import GuiSettingsType, SettingsType
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
-from PySubtrans.Transcription.TranscriptionLines import (DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
-                                                         DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS)
 from PySubtrans.Transcription.TranscriptionProvider import OptionsScope, TranscriptionProvider
 
 
@@ -43,19 +41,15 @@ class OpenAITranscriptionProvider(TranscriptionProvider):
         return (self.selected_model or '').casefold() == 'gpt-4o-transcribe-diarize'
 
     def __init__(self, settings : SettingsType):
-        super().__init__(self.name, SettingsType({
+        super().__init__(self.name, settings)
+        self.settings = SettingsType(self.settings | {
             'api_key': settings.get_str('api_key', os.getenv('OPENAI_API_KEY')),
             'server_address': settings.get_str('server_address', os.getenv('OPENAI_SERVER_ADDRESS', 'https://api.openai.com/v1')),
             'model': settings.get_str('model', os.getenv('OPENAI_STT_MODEL', 'whisper-1')),
-            'language': settings.get_str('language', os.getenv('TRANSCRIPTION_LANGUAGE')),
             'request_timeout': settings.get_float('request_timeout', env_float('TRANSCRIPTION_TIMEOUT', 300.0)),
             'rate_limit': settings.get_float('rate_limit', env_float('OPENAI_TRANSCRIPTION_RATE_LIMIT')),
             'proxy': settings.get_str('proxy') or os.getenv('OPENAI_PROXY'),
-            'merge_eligible_gap': settings.get_float('merge_eligible_gap', DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS),
-            'same_speaker_merge_eligible_gap': settings.get_float(
-                'same_speaker_merge_eligible_gap', DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS),
-            'can_merge_different_speakers': settings.get_bool('can_merge_different_speakers', True),
-        }))
+        })
 
         self.refresh_when_changed = ['api_key', 'language', 'model']
 
@@ -91,14 +85,7 @@ class OpenAITranscriptionProvider(TranscriptionProvider):
         if scope is OptionsScope.ALL:
             options['request_timeout'] = (float, _("Per-chunk request timeout in seconds"))
             options['rate_limit'] = (float, _("Maximum API requests per minute (0 for unlimited)"))
-            options['merge_eligible_gap'] = (float, _(
-                "Widest gap, in seconds, across which transcribed lines can still be merged"))
-
-            if self.supports_diarization:
-                options['same_speaker_merge_eligible_gap'] = (float, _(
-                    "Widest gap, in seconds, across which lines can be merged when the speaker has not changed"))
-                options['can_merge_different_speakers'] = (bool, _(
-                    "Allow brief lines by different speakers to be combined into a single line of dialogue"))
+            options.update(self._line_options())
 
         return options
 

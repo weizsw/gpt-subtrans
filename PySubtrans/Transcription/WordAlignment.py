@@ -74,3 +74,48 @@ def CutPoints(text : str, aligned : list[AlignedWord], start : int, end : int) -
 
     cuts.append(end)
     return cuts
+
+
+def AssignToRanges(text : str, ranges : list[tuple[int, int]], aligned : list[AlignedWord]) -> list[list[WordTiming]]:
+    """Give each range of the text the aligned words that start in it, respelled with their slices of it."""
+    assigned : list[list[WordTiming]] = []
+    for (start, end), members in zip(ranges, _words_in_ranges(ranges, aligned)):
+        cuts = CutPoints(text, members, start, end)
+        assigned.append([WordTiming(text=text[cuts[i]:cuts[i + 1]].strip(), start=member.word.start,
+                                    end=member.word.end, speaker=member.word.speaker)
+                         for i, member in enumerate(members)])
+
+    return assigned
+
+
+def SplitAtSpeakerChanges(text : str, ranges : list[tuple[int, int]], aligned : list[AlignedWord]) -> list[tuple[int, int]]:
+    """Divide ranges where the speaker of their words changes."""
+    split : list[tuple[int, int]] = []
+    for (start, end), members in zip(ranges, _words_in_ranges(ranges, aligned)):
+        cuts = CutPoints(text, members, start, end)
+        for position in range(1, len(members)):
+            previous, word = members[position - 1].word, members[position].word
+            if previous.speaker is not None and word.speaker is not None and previous.speaker != word.speaker:
+                split.append((start, cuts[position]))
+                start = cuts[position]
+
+        split.append((start, end))
+
+    return split
+
+
+def _words_in_ranges(ranges : list[tuple[int, int]], aligned : list[AlignedWord]) -> list[list[AlignedWord]]:
+    """The aligned words starting in each of a sequence of ordered ranges."""
+    grouped : list[list[AlignedWord]] = []
+    index = 0
+
+    for start, end in ranges:
+        members : list[AlignedWord] = []
+        while index < len(aligned) and aligned[index].start < end:
+            if aligned[index].start >= start:
+                members.append(aligned[index])
+            index += 1
+
+        grouped.append(members)
+
+    return grouped
