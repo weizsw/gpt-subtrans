@@ -108,13 +108,9 @@ Settings use a layered system:
 
 ## GUI Architecture
 
-The PySide6 GUI follows an MVVM-like pattern. `ProjectDataModel` connects the active `SubtitleProject`, project options, and provider to the `ProjectViewModel`. The view model mirrors the subtitle hierarchy and supplies data to the widgets.
+The PySide6 GUI connects **MainWindow** and **GuiInterface** to project actions, a **CommandQueue**, and the active **ProjectDataModel**. **ModelView** presents the project tree, selected content, and project settings. Queued model updates are applied on the GUI thread before Qt views refresh.
 
-`GuiSubtrans/Widgets/ModelView` arranges project settings, the scene tree, and the selected scene or batch content. `GuiSubtrans/Widgets/Editors/` contains editors for scenes, batches, and subtitle lines.
-
-`CommandQueue` runs GUI operations from `GuiSubtrans/Commands/` on background workers and manages command history. Commands send `ModelUpdate` objects through `ProjectDataModel`; the view model applies them on the GUI thread. See [translation-flow.md](translation-flow.md) for the detailed command and update flow.
-
-`SettingsDialog` presents global and provider-specific settings. Provider options are supplied by each provider; see [translation-provider-integration.md](translation-provider-integration.md) for that integration.
+See [gui-architecture.md](gui-architecture.md) for the command queue and view-update path. [translation-flow.md](translation-flow.md) has the translation-specific sequence diagrams.
 
 ## Extending the System
 
