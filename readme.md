@@ -249,7 +249,7 @@ Transcription is a separate process.
 python scripts/transcribe.py movie.mkv --language Chinese --format ass
 
 # Use a cloud provider
-python scripts/transcribe.py movie.mkv --provider OpenRouter --model mai/mai-transcribe-2 --apikey sk-... --language Japanese --diarize
+python scripts/transcribe.py movie.mkv --provider OpenRouter --model microsoft/mai-transcribe-2 --apikey sk-... --language Japanese --diarize
 ```
 
 Transcription options:
