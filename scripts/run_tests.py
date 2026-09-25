@@ -5,10 +5,14 @@ import sys
 import argparse
 import json
 import subprocess
+import warnings
 from datetime import datetime
 from types import ModuleType
 
 import unittest
+
+import regex
+from pysubs2.warnings import SubtitleAttributeWarning
 
 base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, base_path)
@@ -25,8 +29,12 @@ summary_lines = [
     "Test Summary:"
 ]
 
+# Emitted by tests/integration_tests.py once per suite
+suite_result_pattern = regex.compile(r"SUITE RESULT: (?P<label>[^|]+?) \| (?P<counts>.*)")
+suite_count_pattern = regex.compile(r"(\w+)=(\d+)")
+
 def format_summary_line(label: str, run: int, failures: int, errors: int, skipped: int, ok: bool) -> str:
-    return f"  {label:<12} | run: {run:>3} | failures: {failures:>3} | errors: {errors:>3} | skipped: {skipped:>3} | status={'OK ' if ok else 'FAIL'}"
+    return f"  {label:<16} | run: {run:>3} | failures: {failures:>3} | errors: {errors:>3} | skipped: {skipped:>3} | status={'OK ' if ok else 'FAIL'}"
 
 logging.getLogger().setLevel(logging.INFO)
 console_handler = logging.StreamHandler(sys.stdout)
@@ -281,33 +289,51 @@ def run_integration_tests(results_path: str) -> bool:
 
     integration_script = os.path.join(base_path, "tests", "integration_tests.py")
 
+    # Collect the result lines from stdout.
+    # unittest progress goes to stderr, which is left unpiped so it stays live.
+    suite_results : list[tuple[str, dict[str, int]]] = []
     try:
-        result = subprocess.run(
+        with subprocess.Popen(
             [sys.executable, integration_script],
             cwd=base_path,
-            check=False
-        )
+            stdout=subprocess.PIPE,
+            text=True,
+            errors="replace"
+        ) as process:
+            assert process.stdout is not None
+            for line in process.stdout:
+                sys.stdout.write(line)
+                sys.stdout.flush()
+                match = suite_result_pattern.fullmatch(line.rstrip())
+                if match:
+                    counts = {name: int(count) for name, count in suite_count_pattern.findall(match['counts'])}
+                    suite_results.append((match['label'], counts))
+
+        integration_failed = process.returncode != 0
     except (OSError, subprocess.SubprocessError) as error:
         logging.error(f"Failed to start integration tests: {error}")
-        result = None
+        integration_failed = True
 
-    integration_failed = result is None or result.returncode != 0
+    global total_run, total_failures, total_errors, total_skipped
 
-    global total_run, total_failures
-    total_run += 1
-    if integration_failed:
+    for label, counts in suite_results:
+        if not counts:
+            summary_lines.append(f"  {label:<16} | SKIPPED")
+            continue
+
+        failures, errors = counts.get('failures', 0), counts.get('errors', 0)
+        total_run += counts.get('run', 0)
+        total_failures += failures
+        total_errors += errors
+        total_skipped += counts.get('skipped', 0)
+        summary_lines.append(format_summary_line(label, counts.get('run', 0), failures, errors, counts.get('skipped', 0), failures == 0 and errors == 0))
+
+    # Count a failure no suite reported, e.g. a crash before a suite completed
+    reported_failure = any(counts.get('failures', 0) or counts.get('errors', 0) for _label, counts in suite_results)
+    if integration_failed and not reported_failure:
+        total_run += 1
         total_failures += 1
-
-    summary_lines.append(
-        format_summary_line(
-            'Integration',
-            1,
-            1 if integration_failed else 0,
-            0,
-            0,
-            not integration_failed
-        )
-    )
+        summary_lines.append(format_summary_line('Integration run', 1, 1, 0, 0, False))
 
     end_stamp = datetime.now().strftime("%Y-%m-%d at %H:%M")
     logging.info(separator)
@@ -354,7 +380,10 @@ def run_functional_tests(tests_directory, subtitles_directory, results_directory
         if hasattr(module, 'run_tests'):
             test_files_run += 1
             try:
-                module.run_tests(subtitles_directory, results_directory)
+                # Real-world test files contain fields pysubs2 can't parse and replaces with defaults
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", SubtitleAttributeWarning)
+                    module.run_tests(subtitles_directory, results_directory)
             except Exception as e:
                 logging.error(f"Error running tests in {filename}: {e}")
                 summary_lines.append(f"Tests in {filename} failed")
