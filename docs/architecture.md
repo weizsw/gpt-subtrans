@@ -11,6 +11,7 @@ This guide maps the main components, where they live, and how they connect.
 
 ## Contents
 
+- [System Overview](#system-overview)
 - [Entry Points](#entry-points)
 - [Module Structure](#module-structure)
 - [Data Organization](#data-organization)
@@ -20,6 +21,18 @@ This guide maps the main components, where they live, and how they connect.
 - [Settings Management](#settings-management)
 - [GUI Architecture](#gui-architecture)
 - [Extending the System](#extending-the-system)
+
+## System Overview
+
+Supports translating subtitle files and transcribing subtitles from video/audio. The GUI and command-line tools share the `PySubtrans` core, which also ships as a pip package.
+
+**Subtitle translation:** Pluggable format support via `SubtitleFormatRegistry`. `Subtitles` contains `SubtitleLine` data split into Scenes and Batches. `SubtitleTranslator` prepares each batch then sends requests via a `TranslationClient` from the selected `TranslationProvider`.
+
+**Media transcription:** `AudioExtractor` and `AudioChunker` prepare audio for processing. `TranscriptionCoordinator` calls the selected `TranscriptionClient` for each chunk, then `TranscriptionLineBuilder` assembles the returned text and timing information into subtitle lines.
+
+**The GUI** adds project controls and background command execution around the core. Its view model keeps the scene, batch, and line views in sync as commands complete; see [gui-architecture.md](gui-architecture.md).
+
+**Options and settings** are stored in a `SettingsType` dictionary, with project- and provider-specific values layered on to application-wide settings.
 
 ## Entry Points
 
