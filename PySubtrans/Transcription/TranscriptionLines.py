@@ -9,7 +9,7 @@ import regex
 
 from PySubtrans.Helpers.Localization import _
 from PySubtrans.Helpers.Speech import (SENTENCE_END_CHARS, SPOKEN_CHAR, EstimateSpeechSeconds, NominalSecondsPerChar,
-                                       SentenceRanges)
+                                       SentenceEnds, SentenceRanges)
 from PySubtrans.Helpers.Text import JoinWords
 from PySubtrans.Transcription.AudioChunker import AudioChunk
 from PySubtrans.Transcription.WordAlignment import AlignedWord, AlignWords, CutPoints, WordCoverage
@@ -270,6 +270,7 @@ class TranscriptionLineBuilder:
 
         The transcript is the text: words drop characters and punctuation, so they only give the timing.
         Parts end at sentence punctuation where the transcript has it, and otherwise at pauses and speaker changes.
+        Without any matched words, full stops end parts too, since no word can divide them.
         Parts no word can be matched to are placed between their neighbours by their share of characters.
         """
         text = segment.text.strip()
@@ -278,7 +279,9 @@ class TranscriptionLineBuilder:
             words = [word for word in words if not self._is_squeezed(word)]
         aligned = AlignWords(text, self._extend_to_punctuation(words))
 
-        if any(char in SENTENCE_END_CHARS for char in text):
+        if not aligned:
+            ranges = SentenceRanges(text, SentenceEnds.ALL)
+        elif any(char in SENTENCE_END_CHARS for char in text):
             ranges = self._split_at_speaker_changes(text, SentenceRanges(text), aligned)
         else:
             ranges = self._pause_ranges(text, aligned)

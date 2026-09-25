@@ -1183,6 +1183,14 @@ class TestDerivedParts(LoggedTestCase):
                                [text[start:end].strip() for start, end in SentenceRanges(text, SentenceEnds.ALL)])
         self.assertLoggedEqual("strong ends", [text], [text[start:end] for start, end in SentenceRanges(text)])
 
+    def test_transcript_without_words_is_cut_at_full_stops(self):
+        """With no words to divide it, a transcript is cut at full stops, and its sentences spread across the chunk."""
+        with self.assertLogs(level=logging.INFO):
+            lines = self._lines("First sentence. Second sentence.", [])
+
+        self.assertLoggedEqual("texts", ["First sentence.", "Second sentence."], [line.text for line in lines])
+        self.assertLoggedGreater("second placed later in the chunk", lines[1].start, timedelta(seconds=120))
+
     def test_unrelated_words_are_not_used(self):
         """Words that match nothing in the transcript leave it to be placed by length."""
         words = [_word("别的", 1.0, 1.8), _word("东西", 1.8, 2.5)]
