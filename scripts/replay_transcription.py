@@ -23,16 +23,21 @@ from dataclasses import replace
 from datetime import timedelta
 from difflib import SequenceMatcher
 
+import regex
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from PySubtrans.Options import Options
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleProcessor import SubtitleProcessor
 from PySubtrans.Subtitles import Subtitles
-from PySubtrans.Transcription.TranscriptionCapture import LoadCapture
+from PySubtrans.Transcription.LineSettings import LineSettings
+from PySubtrans.Transcription.TranscriptionCapture import LoadCapture, LoadCaptureProvider
 from PySubtrans.Transcription.TranscriptionLines import TranscriptionLineBuilder
+from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionRun import TranscriptionRun
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionSegment
+from PySubtrans.Transcription.WordAlignment import WordCoverage
 
 
 def BuildLines(segments : list[TranscriptionSegment], **overrides) -> list[TranscriptionSegment]:
@@ -48,13 +53,21 @@ def BuildLines(segments : list[TranscriptionSegment], **overrides) -> list[Trans
     }
     settings.update({key: value for key, value in overrides.items() if value is not None})
 
-    builder = TranscriptionLineBuilder(**settings)
+    builder = TranscriptionLineBuilder(LineSettings(**settings))
 
     lines : list[TranscriptionSegment] = []
     for segment in segments:
         lines.extend(builder.LinesForSegment(segment))
 
     return lines
+
+
+def ProviderWordCoverage(capture : str) -> WordCoverage:
+    """The word coverage of the provider a capture came from, as a transcription run would use it."""
+    name = LoadCaptureProvider(capture)
+    providers = {key.casefold(): provider for key, provider in TranscriptionProvider.get_providers().items()}
+    provider = providers.get(name.casefold()) if name else None
+    return provider.word_coverage if provider is not None else WordCoverage.COMPLETE
 
 
 def SaveLines(lines : list[TranscriptionSegment], path : str, postprocess : bool) -> int:
@@ -113,13 +126,13 @@ def Describe(segments : list[TranscriptionSegment]) -> None:
     print(f"{backwards} words start before their predecessor, in {affected} chunks")
 
     # How much of each chunk transcript the word stream reproduces
-    ratios = [WordCoverage(segment) for segment in segments if segment.words and segment.text]
+    ratios = [WordSimilarity(segment) for segment in segments if segment.words and segment.text]
     if ratios:
         print(f"word/transcript similarity: min {min(ratios):.2f}, "
               f"median {statistics.median(ratios):.2f}, max {max(ratios):.2f}")
 
 
-def WordCoverage(segment : TranscriptionSegment) -> float:
+def WordSimilarity(segment : TranscriptionSegment) -> float:
     """Similarity between the joined word stream and the chunk transcript, ignoring whitespace."""
     words = ''.join(''.join(word.text.split()) for word in segment.words)
     text = ''.join(segment.text.split())
@@ -145,8 +158,14 @@ def Splittable(line : TranscriptionSegment, min_line_seconds : float) -> bool:
     return False
 
 
-def Report(lines : list[TranscriptionSegment], min_line_seconds : float, max_newlines : int, quiet : bool = False) -> None:
-    """Print each line, flagging the ones worth looking at."""
+def SpokenText(text : str) -> str:
+    """Text without whitespace or dialogue markers, for counting how much of a transcript survived."""
+    return ''.join(regex.sub(r'^- ', '', row) for row in text.split('\n')).replace(' ', '')
+
+
+def Report(lines : list[TranscriptionSegment], min_line_seconds : float, max_newlines : int, quiet : bool = False,
+           transcript_chars : int = 0) -> None:
+    """Print each line, flagging the ones worth looking at, and how much of the transcript the lines hold."""
     short = 0
     stacked = 0
     splittable = 0
@@ -172,6 +191,10 @@ def Report(lines : list[TranscriptionSegment], min_line_seconds : float, max_new
     print(f"\n{len(lines)} lines, {short} under {min_line_seconds}s, "
           f"{stacked} at the newline limit ({splittable} splittable)")
 
+    if transcript_chars:
+        output_chars = sum(len(SpokenText(line.text)) for line in lines)
+        print(f"{output_chars} of {transcript_chars} transcript characters in the lines ({output_chars / transcript_chars:.0%})")
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Replay a captured transcription through the line builder")
@@ -183,6 +206,8 @@ def main() -> int:
     parser.add_argument('--merge-eligible-gap', type=float, help="Widest gap that can be merged across")
     parser.add_argument('--same-speaker-gap', type=float, help="As above, for one speaker continuing")
     parser.add_argument('--no-merge-speakers', action='store_true', help="Keep separate speakers on separate lines")
+    parser.add_argument('--word-coverage', choices=[coverage.value for coverage in WordCoverage],
+                        help="How much of the transcript the words spell (default: the capture provider's)")
     parser.add_argument('--source', choices=('auto', 'parts', 'words'), default='auto',
                         help="Build lines from parts or words (default: whatever the builder prefers)")
     parser.add_argument('--quiet', action='store_true', help="Print only the summary")
@@ -196,6 +221,7 @@ def main() -> int:
     segments = LoadCapture(args.capture)
     Describe(segments)
     segments = SelectSource(segments, args.source)
+    transcript_chars = sum(len(SpokenText(segment.text)) for segment in segments)
 
     overrides = {
         'min_line_seconds': args.min_line_duration,
@@ -205,6 +231,7 @@ def main() -> int:
         'merge_eligible_gap': args.merge_eligible_gap,
         'same_speaker_merge_eligible_gap': args.same_speaker_gap,
         'can_merge_different_speakers': False if args.no_merge_speakers else None,
+        'word_coverage': WordCoverage(args.word_coverage) if args.word_coverage else ProviderWordCoverage(args.capture),
     }
 
     if args.compare:
@@ -214,12 +241,13 @@ def main() -> int:
             trial = dict(overrides)
             trial[setting] = float(value) if '.' in value else int(value)
             lines = BuildLines(segments, **trial)
-            Report(lines, float(trial.get('min_line_seconds') or 0.8), int(trial.get('max_newlines') or 2), args.quiet)
+            Report(lines, float(trial.get('min_line_seconds') or 0.8), int(trial.get('max_newlines') or 2), args.quiet,
+                   transcript_chars)
         return 0
 
     print()
     lines = BuildLines(segments, **overrides)
-    Report(lines, overrides['min_line_seconds'] or 0.8, overrides['max_newlines'] or 2, args.quiet)
+    Report(lines, overrides['min_line_seconds'] or 0.8, overrides['max_newlines'] or 2, args.quiet, transcript_chars)
 
     if args.output:
         count = SaveLines(lines, args.output, args.postprocess)

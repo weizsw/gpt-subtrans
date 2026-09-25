@@ -9,9 +9,8 @@ from PySubtrans.SettingsType import GuiSettingsType, SettingsType
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.Torch.Runtime import TorchConfigOption
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
-from PySubtrans.Transcription.TranscriptionLines import (DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
-                                                         DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS)
 from PySubtrans.Transcription.TranscriptionProvider import OptionsScope, TranscriptionProvider
+from PySubtrans.Transcription.WordAlignment import WordCoverage
 
 _QWEN_CHECKPOINTS : list[str] = [
     'Qwen/Qwen3-ASR-1.7B',
@@ -44,6 +43,9 @@ try:
 
         aligner_models = [_ALIGNER_CHECKPOINT]
 
+        # The forced aligner drops stretches of the transcript and crams others into a moment
+        word_coverage = WordCoverage.PARTIAL
+
         @property
         def recommended_min_chunk_seconds(self) -> float:
             """Short chunks fit the default generation budget and GPU memory."""
@@ -55,9 +57,9 @@ try:
             return 60.0
 
         def __init__(self, settings : SettingsType):
-            super().__init__(self.name, SettingsType({
+            super().__init__(self.name, settings)
+            self.settings = SettingsType(self.settings | {
                 'model': settings.get_str('model', os.getenv('QWEN_LOCAL_MODEL', _QWEN_CHECKPOINTS[0])),
-                'language': settings.get_str('language', os.getenv('TRANSCRIPTION_LANGUAGE')),
                 'device': settings.get_str('device', os.getenv('QWEN_LOCAL_DEVICE', 'auto')),
                 'aligner_model': settings.get_str('aligner_model', os.getenv('QWEN_ALIGNER_MODEL', _ALIGNER_CHECKPOINT)),
                 'max_new_tokens': settings.get_int('max_new_tokens', env_int('QWEN_MAX_NEW_TOKENS', 2048)),
@@ -65,11 +67,7 @@ try:
                 'rate_limit': settings.get_float('rate_limit', env_float('QWEN_TRANSCRIPTION_RATE_LIMIT')),
                 'allow_cpu_fallback': settings.get_bool('allow_cpu_fallback', False),
                 'torch_installation_directory': settings.get_str('torch_installation_directory', ''),
-                'merge_eligible_gap': settings.get_float('merge_eligible_gap', DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS),
-                'same_speaker_merge_eligible_gap': settings.get_float(
-                    'same_speaker_merge_eligible_gap', DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS),
-                'can_merge_different_speakers': settings.get_bool('can_merge_different_speakers', True),
-            }))
+            })
 
             self.refresh_when_changed = ['allow_cpu_fallback', 'torch_installation_directory', 'language']
 
@@ -119,14 +117,7 @@ try:
                     'torch_installation_directory': (TorchConfigOption, _("Set up Torch...")),
                 })
 
-                options['merge_eligible_gap'] = (float, _(
-                    "Widest gap, in seconds, across which transcribed lines can still be merged"))
-
-                if self.supports_diarization:
-                    options['same_speaker_merge_eligible_gap'] = (float, _(
-                        "Widest gap, in seconds, across which lines can be merged when the speaker has not changed"))
-                    options['can_merge_different_speakers'] = (bool, _(
-                        "Allow brief lines by different speakers to be combined into a single line of dialogue"))
+                options.update(self._line_options())
 
             return options
 

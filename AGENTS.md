@@ -13,7 +13,7 @@ If testable code covered by unit tests was changed, ensure that unit_tests has b
 - NEVER use `--no-verify` to bypass the pre-commit hook. The hook runs pyright type checking and errors must be fixed before committing. If pyright is not installed, install it with `pip install pyright` before committing.
 
 ## Project structure
-Before conducting exploratory searches of the code base, consult `docs/architecture.md` for information on the project architecture, structure and components to guide the search. Ensure the document is maintained after significant architectural changes.
+Before conducting exploratory searches of the code base, consult `docs/architecture.md` for information on the project architecture, structure and components to guide the search. Keep it at the level of components: what they are, where they live and how they connect. Update it when that picture changes; how a component works belongs in its docstrings and comments.
 
 ## Console Output
 **IMPORTANT** Avoid Unicode characters (✓ ✗) in print/log messages as these trigger Windows console errors
@@ -70,4 +70,4 @@ Before conducting exploratory searches of the code base, consult `docs/architect
   - **Optional Dependencies**: Test modules must not have top-level imports of optional packages. Guard them with `importlib.util.find_spec` and skip the class with `@unittest.skipUnless`, mirroring the pattern used in the corresponding provider.
   - **No string assertions**: Never assert on the text of error messages, GUI label text, or status text — these are brittle and break when wording changes. Assert on behaviour: status codes, error levels, counts, types, return values.
     - Asserting that a log record was emitted at a given level with `assertLogs(level=...)` is fine.
-  - **Expected logs**: Wrap calls that are expected to log warnings or errors in `with self.assertLogs(level=...)`, so they do not leak into the test output.
+  - **Expected logs**: Wrap calls that are expected to log warnings or errors in `with self.assertLogs(level=...)`, so they do not leak into the test output. Passing tests should never look as if they are failing/broken.

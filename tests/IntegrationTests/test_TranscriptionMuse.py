@@ -4,10 +4,11 @@ import unittest
 from datetime import timedelta
 from unittest.mock import Mock, patch
 
+from PySubtrans.Helpers.Speech import EstimateSpeechSeconds
 from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.SettingsType import SettingsType
-from PySubtrans.Transcription.TranscriptionLines import (DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
-                                                         DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS)
+from PySubtrans.Transcription.LineSettings import (DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
+                                                   DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS)
 from PySubtrans.Transcription.TranscriptionProvider import OptionsScope
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
@@ -15,6 +16,7 @@ from PySubtrans.Transcription.Providers.Provider_Muse import (
     MuseTranscriptionProvider,
 )
 from PySubtrans.Transcription.Providers.Clients.MuseTranscriptionClient import (
+    TURN_SPEECH_MULTIPLE,
     _parse_muse_payload,
 )
 
@@ -139,15 +141,16 @@ class TestMuseTranscription(LoggedTestCase):
         self.assertLoggedEqual("first speaker", "A", parts[0].speaker)
         self.assertLoggedEqual("first start", timedelta(seconds=1.52), parts[0].start)
         self.assertLoggedEqual("first end honoured", timedelta(seconds=2.46), parts[0].end)
-        self.assertLoggedEqual("last end bounded", timedelta(seconds=8.0), parts[1].end)
+        expected_end = min(8.0, 5.9 + TURN_SPEECH_MULTIPLE * EstimateSpeechSeconds('It is raining.'))
+        self.assertLoggedEqual("last end bounded", timedelta(seconds=expected_end), parts[1].end)
 
     def test_missing_end_falls_back_to_next_start(self):
-        """A turn without endMs runs until the next turn starts."""
+        """A turn without endMs runs until the next turn starts, when its text takes that long to say."""
 
         payload = {
-            'transcript': 'hi yo',
+            'transcript': '你一千万赏金都没事 yo',
             'turns': [
-                {'speaker': 'A', 'transcript': 'hi', 'startMs': 0},
+                {'speaker': 'A', 'transcript': '你一千万赏金都没事', 'startMs': 0},
                 {'speaker': 'B', 'transcript': 'yo', 'startMs': 2000, 'endMs': 3000},
             ],
         }
@@ -155,20 +158,112 @@ class TestMuseTranscription(LoggedTestCase):
 
         self.assertLoggedEqual("part count", 2, len(parts))
         self.assertLoggedEqual("chained end", timedelta(seconds=2.0), parts[0].end)
-    def test_gaps_do_not_stretch_turns(self):
-        """A turn before a long silence keeps its own end offset."""
+
+    def test_missing_end_before_silence_is_capped(self):
+        """A turn without endMs does not run on through the silence before the next turn."""
 
         payload = {
-            'transcript': 'x y',
+            'transcript': '哎呀，点啊。 好。',
             'turns': [
-                {'speaker': 'A', 'transcript': 'x', 'startMs': 23740, 'endMs': 29100},
-                {'speaker': 'A', 'transcript': 'y', 'startMs': 49100, 'endMs': 52700},
+                {'speaker': 'A', 'transcript': '哎呀，点啊。', 'startMs': 0},
+                {'speaker': 'B', 'transcript': '好。', 'startMs': 30000, 'endMs': 30500},
+            ],
+        }
+        _text, parts = _parse_muse_payload(payload)
+
+        expected = TURN_SPEECH_MULTIPLE * EstimateSpeechSeconds('哎呀，点啊。')
+        self.assertLoggedEqual("capped end", timedelta(seconds=expected), parts[0].end)
+
+    def test_reported_end_over_silence_is_capped(self):
+        """A reported end far beyond what the text takes to say is pulled in, keeping the start."""
+
+        payload = {
+            'transcript': '哎呀，点啊，我唔生啊。',
+            'turns': [
+                {'speaker': 'A', 'transcript': '哎呀，点啊，我唔生啊。', 'startMs': 18780, 'endMs': 47020},
+            ],
+        }
+        _text, parts = _parse_muse_payload(payload)
+
+        expected = 18.78 + TURN_SPEECH_MULTIPLE * EstimateSpeechSeconds('哎呀，点啊，我唔生啊。')
+        self.assertLoggedEqual("start kept", timedelta(seconds=18.78), parts[0].start)
+        self.assertLoggedEqual("end capped", timedelta(seconds=expected), parts[0].end)
+
+    def test_long_turn_sentences_start_and_end_with_it(self):
+        """A long turn's first sentence starts with it and its last ends with it, with silence between."""
+
+        payload = {
+            'transcript': '神经。 你生平学过啲咩绝招啊即管使曬出嚟啦。',
+            'turns': [
+                {'speaker': 'A', 'transcript': '神经。 你生平学过啲咩绝招啊即管使曬出嚟啦。', 'startMs': 3000, 'endMs': 30000},
+            ],
+        }
+        _text, parts = _parse_muse_payload(payload)
+
+        self.assertLoggedEqual("texts", ["神经。", "你生平学过啲咩绝招啊即管使曬出嚟啦。"], [part.text for part in parts])
+        self.assertLoggedEqual("first starts with the turn", timedelta(seconds=3.0), parts[0].start)
+        self.assertLoggedEqual("first capped", timedelta(seconds=3.0 + TURN_SPEECH_MULTIPLE * EstimateSpeechSeconds("神经。")), parts[0].end)
+        self.assertLoggedEqual("last ends with the turn", timedelta(seconds=30.0), parts[1].end)
+        self.assertLoggedLess("last starts late in the turn", timedelta(seconds=20.0), parts[1].start)
+
+    def test_full_stops_divide_a_turn(self):
+        """Sentences ended by full stops are placed separately, so the last ends with the turn."""
+
+        payload = {
+            'transcript': 'Wait. I know where he went.',
+            'turns': [
+                {'speaker': 'A', 'transcript': 'Wait. I know where he went.', 'startMs': 3000, 'endMs': 30000},
+            ],
+        }
+        _text, parts = _parse_muse_payload(payload)
+
+        self.assertLoggedEqual("texts", ["Wait.", "I know where he went."], [part.text for part in parts])
+        self.assertLoggedEqual("last ends with the turn", timedelta(seconds=30.0), parts[1].end)
+
+    def test_short_turn_shares_its_span_between_sentences(self):
+        """A turn too short for its sentences divides its span by their characters."""
+
+        payload = {
+            'transcript': '表哥。你怕唔惊啊。',
+            'turns': [
+                {'speaker': 'B', 'transcript': '表哥。你怕唔惊啊。', 'startMs': 0, 'endMs': 1800},
             ],
         }
         _text, parts = _parse_muse_payload(payload)
 
         self.assertLoggedEqual("part count", 2, len(parts))
-        self.assertLoggedEqual("true end", timedelta(seconds=29.1), parts[0].end)
+        self.assertLoggedEqual("contiguous", parts[0].end, parts[1].start)
+        self.assertLoggedEqual("span kept", timedelta(seconds=1.8), parts[1].end)
+        self.assertLoggedEqual("speaker kept", "B", parts[1].speaker)
+
+    def test_plausible_reported_end_is_kept(self):
+        """A reported end within the speaking time of its text is honoured."""
+
+        payload = {
+            'transcript': '你一千万赏金都没事。',
+            'turns': [
+                {'speaker': 'A', 'transcript': '你一千万赏金都没事。', 'startMs': 1000, 'endMs': 3500},
+            ],
+        }
+        _text, parts = _parse_muse_payload(payload)
+
+        self.assertLoggedEqual("reported end", timedelta(seconds=3.5), parts[0].end)
+
+    def test_zero_length_turn_is_kept(self):
+        """A turn reported with no length keeps its text, lasting as long as it takes to say."""
+
+        payload = {
+            'transcript': 'Yeah! 我吹先。',
+            'turns': [
+                {'speaker': 'A', 'transcript': 'Yeah!', 'startMs': 8700, 'endMs': 8700},
+                {'speaker': 'B', 'transcript': '我吹先。', 'startMs': 20000, 'endMs': 21000},
+            ],
+        }
+        _text, parts = _parse_muse_payload(payload)
+
+        expected = 8.7 + TURN_SPEECH_MULTIPLE * EstimateSpeechSeconds('Yeah!')
+        self.assertLoggedEqual("part count", 2, len(parts))
+        self.assertLoggedEqual("given its speaking time", timedelta(seconds=expected), parts[0].end)
 
     def test_speakers_stripped_unless_opted_in(self):
         """Speaker labels are dropped when diarization is not requested."""

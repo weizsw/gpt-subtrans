@@ -275,6 +275,7 @@ else:
 
         Pure function over annotation shapes so it is unit-testable without
         the Google SDK installed.
+        Gemini stamps short words with no duration, so those are kept; only words ending before they start are dropped.
         """
         words : list[WordTiming] = []
         for annotation in annotations or []:
@@ -283,7 +284,7 @@ else:
             text = str(getattr(annotation, 'text', '') or '').strip()
             start = _parse_offset(getattr(annotation, 'start_offset', None))
             end = _parse_offset(getattr(annotation, 'end_offset', None))
-            if not text or start is None or end is None or end <= start:
+            if not text or start is None or end is None or end < start:
                 continue
             speaker = getattr(annotation, 'speaker', None)
             words.append(WordTiming(text=text,

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import html
 import logging
+import os
 from enum import Enum
 from typing import cast
 
@@ -12,7 +13,10 @@ from PySubtrans.Helpers.Localization import _
 from PySubtrans.Options import Options
 from PySubtrans.SettingsType import GuiSettingsType, SettingsType
 from PySubtrans.SubtitleError import SubtitleError
+from PySubtrans.Transcription.LineSettings import (DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
+                                                   DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS)
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
+from PySubtrans.Transcription.WordAlignment import WordCoverage
 
 
 class OptionsScope(str, Enum):
@@ -33,9 +37,19 @@ class TranscriptionProvider:
     # Optional no-key walkthrough; keyed providers define information_noapikey
     information_noapikey : str|None = None
 
+    # How much of the transcript the provider's word timings spell, which decides how lines are timed from them
+    word_coverage : WordCoverage = WordCoverage.COMPLETE
+
     def __init__(self, name : str, settings : SettingsType):
+        """Take the settings every provider shares from `settings`; subclasses then add their own to self.settings."""
         self.name : str = name
-        self.settings : SettingsType = settings
+        self.settings : SettingsType = SettingsType({
+            'language': settings.get_str('language', os.getenv('TRANSCRIPTION_LANGUAGE')),
+            'merge_eligible_gap': settings.get_float('merge_eligible_gap', DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS),
+            'same_speaker_merge_eligible_gap': settings.get_float(
+                'same_speaker_merge_eligible_gap', DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS),
+            'can_merge_different_speakers': settings.get_bool('can_merge_different_speakers', True),
+        })
         self._available_models : list[str] = []
         self.refresh_when_changed : list[str] = []
         self.validation_message : str|None = None
@@ -203,6 +217,20 @@ class TranscriptionProvider:
         Validate the settings for the provider
         """
         return True
+
+    def _line_options(self) -> GuiSettingsType:
+        """Options for how transcribed lines are merged, with the speaker-aware ones only when speakers are labelled."""
+        options : GuiSettingsType = {
+            'merge_eligible_gap': (float, _("Widest gap, in seconds, across which transcribed lines can still be merged")),
+        }
+
+        if self.supports_diarization:
+            options['same_speaker_merge_eligible_gap'] = (float, _(
+                "Widest gap, in seconds, across which lines can be merged when the speaker has not changed"))
+            options['can_merge_different_speakers'] = (bool, _(
+                "Allow brief lines by different speakers to be combined into a single line of dialogue"))
+
+        return options
 
     def ResolveLanguageCode(self, language : str|None, display_language : str|None = None) -> str|None:
         """

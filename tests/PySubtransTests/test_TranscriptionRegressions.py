@@ -67,6 +67,7 @@ class TestTranscriptionRegressions(LoggedTestCase):
 
     def test_dialogue_survives_postprocessing(self) -> None:
         """Post-processing preserves merged turns and clears attribution."""
+        self.provider.texts = ['I say! Of course! Indeed!']
         self.provider.words = [
             WordTiming('I say!', timedelta(), timedelta(seconds=0.5), 'A'),
             WordTiming('Of course!', timedelta(seconds=0.6), timedelta(seconds=0.8), 'B'),
@@ -105,7 +106,7 @@ class TestTranscriptionRegressions(LoggedTestCase):
 
     def test_leading_sliver_merges_into_existing_dialogue(self) -> None:
         """A mixed right-hand neighbour retains all markers without duplication."""
-        lines = self.coordinator.line_builder.MergeSlivers([
+        lines = self.coordinator.line_builder.merger.MergeSlivers([
             TranscriptionSegment(timedelta(), timedelta(seconds=0.2), 'A', speaker='A'),
             TranscriptionSegment(timedelta(seconds=0.3), timedelta(seconds=1.0), '- B\n- C')])
         self.assertLoggedEqual('merged text', '- A\n- B\n- C', lines[0].text)

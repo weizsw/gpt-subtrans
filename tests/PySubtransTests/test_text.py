@@ -320,6 +320,8 @@ class TestTextHelpers(LoggedTestCase):
         (['well-', 'known'], "well-known"),
         (['你好', '世界'], "你好世界"),
         (['你好', '，', '世界'], "你好，世界"),
+        (['¿Para qué?', '¿Desde cuándo?'], "¿Para qué? ¿Desde cuándo?"),
+        (['Sal', 'y', 'te', 'mato.', '¡', 'No', 'te', 'vayas!'], "Sal y te mato. ¡No te vayas!"),
     ]
 
     def test_JoinWords(self):

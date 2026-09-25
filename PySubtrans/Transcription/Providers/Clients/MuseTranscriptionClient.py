@@ -3,10 +3,15 @@ from datetime import timedelta
 
 from PySubtrans.Helpers.Localization import _
 from PySubtrans.Helpers.Parse import TryParseNonNegative
+from PySubtrans.Helpers.Speech import EstimateSpeechSeconds, SentenceEnds, SentenceRanges
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionResult, TranscriptionSegment
+
+# Longest a turn may last, as a multiple of the time its text takes to say.
+# About the 95th percentile of measured speech against the estimate.
+TURN_SPEECH_MULTIPLE = 2.0
 
 
 class MuseTranscriptionClient(TranscriptionClient):
@@ -129,6 +134,10 @@ def _parse_muse_payload(payload : dict, chunk_seconds : float|None = None, inclu
     network access. Turns carry start and end offsets with speaker labels
     (bare letters in DIARIZATION); a turn missing its end runs until the
     next turn starts, the last one until the reported audio duration.
+
+    Each turn becomes a part per sentence (see _place_sentences), since
+    a long turn often holds several utterances with silence between them.
+    A turn reported with no length is given the time its text takes to say.
     """
     text = str(payload.get('transcript') or payload.get('text') or '').strip()
 
@@ -153,20 +162,67 @@ def _parse_muse_payload(payload : dict, chunk_seconds : float|None = None, inclu
         end_ms = TryParseNonNegative(entry.get('endMs'))
         end = end_ms / 1000.0 if end_ms is not None else None
 
+        following = next((s for s in starts[index + 1:] if s is not None and s > start), None)
         if end is None:
-            end = next((s for s in starts[index + 1:] if s is not None and s > start), None)
-        if end is None:
-            end = audio_seconds
+            end = following if following is not None else audio_seconds
 
         if end is None or end <= start:
-            continue
+            speech = TURN_SPEECH_MULTIPLE * EstimateSpeechSeconds(entry_text)
+            end = start + speech if following is None else min(start + speech, following)
 
         speaker = entry.get('speaker') if include_speakers else None
-        parts.append(TranscriptionSegment(
-            start=timedelta(seconds=start), end=timedelta(seconds=end),
-            text=entry_text,
-            speaker=str(speaker) if speaker is not None else None))
+        sentences = [entry_text[first:last].strip() for first, last in SentenceRanges(entry_text, SentenceEnds.ALL)]
+        sentences = [sentence for sentence in sentences if sentence]
+        for sentence, (sentence_start, sentence_end) in _place_sentences(sentences, start, end):
+            parts.append(TranscriptionSegment(
+                start=timedelta(seconds=sentence_start), end=timedelta(seconds=sentence_end),
+                text=sentence,
+                speaker=str(speaker) if speaker is not None else None))
 
     return text, parts
+
+
+def _place_sentences(sentences : list[str], start : float, end : float) -> list[tuple[str, tuple[float, float]]]:
+    """
+    Place a turn's sentences within its span, each lasting at most a multiple of the time it takes to say.
+
+    Turn starts are reliable, but a turn's reported end often runs on over silence.
+    Measured against another engine, the speech in a long turn begins at its start,
+    and, when the turn holds several sentences, the last one ends close to its end.
+    So the first sentence starts with the turn, the last ends with it, and any
+    between are spread by their share of characters.
+    A turn too short to hold its sentences shares its span out by characters.
+    """
+    limits = [TURN_SPEECH_MULTIPLE * EstimateSpeechSeconds(sentence) for sentence in sentences]
+
+    if len(sentences) == 1:
+        return [(sentences[0], (start, min(end, start + limits[0])))]
+
+    if end - start <= sum(limits):
+        total = sum(len(sentence) for sentence in sentences)
+        placed : list[tuple[str, tuple[float, float]]] = []
+        position = start
+        for sentence in sentences:
+            length = (end - start) * len(sentence) / total
+            placed.append((sentence, (position, position + length)))
+            position += length
+        return placed
+
+    first_end = start + limits[0]
+    last_start = end - limits[-1]
+    middle = sentences[1:-1]
+    total = sum(len(sentence) for sentence in middle) or 1
+    gap = last_start - first_end
+
+    placed = [(sentences[0], (start, first_end))]
+    position = 0
+    for offset, sentence in enumerate(middle):
+        sentence_start = first_end + gap * position / total
+        position += len(sentence)
+        room = first_end + gap * position / total - sentence_start
+        placed.append((sentence, (sentence_start, sentence_start + min(limits[offset + 1], room))))
+
+    placed.append((sentences[-1], (last_start, end)))
+    return placed
 
 

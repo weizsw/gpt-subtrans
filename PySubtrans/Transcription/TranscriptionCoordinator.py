@@ -14,13 +14,12 @@ from PySubtrans.SubtitleProcessor import SubtitleProcessor
 from PySubtrans.Subtitles import Subtitles
 from PySubtrans.Transcription.AudioChunker import AudioChunker, AudioChunk
 from PySubtrans.Transcription.AudioExtractor import AudioExtractor, AudioTrack, CheckFfmpegAvailable
+from PySubtrans.Transcription.LineSettings import (DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS, DEFAULT_MIN_GAP_SECONDS,
+                                                   DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS, LineSettings)
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionCapture import CapturePath, TranscriptionCapture
 from PySubtrans.Transcription.TranscriptionEvents import TranscriptionEvents
-from PySubtrans.Transcription.TranscriptionLines import (DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS,
-                                                         DEFAULT_MIN_GAP_SECONDS,
-                                                         DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS,
-                                                         SpanLabel, TranscriptionLineBuilder)
+from PySubtrans.Transcription.TranscriptionLines import SpanLabel, TranscriptionLineBuilder
 from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionOutcome, TranscriptionStatus
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionRun import TranscriptionRun
@@ -55,7 +54,7 @@ class TranscriptionCoordinator:
 
         # Transcribed lines obey the same limits as loaded and translated subtitles
         min_gap = self.settings.get_float('min_gap')
-        self.line_builder : TranscriptionLineBuilder = TranscriptionLineBuilder(
+        self.line_builder : TranscriptionLineBuilder = TranscriptionLineBuilder(LineSettings(
             max_line_chars=self.settings.get_int('max_characters') or 120,
             max_line_seconds=self.settings.get_float('max_line_duration') or 4.0,
             min_split_chars=self.settings.get_int('min_split_chars') or 3,
@@ -65,7 +64,8 @@ class TranscriptionCoordinator:
                 or DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS,
             max_newlines=self.settings.get_int('max_newlines') or 2,
             can_merge_different_speakers=line_settings.get_bool('can_merge_different_speakers', True),
-            min_gap=min_gap if min_gap is not None else DEFAULT_MIN_GAP_SECONDS)
+            min_gap=min_gap if min_gap is not None else DEFAULT_MIN_GAP_SECONDS,
+            word_coverage=provider.word_coverage))
 
         self.events : TranscriptionEvents = TranscriptionEvents()
         self._active_client : TranscriptionClient|None = None

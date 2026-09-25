@@ -15,6 +15,7 @@ class TranscriptionSegment:
     Speaker is None when the engine provides no diarization.
     Words, when present, carry chunk-relative timings, in the order the engine emitted them.
     Parts, when present, are the engine's own chunk-relative sub-segments, and become the lines.
+    Without parts, the line builder derives them from the text, timed by the words.
     """
     start : timedelta = field(default_factory=lambda: timedelta(seconds=0))
     end : timedelta = field(default_factory=lambda: timedelta(seconds=0))
