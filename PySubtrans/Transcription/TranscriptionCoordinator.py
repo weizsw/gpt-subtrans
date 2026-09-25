@@ -16,7 +16,8 @@ from PySubtrans.Subtitles import Subtitles
 from PySubtrans.Transcription.AudioChunker import AudioChunker, AudioChunk
 from PySubtrans.Transcription.AudioExtractor import AudioExtractor, AudioTrack, CheckFfmpegAvailable
 from PySubtrans.Transcription.LineSettings import (DEFAULT_MERGE_ELIGIBLE_GAP_SECONDS, DEFAULT_MIN_GAP_SECONDS,
-                                                   DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS, LineSettings)
+                                                   DEFAULT_SAME_SPEAKER_MERGE_ELIGIBLE_GAP_SECONDS,
+                                                   DEFAULT_TIMING_CORRECTION_FACTOR, LineSettings)
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionCapture import CapturePath, TranscriptionCapture
 from PySubtrans.Transcription.TranscriptionEvents import TranscriptionEvents
@@ -66,7 +67,9 @@ class TranscriptionCoordinator:
             max_newlines=self.settings.get_int('max_newlines') or 2,
             can_merge_different_speakers=line_settings.get_bool('can_merge_different_speakers', True),
             min_gap=min_gap if min_gap is not None else DEFAULT_MIN_GAP_SECONDS,
-            word_coverage=provider.word_coverage))
+            word_coverage=provider.word_coverage,
+            timing_correction_factor=line_settings.get_float('timing_correction_factor')
+                or DEFAULT_TIMING_CORRECTION_FACTOR))
 
         self.events : TranscriptionEvents = TranscriptionEvents()
         self._active_client : TranscriptionClient|None = None
@@ -124,7 +127,8 @@ class TranscriptionCoordinator:
 
         # Capture raw provider segments when requested (scripts/replay_transcription.py)
         capture_path = CapturePath(self.settings)
-        self._capture = TranscriptionCapture(capture_path, self.provider.name, media_path) if capture_path else None
+        self._capture = (TranscriptionCapture(capture_path, self.provider.name, media_path, self.line_builder.settings)
+                         if capture_path else None)
 
         def on_duration(duration : timedelta) -> None:
             run.audio_total_seconds = max(0.0, duration.total_seconds())

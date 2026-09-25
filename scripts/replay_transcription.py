@@ -19,20 +19,22 @@ import argparse
 import os
 import statistics
 import sys
-from dataclasses import replace
+from dataclasses import asdict, replace
 from datetime import timedelta
 from difflib import SequenceMatcher
+from typing import Any
 
 import regex
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+from PySubtrans.Helpers.Speech import EstimateSpeechSeconds
 from PySubtrans.Options import Options
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleProcessor import SubtitleProcessor
 from PySubtrans.Subtitles import Subtitles
-from PySubtrans.Transcription.LineSettings import LineSettings
-from PySubtrans.Transcription.TranscriptionCapture import LoadCapture, LoadCaptureProvider
+from PySubtrans.Transcription.LineSettings import DEFAULT_TIMING_CORRECTION_FACTOR, LineSettings
+from PySubtrans.Transcription.TranscriptionCapture import LoadCapture, LoadCaptureLineSettings, LoadCaptureProvider
 from PySubtrans.Transcription.TranscriptionLines import TranscriptionLineBuilder
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionRun import TranscriptionRun
@@ -68,6 +70,20 @@ def ProviderWordCoverage(capture : str) -> WordCoverage:
     providers = {key.casefold(): provider for key, provider in TranscriptionProvider.get_providers().items()}
     provider = providers.get(name.casefold()) if name else None
     return provider.word_coverage if provider is not None else WordCoverage.COMPLETE
+
+
+def ProviderTimingCorrection(capture : str) -> float:
+    """The timing correction factor the capture's provider defaults to, for captures that did not record it."""
+    name = LoadCaptureProvider(capture)
+    if not name:
+        return DEFAULT_TIMING_CORRECTION_FACTOR
+
+    try:
+        provider = TranscriptionProvider.create_provider(name, SettingsType())
+    except ValueError:
+        return DEFAULT_TIMING_CORRECTION_FACTOR
+
+    return provider.settings.get_float('timing_correction_factor') or DEFAULT_TIMING_CORRECTION_FACTOR
 
 
 def SaveLines(lines : list[TranscriptionSegment], path : str, postprocess : bool) -> int:
@@ -167,6 +183,7 @@ def Report(lines : list[TranscriptionSegment], min_line_seconds : float, max_new
            transcript_chars : int = 0) -> None:
     """Print each line, flagging the ones worth looking at, and how much of the transcript the lines hold."""
     short = 0
+    fast = 0
     stacked = 0
     splittable = 0
 
@@ -177,6 +194,9 @@ def Report(lines : list[TranscriptionSegment], min_line_seconds : float, max_new
         if duration < min_line_seconds:
             flags += ' [short]'
             short += 1
+        if duration < EstimateSpeechSeconds(line.text):
+            flags += ' [fast]'
+            fast += 1
         if newlines >= max_newlines:
             flags += f' [{newlines + 1} rows]'
             stacked += 1
@@ -188,7 +208,7 @@ def Report(lines : list[TranscriptionSegment], min_line_seconds : float, max_new
             text = line.text.replace('\n', ' / ')
             print(f"[{Timecode(line.start)} --> {Timecode(line.end)}] {duration:5.2f}s{flags} {text}")
 
-    print(f"\n{len(lines)} lines, {short} under {min_line_seconds}s, "
+    print(f"\n{len(lines)} lines, {short} under {min_line_seconds}s, {fast} shorter than their speech estimate, "
           f"{stacked} at the newline limit ({splittable} splittable)")
 
     if transcript_chars:
@@ -206,8 +226,10 @@ def main() -> int:
     parser.add_argument('--merge-eligible-gap', type=float, help="Widest gap that can be merged across")
     parser.add_argument('--same-speaker-gap', type=float, help="As above, for one speaker continuing")
     parser.add_argument('--no-merge-speakers', action='store_true', help="Keep separate speakers on separate lines")
+    parser.add_argument('--timing-correction-factor', type=float,
+                        help="Extend lines shorter than this fraction of their speech estimate (default: the capture's)")
     parser.add_argument('--word-coverage', choices=[coverage.value for coverage in WordCoverage],
-                        help="How much of the transcript the words spell (default: the capture provider's)")
+                        help="How much of the transcript the words spell (default: the capture's)")
     parser.add_argument('--source', choices=('auto', 'parts', 'words'), default='auto',
                         help="Build lines from parts or words (default: whatever the builder prefers)")
     parser.add_argument('--quiet', action='store_true', help="Print only the summary")
@@ -223,7 +245,19 @@ def main() -> int:
     segments = SelectSource(segments, args.source)
     transcript_chars = sum(len(SpokenText(segment.text)) for segment in segments)
 
-    overrides = {
+    # Settings not given on the command line are the ones the capture's run used.
+    # Older captures did not record them, so they fall back to the current options and their provider's defaults.
+    recorded = LoadCaptureLineSettings(args.capture)
+    if recorded is not None:
+        defaults : dict[str, Any] = asdict(recorded)
+    else:
+        print("Line settings were not recorded in this capture, so the current options and provider defaults are used")
+        defaults = {
+            'word_coverage': ProviderWordCoverage(args.capture),
+            'timing_correction_factor': ProviderTimingCorrection(args.capture),
+        }
+
+    overrides : dict[str, Any] = {
         'min_line_seconds': args.min_line_duration,
         'max_line_seconds': args.max_line_duration,
         'max_line_chars': args.max_characters,
@@ -231,8 +265,13 @@ def main() -> int:
         'merge_eligible_gap': args.merge_eligible_gap,
         'same_speaker_merge_eligible_gap': args.same_speaker_gap,
         'can_merge_different_speakers': False if args.no_merge_speakers else None,
-        'word_coverage': WordCoverage(args.word_coverage) if args.word_coverage else ProviderWordCoverage(args.capture),
+        'word_coverage': WordCoverage(args.word_coverage) if args.word_coverage else None,
+        'timing_correction_factor': args.timing_correction_factor,
     }
+
+    for key, value in defaults.items():
+        if overrides.get(key) is None:
+            overrides[key] = value
 
     if args.compare:
         setting, *values = args.compare

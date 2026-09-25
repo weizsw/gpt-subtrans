@@ -1,5 +1,6 @@
 import array
 import io
+import json
 import logging
 import math
 import os
@@ -21,9 +22,11 @@ from PySubtrans.SubtitleError import SubtitleError
 from PySubtrans.Subtitles import Subtitles
 from PySubtrans.Transcription.AudioChunker import AudioChunk, AudioChunker
 from PySubtrans.Transcription.AudioExtractor import AudioExtractor, AudioTrack
+from PySubtrans.Transcription.LineMerger import MIN_TIMING_CORRECTION
 from PySubtrans.Transcription.LineSettings import LineSettings
 from PySubtrans.Transcription.SilenceStream import SilenceStream
 from PySubtrans.Transcription.WordTiming import WordTiming
+from PySubtrans.Transcription.TranscriptionCapture import LoadCaptureLineSettings
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionCoordinator import TranscriptionCoordinator, TranscriptionStatus
 from PySubtrans.Transcription.TranscriptionLines import MIN_WORD_CAP_SECONDS, WORD_CAP_MULTIPLE, TranscriptionLineBuilder
@@ -1028,6 +1031,71 @@ class TestPartsFirst(LoggedTestCase):
         self.assertLoggedEqual("second piece", "我们走吧！", lines[1].text)
 
 
+class TestTimingCorrection(LoggedTestCase):
+    """A line too short for its text is extended into the pause after it, when the provider's timings call for correction."""
+    SENTENCE = "Cuando estoy nerviosa es aún peor."
+
+    def _lines(self, parts : list[TranscriptionSegment], factor : float, chunk_end : float = 160.0) -> list[TranscriptionSegment]:
+        segment = TranscriptionSegment(start=timedelta(seconds=100), end=timedelta(seconds=chunk_end),
+                                       text=''.join(part.text for part in parts), language="Spanish", parts=parts)
+        builder = TranscriptionLineBuilder(LineSettings(max_line_chars=120, max_line_seconds=4.0,
+                                                        timing_correction_factor=factor))
+        return builder.LinesForSegment(segment)
+
+    def _speech(self, factor : float = 1.0) -> timedelta:
+        return timedelta(seconds=factor * EstimateSpeechSeconds(self.SENTENCE))
+
+    def test_provider_timing_is_trusted_by_default(self):
+        """With no correction, a line keeps the span its provider gave it."""
+        lines = self._lines([_part(self.SENTENCE, 0.0, 1.4), _part("Horrible.", 5.0, 6.0)], factor=0.0)
+
+        self.assertLoggedEqual("end kept", timedelta(seconds=101.4), lines[0].end)
+
+    def test_short_line_extends_towards_its_speaking_time(self):
+        """A line shorter than its corrected speaking time is extended to it, and only its end moves."""
+        lines = self._lines([_part(self.SENTENCE, 0.0, 1.4), _part("Horrible.", 5.0, 6.0)], factor=0.9)
+
+        self.assertLoggedEqual("line count", 2, len(lines))
+        self.assertLoggedEqual("start kept", timedelta(seconds=100), lines[0].start)
+        self.assertLoggedEqual("extended end", timedelta(seconds=100) + self._speech(0.9), lines[0].end)
+        self.assertLoggedEqual("next line untouched", timedelta(seconds=105), lines[1].start)
+
+    def test_extension_stops_short_of_the_next_line(self):
+        """A pause too short for the whole correction is used up to the minimum gap before the next line."""
+        lines = self._lines([_part(self.SENTENCE, 0.0, 1.4), _part("Horrible.", 1.8, 2.8)], factor=1.0)
+
+        self.assertLoggedEqual("line count", 2, len(lines))
+        self.assertLoggedEqual("end before the next line", timedelta(seconds=101.75), lines[0].end)
+
+    def test_extension_stays_within_the_chunk(self):
+        """The last line of a chunk is only extended as far as the chunk's end."""
+        lines = self._lines([_part(self.SENTENCE, 0.0, 1.4)], factor=1.0, chunk_end=101.6)
+
+        self.assertLoggedEqual("end at the chunk's end", timedelta(seconds=101.6), lines[0].end)
+
+    def test_imperceptible_correction_is_skipped(self):
+        """A correction smaller than the threshold leaves the line as it was."""
+        duration = self._speech().total_seconds() - MIN_TIMING_CORRECTION.total_seconds() / 2
+        lines = self._lines([_part(self.SENTENCE, 0.0, duration), _part("Horrible.", 5.0, 6.0)], factor=1.0)
+
+        self.assertLoggedEqual("end kept", timedelta(seconds=100) + timedelta(seconds=duration), lines[0].end)
+
+    def test_line_long_enough_for_its_text_is_left_alone(self):
+        """A line already lasting its corrected speaking time is never shortened."""
+        lines = self._lines([_part(self.SENTENCE, 0.0, 3.0), _part("Horrible.", 5.0, 6.0)], factor=1.0)
+
+        self.assertLoggedEqual("end kept", timedelta(seconds=103), lines[0].end)
+
+    def test_correction_never_merges_lines(self):
+        """Lines too short for their text keep their own lines, even when they could be merged."""
+        parts = [_part(self.SENTENCE, 0.0, 1.4), _part("Nadie debía saber nada.", 1.5, 2.4)]
+        uncorrected = self._lines(parts, factor=0.0)
+        corrected = self._lines(parts, factor=1.0)
+
+        self.assertLoggedEqual("line count", len(uncorrected), len(corrected))
+        self.assertLoggedEqual("texts", [line.text for line in uncorrected], [line.text for line in corrected])
+
+
 class TestDerivedParts(LoggedTestCase):
     """A transcript with words but no provider parts is cut into parts timed by its words."""
     def _lines(self, text : str, words : list[WordTiming],
@@ -1260,6 +1328,13 @@ class TestLineBuilderWiring(LoggedTestCase):
 
         self.assertLoggedEqual("word coverage", WordCoverage.PARTIAL, coordinator.line_builder.settings.word_coverage)
 
+    def test_builder_takes_the_provider_timing_correction(self):
+        """A provider's timing correction factor configures the builder."""
+        provider = FakeTranscriptionProvider(SettingsType({'timing_correction_factor': 0.6}))
+        coordinator = TranscriptionCoordinator(provider)
+
+        self.assertLoggedEqual("timing correction", 0.6, coordinator.line_builder.settings.timing_correction_factor)
+
     def test_builder_defaults(self):
         """Missing settings fall back to the documented defaults."""
         coordinator = TranscriptionCoordinator(FakeTranscriptionProvider())
@@ -1267,6 +1342,7 @@ class TestLineBuilderWiring(LoggedTestCase):
         self.assertLoggedEqual("max chars", 120, coordinator.line_builder.settings.max_line_chars)
         self.assertLoggedEqual("max seconds", 4.0, coordinator.line_builder.settings.max_line_seconds)
         self.assertLoggedEqual("min split chars", 3, coordinator.line_builder.settings.min_split_chars)
+        self.assertLoggedEqual("no timing correction", 0.0, coordinator.line_builder.settings.timing_correction_factor)
 
 class TestSettingsNamespaces(LoggedTestCase):
     def _options(self):
@@ -1444,6 +1520,35 @@ class TestTranscriptionCoordinator(LoggedTestCase):
         self.assertLoggedEqual("second start", timedelta(seconds=6), subtitles.originals[1].start)
         assert provider.client is not None  # Type narrowing for PyLance
         self.assertLoggedEqual("client calls", 2, provider.client.calls)
+
+    def test_capture_records_the_line_settings(self):
+        """A capture records the line settings its run used, so a replay can reproduce them."""
+        provider = FakeTranscriptionProvider(SettingsType({'timing_correction_factor': 0.6}), ["first line"], [_word("w", 0.0, 1.0)])
+        provider.word_coverage = WordCoverage.PARTIAL
+
+        with tempfile.TemporaryDirectory() as folder:
+            capture_path = os.path.join(folder, "capture.json")
+            coordinator = TranscriptionCoordinator(provider, SettingsType({'min_chunk_seconds': 1.0,
+                                                                          'transcription_capture_path': capture_path}))
+            stub_media(self, coordinator, [AudioChunk(start=timedelta(seconds=0), end=timedelta(seconds=4))])
+
+            with tempfile.NamedTemporaryFile(suffix=".mkv") as media:
+                _subtitles_of(coordinator.TranscribeMedia(media.name))
+
+            recorded = LoadCaptureLineSettings(capture_path)
+
+        self.assertLoggedEqual("recorded settings", coordinator.line_builder.settings, recorded)
+
+    def test_capture_without_line_settings_loads_none(self):
+        """A capture from before line settings were recorded still loads, with none to replay."""
+        with tempfile.TemporaryDirectory() as folder:
+            capture_path = os.path.join(folder, "capture.json")
+            with open(capture_path, 'w', encoding='utf-8') as file:
+                json.dump({'provider': 'Gemini', 'media': None, 'segments': []}, file)
+
+            recorded = LoadCaptureLineSettings(capture_path)
+
+        self.assertLoggedIsNone("no recorded settings", recorded)
 
     def test_gate_refuses_untimed_provider(self):
         """Providers without timings are refused before spending anything."""
