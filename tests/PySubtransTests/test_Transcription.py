@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 import httpx
 
-from PySubtrans.Helpers.Speech import EstimateSpeechSeconds, SentenceEnds, SentenceRanges
+from PySubtrans.Helpers.Speech import EndsSentence, EstimateSpeechSeconds, SentenceEnds, SentenceRanges
 from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.Helpers.Tests import skip_if_debugger_attached
 from PySubtrans.Options import Options
@@ -451,6 +451,13 @@ class TestWordGrouping(LoggedTestCase):
         lines = self._scene_lines(self._builder(), "café noir. следующий", words)
 
         self.assertLoggedEqual("unicode spacing", "café noir. следующий", lines[0].text)
+
+    def test_full_stop_ends_an_utterance(self):
+        """A full stop ends a line, however short the pause after it."""
+        words = [_word("Wait.", 0.0, 1.0), _word("I", 1.1, 1.3), _word("know.", 1.3, 2.2)]
+        lines = self._scene_lines(self._builder(), "Wait. I know.", words, language="English")
+
+        self.assertLoggedEqual("texts", ["Wait.", "I know."], [line.text for line in lines])
 
     def test_speaker_change_splits_lines(self):
         """Speaker turns break subtitle lines and label them."""
@@ -907,6 +914,36 @@ class TestPartsFirst(LoggedTestCase):
         self.assertLoggedEqual("line count", 1, len(lines))
         self.assertLoggedEqual("part text", "以为自己是只鬼。", lines[0].text)
 
+    def test_part_splits_at_its_sentences(self):
+        """A part within the limits is still divided where a sentence ends, full stops included."""
+        parts = [_part("Wait here. I'll be back soon.", 0.0, 3.0)]
+        words = [_word("Wait", 0.0, 0.4), _word("here.", 0.4, 1.0), _word("I'll", 1.4, 1.8),
+                 _word("be", 1.8, 2.0), _word("back", 2.0, 2.4), _word("soon.", 2.4, 3.0)]
+        lines = self._lines(parts, words)
+
+        self.assertLoggedEqual("texts", ["Wait here.", "I'll be back soon."], [line.text for line in lines])
+        self.assertLoggedEqual("second starts at its first word", timedelta(seconds=101.4), lines[1].start)
+
+    def test_one_syllable_word_ends_a_sentence(self):
+        """A single syllabic character before a full stop is a word, not an initial."""
+        parts = [_part("데이터 검색 중. 정보가 일치하지 않습니다.", 0.0, 3.5)]
+        words = [_word("데이터", 0.0, 0.5), _word("검색", 0.5, 0.9), _word("중.", 0.9, 1.2),
+                 _word("정보가", 1.6, 2.2), _word("일치하지", 2.2, 2.9), _word("않습니다.", 2.9, 3.5)]
+        lines = self._lines(parts, words)
+
+        self.assertLoggedEqual("texts", ["데이터 검색 중.", "정보가 일치하지 않습니다."], [line.text for line in lines])
+
+    def test_initials_and_glued_full_stops_do_not_split_a_part(self):
+        """Only a word that ends a sentence divides a part, not initials or a full stop inside a word."""
+        cases = {
+            "We met J. Smith there.": ["We", "met", "J.", "Smith", "there."],
+            "Ánimo.Nadie debía saber nada.": ["Ánimo.Nadie", "debía", "saber", "nada."],
+        }
+
+        for text, texts in cases.items():
+            lines = self._lines([_part(text, 0.0, 2.5)], _uniform_words(texts, seconds_each=2.5 / len(texts)))
+            self.assertLoggedEqual("line count", 1, len(lines), input_value=text)
+
     def test_long_part_splits_at_its_words(self):
         """A part over the duration limit is cut where its words say, keeping the part's text."""
         parts = [_part("你好，朋友。我们走吧！", 0.0, 8.0, "0")]
@@ -1341,12 +1378,22 @@ class TestDerivedParts(LoggedTestCase):
             "Bring snacks, e.g. crisps. Then go.": ["Bring snacks, e.g. crisps.", "Then go."],
             "Meet me at 3. Then we go.": ["Meet me at 3.", "Then we go."],
             "Wait. I know.": ["Wait.", "I know."],
+            "검색 중. 정보가 없습니다.": ["검색 중.", "정보가 없습니다."],
+            "Well... I suppose.": ["Well...", "I suppose."],
         }
 
         for text, expected in cases.items():
             self.assertLoggedEqual("sentences", expected,
                                    [text[start:end].strip() for start, end in SentenceRanges(text, SentenceEnds.ALL)],
                                    input_value=text)
+
+    def test_words_that_end_sentences(self):
+        """A word ends a sentence at any sentence punctuation, allowing for closing quotes, but not at initials."""
+        cases = {"done.": True, 'done."': True, "why?": True, "중.": True, "so...": True,
+                 "J.": False, "U.S.A": False, "3.5": False, "well,": False, "": False}
+
+        for word, expected in cases.items():
+            self.assertLoggedEqual("ends sentence", expected, EndsSentence(word), input_value=word)
 
     def test_transcript_without_words_is_cut_at_full_stops(self):
         """With no words to divide it, a transcript is cut at full stops, and its sentences spread across the chunk."""
