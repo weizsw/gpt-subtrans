@@ -35,6 +35,24 @@ elif [ -n "$config_path" ]; then
     echo "========================================"
 fi
 
+function set_env_var() {
+    # Write NAME=value to .env, replacing any existing NAME entry
+    local name=$1
+    local value=$2
+
+    if [ -f ".env" ]; then
+        sed -i.bak "/^${name}=/d" .env
+        rm -f .env.bak
+
+        # Terminate an unterminated last line so the new entry is not merged into it
+        if [ -n "$(tail -c 1 .env)" ]; then
+            echo >> .env
+        fi
+    fi
+
+    printf '%s=%s\n' "$name" "$value" >> .env
+}
+
 function install_provider() {
     local provider=$1
     local api_key_var_name=$2
@@ -46,20 +64,12 @@ function install_provider() {
 
     # Only update .env if user entered a new API key
     if [ -n "$api_key" ]; then
-        if [ -f ".env" ]; then
-            sed -i.bak "/^${api_key_var_name}_API_KEY=/d" .env
-            rm -f .env.bak
-        fi
-        echo "${api_key_var_name}_API_KEY=$api_key" >> .env
+        set_env_var "${api_key_var_name}_API_KEY" "$api_key"
     fi
 
     # Set as default provider if requested
     if [ "$set_as_default" = "set_default" ]; then
-        if [ -f ".env" ]; then
-            sed -i.bak "/^PROVIDER=/d" .env
-            rm -f .env.bak
-        fi
-        echo "PROVIDER=$provider" >> .env
+        set_env_var PROVIDER "$provider"
     fi
 
     if [ -n "$extra_name" ]; then
@@ -78,19 +88,10 @@ function install_bedrock() {
     read -p "Enter your AWS Secret Access Key: " secret_key
     read -p "Enter your AWS Region (e.g., us-east-1): " region
 
-    if [ -f ".env" ]; then
-        # Remove existing provider settings
-        sed -i.bak "/^AWS_ACCESS_KEY_ID=/d" .env
-        sed -i.bak "/^AWS_SECRET_ACCESS_KEY=/d" .env
-        sed -i.bak "/^AWS_REGION=/d" .env
-        sed -i.bak "/^PROVIDER=/d" .env
-        rm -f .env.bak
-    fi
-
-    echo "PROVIDER=Bedrock" >> .env
-    echo "AWS_ACCESS_KEY_ID=$access_key" >> .env
-    echo "AWS_SECRET_ACCESS_KEY=$secret_key" >> .env
-    echo "AWS_REGION=$region" >> .env
+    set_env_var PROVIDER "Bedrock"
+    set_env_var AWS_ACCESS_KEY_ID "$access_key"
+    set_env_var AWS_SECRET_ACCESS_KEY "$secret_key"
+    set_env_var AWS_REGION "$region"
 
     extras+=("bedrock")
     scripts_to_generate+=("bedrock-subtrans")
@@ -166,23 +167,14 @@ if [ "$portable_install" = true ] && [ -f ".env" ]; then
 fi
 
 if [ -n "$config_path" ]; then
-    if [ -f ".env" ]; then
-        sed -i.bak '/^LLM_SUBTRANS_CONFIG_PATH=/d' .env
-        rm -f .env.bak
-    fi
-    printf 'LLM_SUBTRANS_CONFIG_PATH=%s\n' "$config_path" >> .env
+    set_env_var LLM_SUBTRANS_CONFIG_PATH "$config_path"
 fi
 
 # Optional: configure OpenRouter API key
 echo "Optional: Configure OpenRouter API key (default provider)"
 read -p "Enter your OpenRouter API Key (optional): " openrouter_key
 if [ -n "$openrouter_key" ]; then
-    if [ -f ".env" ]; then
-        # Remove any existing OpenRouter API key
-        sed -i.bak "/^OPENROUTER_API_KEY=/d" .env
-        rm -f .env.bak
-    fi
-    echo "OPENROUTER_API_KEY=$openrouter_key" >> .env
+    set_env_var OPENROUTER_API_KEY "$openrouter_key"
 fi
 
 echo "Select additional providers to install:"
