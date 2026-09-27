@@ -122,15 +122,16 @@ With enough display time, breaks at full stops are preferred. What remains is de
 
 ### Site-by-site assessment
 
-Rounds 18 and 19 judged every place where the two versions differ, rather than whole windows. Both versions were replayed with the round 17 evaluation adjustments (factor 0.7 and the 1.2 s floor). Each site showed the two versions as X and Y, in random order per site, and the assessor chose X, Y or same for someone watching the film. Files are in `transcription_tests/assess/round18` and `round19_*`, with keys and site features alongside.
+Rounds 18 to 20 judged every place where the two versions differ, rather than whole windows. Both versions were replayed with the round 17 evaluation adjustments (factor 0.7 and the 1.2 s floor). Each site showed the two versions as X and Y, in random order per site, and the assessor chose X, Y or same for someone watching the film. Files are in `transcription_tests/assess/round18`, `round19_*` and `round20_*`, with keys and site features alongside.
 
 | Capture | Sites | Sentence ends preferred | Current code preferred | High confidence |
 |---|---|---|---|---|
 | Natural City (MAI, Korean) | 128 | 97 | 31 | 68 to 7 |
+| Natural City (Gemini, Korean) | 125 | 108 | 17 | 80 to 6 |
 | Fist of Fury (MAI, Cantonese) | 130 | 113 | 17 | 101 to 6 |
 | La Madre Muerta (Gemini, Spanish) | 105 | 77 | 28 | 55 to 4 |
 
-Fist of Fury from Gemini, Qwen Local and Muse does not change: their segments are already cut at sentence ends. Gemini's glued `Ánimo.Nadie` failure does not recur (see The change).
+Fist of Fury from Gemini, Qwen Local and Muse does not change: their segments are already cut at sentence ends. Natural City from Gemini (round 20) was replayed against `main` and the branch with the same evaluation adjustments. Gemini transcribed about 18% less text than MAI, leaving several minutes untranscribed at the start and end of the film, but timed every word it wrote; it glued 278 sentences together without a space, of which 276 are recognised. Most of its 17 losses are knock-on cuts where a glued sentence runs into the next part, such as `나도` and `현재 MP 위치는` left dangling. Gemini's glued `Ánimo.Nadie` failure does not recur (see The change).
 
 No feature of the timing predicts which breaks lose. On Natural City, sentence ends won 74-83% of breaks whether the pause was short or long, whatever each sentence's spoken length, after `.` or `?`/`!`, and even when one side was two syllables or fewer. Packing consecutive sentences up to a duration would rejoin about two breaks the assessor preferred for each one it did not, at any limit from 2 to 3 s. The losses are judgements about meaning, such as a follow-up or an insult that belongs with the sentence before it (`넌 이용당한 거야. 병신 같은 새끼야.`, `Queremos 20 millones. ¿Ha oído?`).
 
