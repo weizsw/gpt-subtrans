@@ -33,7 +33,7 @@ from PySubtrans.Transcription.TranscriptionLines import MIN_WORD_CAP_SECONDS, WO
 from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionOutcome
 from PySubtrans.Transcription.TranscriptionProvider import OptionsScope, TranscriptionProvider
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionResult, TranscriptionSegment
-from PySubtrans.Transcription.WordAlignment import WordCoverage
+from PySubtrans.Transcription.WordAlignment import AlignWords, TimedSentenceRanges, WordCoverage
 
 from tests.Helpers import FakeClock
 
@@ -1259,6 +1259,28 @@ class TestDerivedParts(LoggedTestCase):
 
         self.assertLoggedEqual("speakers", ["A", "B"], [line.speaker for line in lines])
         self.assertLoggedEqual("texts", ["你好朋友", "我们走吧。"], [line.text for line in lines])
+
+    def test_glued_untimed_sentence_follows_the_words_before_it(self):
+        """An untimed sentence glued to the next one is placed after the words before it, not with the next speaker."""
+        words = ([_word("Tú", 0.0, 0.2, "A"), _word("te", 0.2, 0.4, "A"), _word("la", 0.4, 0.6, "A"), _word("llevas.", 0.6, 1.2, "A")]
+                 + [_word("Nadie", 20.0, 20.4, "B"), _word("debía", 20.4, 20.8, "B"), _word("saber", 20.8, 21.2, "B"), _word("nada.", 21.2, 21.6, "B")])
+        lines = self._lines("Tú te la llevas. Ánimo.Nadie debía saber nada.", words)
+
+        placed = next(line for line in lines if "Ánimo." in line.text)
+        self.assertLoggedLess("placed in the pause after the words before it", placed.start, timedelta(seconds=105))
+        self.assertLoggedEqual("next sentence keeps its own line", "Nadie debía saber nada.", lines[-1].text)
+
+    def test_timed_words_divide_glued_sentences(self):
+        """A full stop with a timed word straight after it ends a sentence, but initials still do not."""
+        cases = {
+            "No hay dinero.Adelante.Hola.": (["No", "hay", "dinero", "Adelante", "Hola"], ["No hay dinero.", "Adelante.", "Hola."]),
+            "Llegó de U.S.A. ayer.": (["Llegó", "de", "U", "S", "A", "ayer"], ["Llegó de U.S.A. ayer."]),
+        }
+
+        for text, (texts, expected) in cases.items():
+            aligned = AlignWords(text, _uniform_words(texts, seconds_each=0.3))
+            ranges = TimedSentenceRanges(text, aligned)
+            self.assertLoggedEqual("sentences", expected, [text[start:end].strip() for start, end in ranges], input_value=text)
 
     def test_opening_punctuation_stays_with_the_text_it_opens(self):
         """A Spanish question mark opens the next speaker's line rather than closing the previous one."""

@@ -30,8 +30,6 @@ class SentenceEnds(Enum):
 
     STRONG is question and exclamation marks, CJK full stops, ellipses and line breaks.
     ALL adds full stops, other than after initials or dotted abbreviations.
-    Transcript text with word timings is cut into parts at STRONG ends only, since untimed text at the start of a part takes its timing from the words after it.
-    Words end sentences at ALL ends (see EndsSentence).
     """
     STRONG = 'strong'
     ALL = 'all'

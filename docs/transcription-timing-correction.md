@@ -10,7 +10,7 @@ The issue proposed merging lines that are too fast to read into a neighbour. Thi
 
 ## Full stops are soft boundaries
 
-**Superseded:** words ending in a full stop now end a sentence and start a new line, like `?`, `!` and `。`. Transcript text is still cut only at strong sentence ends, so glued full stops are unaffected. The evidence is in [transcription-line-segmentation.md](transcription-line-segmentation.md). The rest of this section records the earlier trials.
+**Superseded:** words ending in a full stop now end a sentence and start a new line, like `?`, `!` and `。`. A full stop glued to the next word ends a sentence when a timed word starts straight after it, which keeps `Ánimo` with its speaker. The evidence is in [transcription-line-segmentation.md](transcription-line-segmentation.md). The rest of this section records the earlier trials.
 
 Full stops do not end a part the way `?`, `!` and `。` do, but they are not ignored. `.` is in `CLAUSE_END_CHARS`, so when a part runs over the length or duration limit, `UtteranceSplitter.FitUtterance` prefers to split it at a full stop. A full stop is a good place to split a line that is too long, but not a reason to split one that is not.
 
