@@ -1,11 +1,13 @@
+import contextlib
+import io
 from datetime import timedelta
 
 from PySubtrans.Helpers.TestCases import LoggedTestCase
 from PySubtrans.Helpers.Tests import log_input_expected_error, skip_if_debugger_attached
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleLine import SubtitleLine
-from scripts.translation_ab_test import (ComparePair, FindSites, LengthBreakdown, MeasureArm, ParseArm, ParseOverride,
-                                         ParseVerdicts, SignTestPValue)
+from scripts.translation_ab_test import (ComparePair, CreateParser, FindSites, LengthBreakdown, MeasureArm, ParseArm,
+                                         ParseOverride, ParseVerdicts, SignTestPValue)
 
 
 def _line(number : int, text : str) -> SubtitleLine:
@@ -22,6 +24,9 @@ class TestTranslationABTest(LoggedTestCase):
             "max_batch_size=30": ('max_batch_size', 30),
             "temperature=0.7": ('temperature', 0.7),
             "instruction_file=a=b.txt": ('instruction_file', "a=b.txt"),
+            "min_gap=-2": ('min_gap', -2),
+            "rate=1e3": ('rate', 1000.0),
+            "model=v1.2": ('model', "v1.2"),
         }
 
         for override, expected in cases.items():
@@ -39,6 +44,22 @@ class TestTranslationABTest(LoggedTestCase):
         arm = ParseArm('B', "OpenRouter:other", base, [])
         self.assertLoggedEqual("spec provider wins", "OpenRouter", arm.provider)
         self.assertLoggedEqual("spec model wins", "other", arm.settings.get_str('model'))
+
+    def test_description_leaves_out_credentials(self) -> None:
+        """Keys, tokens and passwords are not shown in an arm's description, which goes into shared reports."""
+        settings = SettingsType({'provider': "Gemini", 'model': "flash", 'api_key': "sk-secret", 'access_token': "t0k3n", 'temperature': 0.5})
+        arm = ParseArm('A', None, settings, ["password=hunter2"])
+
+        self.assertLoggedEqual("description", "Gemini:flash (temperature=0.5)", arm.description)
+
+    @skip_if_debugger_attached
+    def test_invalid_counts_are_rejected(self) -> None:
+        """Counts that could not be carried out are rejected as arguments, before anything is translated."""
+        parser = CreateParser()
+        for arguments in (["--judge-batch", "0"], ["--max-sites", "-1"], ["--runs", "0"], ["--min-change", "-0.1"]):
+            with self.assertRaises(SystemExit) as context, contextlib.redirect_stderr(io.StringIO()):
+                parser.parse_args(["input.srt", "-l", "English", "-o", "out"] + arguments)
+            self.assertLoggedEqual("argument error exit code", 2, context.exception.code, input_value=arguments)
 
     @skip_if_debugger_attached
     def test_arm_needs_a_provider_and_model(self) -> None:

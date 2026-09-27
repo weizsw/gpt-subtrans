@@ -20,7 +20,7 @@ import os
 import random
 import statistics
 import sys
-from argparse import ArgumentParser, Namespace
+from argparse import ArgumentParser, ArgumentTypeError, Namespace
 from dataclasses import dataclass
 
 import httpx
@@ -43,6 +43,13 @@ JUDGE_TIMEOUT_SECONDS = 600.0
 
 # A line is counted as shorter or longer in one arm when its length differs by at least this fraction
 LENGTH_CHANGE_FRACTION = 0.2
+
+# Setting values that are read as numbers, so that other strings such as version numbers stay strings
+INTEGER_VALUE = regex.compile(r'^[+-]?\d+$')
+FLOAT_VALUE = regex.compile(r'^[+-]?(\d+\.\d*|\.\d+|\d+)([eE][+-]?\d+)?$')
+
+# Settings whose values are credentials, which are left out of arm descriptions because reports are shared
+SECRET_SETTING = regex.compile(r'key|token|secret|password', regex.IGNORECASE)
 
 # A row starting with a dash marks a speaker turn in a dialogue cue
 DIALOGUE_ROW = regex.compile(r'^\s*[-–—]\s', regex.MULTILINE)
@@ -148,7 +155,8 @@ class Arm:
         if self.file:
             return f"existing translation {self.file}"
 
-        settings = ', '.join(f"{key}={value}" for key, value in self.settings.items() if key not in ('provider', 'model'))
+        settings = ', '.join(f"{key}={value}" for key, value in self.settings.items()
+                             if key not in ('provider', 'model') and not SECRET_SETTING.search(key))
         return f"{self.provider}:{self.model}" + (f" ({settings})" if settings else "")
 
 
@@ -220,13 +228,37 @@ def ParseOverride(override : str) -> tuple[str, SettingType]:
     if value.lower() in ('true', 'false'):
         return key, value.lower() == 'true'
 
-    for convert in (int, float):
-        try:
-            return key, convert(value)
-        except ValueError:
-            pass
+    if INTEGER_VALUE.match(value):
+        return key, int(value)
+
+    if FLOAT_VALUE.match(value):
+        return key, float(value)
 
     return key, value
+
+
+def PositiveInt(value : str) -> int:
+    """An argument that must be a whole number above zero."""
+    number = int(value)
+    if number <= 0:
+        raise ArgumentTypeError(f"must be above zero, not {value}")
+    return number
+
+
+def NonNegativeInt(value : str) -> int:
+    """An argument that must be a whole number, zero or above."""
+    number = int(value)
+    if number < 0:
+        raise ArgumentTypeError(f"must be zero or above, not {value}")
+    return number
+
+
+def NonNegativeFloat(value : str) -> float:
+    """An argument that must be a number, zero or above."""
+    number = float(value)
+    if number < 0.0:
+        raise ArgumentTypeError(f"must be zero or above, not {value}")
+    return number
 
 
 def TranslateArm(arm : Arm, args : Namespace, run : int) -> dict[int, str]:
@@ -612,16 +644,16 @@ def CreateParser() -> ArgumentParser:
     parser.add_argument('--b-set', action='append', default=[], metavar='KEY=VALUE', help="Setting override for arm B")
     parser.add_argument('--a-file', help="Judge this existing translation as arm A instead of translating")
     parser.add_argument('--b-file', help="Judge this existing translation as arm B instead of translating")
-    parser.add_argument('--min-change', type=float, default=0.0, help="Only judge lines whose length changed by at least this fraction, e.g. 0.15")
-    parser.add_argument('--runs', type=int, default=1, help="Translations per arm; runs after the first only measure run-to-run differences")
+    parser.add_argument('--min-change', type=NonNegativeFloat, default=0.0, help="Only judge lines whose length changed by at least this fraction, e.g. 0.15")
+    parser.add_argument('--runs', type=PositiveInt, default=1, help="Translations per arm; runs after the first only measure run-to-run differences")
     parser.add_argument('--movie', help="Film name for the translator and judge (default: the file name)")
     parser.add_argument('--judge-model', help="Model for the judge, e.g. ~openai/gpt-luna-latest (default: no judging, statistics and side-by-side only)")
     parser.add_argument('--judge-server', default=DEFAULT_JUDGE_SERVER, help="OpenAI-compatible API base URL for the judge (default: OpenRouter)")
     parser.add_argument('--judge-key', default=None, help="API key for the judge (default: OPENROUTER_API_KEY)")
-    parser.add_argument('--judge-batch', type=int, default=25, help="Sites per judge request")
-    parser.add_argument('--judge-context', type=int, default=2, help="Lines shown either side of each judged line, in the source and each translation")
-    parser.add_argument('--max-sites', type=int, default=0, help="Judge a random sample of at most this many sites (default: all)")
-    parser.add_argument('--long-line', type=int, default=70, help="Lines over this many characters count as long in the statistics")
+    parser.add_argument('--judge-batch', type=PositiveInt, default=25, help="Sites per judge request")
+    parser.add_argument('--judge-context', type=NonNegativeInt, default=2, help="Lines shown either side of each judged line, in the source and each translation")
+    parser.add_argument('--max-sites', type=NonNegativeInt, default=0, help="Judge a random sample of at most this many sites (default: all)")
+    parser.add_argument('--long-line', type=PositiveInt, default=70, help="Lines over this many characters count as long in the statistics")
     parser.add_argument('--seed', type=int, default=0, help="Seed for sampling sites and assigning X and Y")
     return parser
 
