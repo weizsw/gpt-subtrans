@@ -92,14 +92,22 @@ def TimedSentenceRanges(text : str, aligned : list[AlignedWord]) -> list[tuple[i
     """
     Ranges of the transcript ending at sentence punctuation, full stops included.
     A full stop with a timed word starting straight after it also ends a sentence, since the words show a break the spacing does not.
+    The next sentence cannot start with a lowercase letter or a digit, so decimals and names such as example.com are not divided.
     """
     word_starts = {member.start for member in aligned}
     ranges : list[tuple[int, int]] = []
 
     for start, end in SentenceRanges(text, SentenceEnds.ALL):
         for index in range(start, end - 1):
+            if text[index] != '.' or index + 1 not in word_starts:
+                continue
+
+            following = text[index + 1]
+            if following.islower() or following.isdigit():
+                continue
+
             # Judged from the last cut as if the text broke after the full stop, so initials and dotted abbreviations still do not end a sentence
-            if text[index] == '.' and index + 1 in word_starts and IsSentenceEnd(text[start:index + 1], index - start, SentenceEnds.ALL):
+            if IsSentenceEnd(text[start:index + 1], index - start, SentenceEnds.ALL):
                 ranges.append((start, index + 1))
                 start = index + 1
 

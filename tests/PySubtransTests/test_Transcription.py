@@ -1271,10 +1271,13 @@ class TestDerivedParts(LoggedTestCase):
         self.assertLoggedEqual("next sentence keeps its own line", "Nadie debía saber nada.", lines[-1].text)
 
     def test_timed_words_divide_glued_sentences(self):
-        """A full stop with a timed word straight after it ends a sentence, but initials still do not."""
+        """A full stop with a timed word straight after it ends a sentence, but not after initials or inside a decimal or a name."""
         cases = {
             "No hay dinero.Adelante.Hola.": (["No", "hay", "dinero", "Adelante", "Hola"], ["No hay dinero.", "Adelante.", "Hola."]),
             "Llegó de U.S.A. ayer.": (["Llegó", "de", "U", "S", "A", "ayer"], ["Llegó de U.S.A. ayer."]),
+            "It costs 3.5 dollars.": (["It", "costs", "3", "5", "dollars"], ["It costs 3.5 dollars."]),
+            "Visit example.com today.": (["Visit", "example", "com", "today"], ["Visit example.com today."]),
+            "확인했습니다.현재 위치는 여기.": (["확인했습니다", "현재", "위치는", "여기"], ["확인했습니다.", "현재 위치는 여기."]),
         }
 
         for text, (texts, expected) in cases.items():
