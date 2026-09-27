@@ -16,10 +16,11 @@ No reason for this was recorded when it was written. The sentence-end set arrive
 
 - **#459:** blind assessment split 2–2. The complaints were lines too fast to read, short sentences stranded at the 0.8 s minimum, and glued text.
 - **With the correction at 0.7:** two 25-minute windows of La Madre Muerta, two Haiku assessors each, compared `main` against full stops. `main` won 3–1. The work is kept in a git stash, "transcription-full-stops".
+- **The same pair, assessed by Codex (`gpt-6-luna`):** it preferred full stops in both windows, with medium confidence on the early one and low on the late one. It liked each sentence having its own cue, such as `No hay prisa.` at 00:06:40 and `Mañana.` at 01:22:18. It also flagged the misplaced `Ánimo` described below, and a cue in full stops that ends mid-phrase after `no me` at 00:12:40. The files are in `transcription_tests/assess/round12`, with the key in `round12_key.json`.
 
 The correction fixed the timing, but two problems remained, and neither is about timing:
 
-- **Short consecutive sentences read better together.** `No hay prisa.`, `Eso es.` and `Hija puta.` became lines of their own at the 0.8 s minimum. Their speaking-time estimate is under 0.8 s, so the correction rightly leaves them alone. In `main` they share a line with the sentence beside them, like `David, ven. Rafa, llévatelos.`, which an assessor singled out as better.
+- **Short consecutive sentences read better together.** `No hay prisa.`, `Eso es.` and `Hija puta.` became lines of their own at the 0.8 s minimum. Their speaking-time estimate is under 0.8 s, so the correction rightly leaves them alone. In `main` they share a line with the sentence beside them, like `David, ven. Rafa, llévatelos.`, which an assessor singled out as better. Codex took the opposite view of the same lines, and preferred them separate.
 - **Gemini's glued text relies on the speaker-change cut.** Gemini returned no word timing for `Ánimo` in `…Tú te la llevas. Ánimo.Nadie debía saber nada.`, and wrote no space after it. In `main`, the cut at the speaker change gives the unmatched text to the word before it, so `Ánimo.` stays with its speaker at 01:10:53. With full stops, `Ánimo.Nadie debía saber nada.` is one sentence, so `Ánimo` took the timing and speaker of `Nadie`, 22 s later.
 
 Two concerns about full stops were also raised on #459, and still apply to any use of them as sentence ends:
