@@ -313,9 +313,6 @@ class GuiInterface(QObject):
         Open the app-modal transcription dialog. On accept, load the
         transcribed project exactly like a freshly loaded subtitle file.
         """
-        if self.command_queue.has_blocking_commands:
-            logging.warning(_("Cannot start transcription while another command is queued"))
-            return
         dialog = TranscriptionDialog(self.global_options, parent=self.GetMainWindow())
         dialog.commandRequested.connect(self.QueueCommand)
         try:
