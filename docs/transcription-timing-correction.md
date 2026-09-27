@@ -10,6 +10,8 @@ The issue proposed merging lines that are too fast to read into a neighbour. Thi
 
 ## Full stops are soft boundaries
 
+**Superseded:** words ending in a full stop now end a sentence and start a new line, like `?`, `!` and `。`. A full stop glued to the next word ends a sentence when a timed word starts straight after it, which keeps `Ánimo` with its speaker. The evidence is in [transcription-line-segmentation.md](transcription-line-segmentation.md). The rest of this section records the earlier trials.
+
 Full stops do not end a part the way `?`, `!` and `。` do, but they are not ignored. `.` is in `CLAUSE_END_CHARS`, so when a part runs over the length or duration limit, `UtteranceSplitter.FitUtterance` prefers to split it at a full stop. A full stop is a good place to split a line that is too long, but not a reason to split one that is not.
 
 No reason for this was recorded when it was written. The sentence-end set arrived with the first transcription commit (35a1bb3), and d6fc4b7 called a period "not a hard boundary" without saying why. The reason now comes from testing hard full-stop boundaries twice:
@@ -106,7 +108,7 @@ Qwen's lines under 0.5× bottom out at 34 whatever the factor. They are the late
 - **It is a per-provider setting**, read with `settings.get_float` and shown in each provider's line options, so users can tune it.
 - **Reading time is left to `extend_short_subtitles`**, which runs when a translation is saved. Timings are then adjusted for the final text, and the stored project is not changed irreversibly. The correction here addresses squeezed speaking time only.
 - **`WordCoverage` stays separate.** Words missing whole stretches of the transcript is a difference in kind, and decides which heuristics apply. The correction factor is a difference in degree.
-- **Full stops stay soft boundaries** for transcripts with word timings. They are preferred split points for parts over the limits, not sentence ends that always start a new line.
+- **Full stops stay soft boundaries** for transcripts with word timings. They are preferred split points for parts over the limits, not sentence ends that always start a new line. Superseded by [transcription-line-segmentation.md](transcription-line-segmentation.md).
 
 ## Other findings
 
