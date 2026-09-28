@@ -296,7 +296,7 @@ Save the transcription as VTT or ASS rather than SRT. SRT has no way to store sp
 
 `transcribe_media` post-processes and batches the transcribed lines using the `options` it is given, so pass the translation options to use the same batch settings. Without `options` it uses the settings the transcriber was created with.
 
-`transcribe_media` blocks until the transcription is complete, which can take some time for a full-length video. If the transcription stops before the end of the media, the lines transcribed so far are returned along with the error. Call `transcriber.Abort()` from another thread to stop early.
+`transcribe_media` blocks until the transcription is complete, which can take some time for a full-length video. If the transcription stops before the end of the media, the lines transcribed so far are returned along with the error.
 
 Subscribe to `transcriber.events` for progress updates:
 

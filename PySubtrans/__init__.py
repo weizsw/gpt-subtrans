@@ -504,7 +504,7 @@ def init_transcription(
     -------
     TranscriptionCoordinator
         A transcriber to pass to :func:`transcribe_media`.
-        Subscribe to its `events` for progress (see :class:`TranscriptionEvents`), or call `Abort()` from another thread to stop early.
+        Subscribe to its `events` for progress (see :class:`TranscriptionEvents`).
 
     Examples
     --------
