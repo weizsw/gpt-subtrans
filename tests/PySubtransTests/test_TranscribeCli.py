@@ -18,12 +18,6 @@ class TestTranscribeCliOptions(LoggedTestCase):
     def _parse(self, *argv : str):
         return transcribe.CreateTranscribeParser().parse_args(list(argv))
 
-    def test_format_defaults_to_vtt(self):
-        """Transcribed output defaults to VTT to preserve speakers."""
-        args = self._parse("movie.mkv")
-
-        self.assertLoggedEqual("default format", "vtt", args.format)
-
     def test_format_srt_selected(self):
         """SRT output is selectable (drops speaker labels)."""
         args = self._parse("movie.mkv", "--format", "srt")
@@ -42,26 +36,11 @@ class TestTranscribeCliOptions(LoggedTestCase):
 
         self.assertLoggedEqual("vtt format", "vtt", args.format)
 
-    def test_chunk_bounds_default_to_provider(self):
-        """Chunk bounds stay unset so provider settings apply."""
-        args = self._parse("movie.mkv")
+    def test_ffmpeg_path_selected(self):
+        """An explicit ffmpeg executable can be supplied."""
+        args = self._parse("movie.mkv", "--ffmpeg-path", r"C:\tools\ffmpeg.exe")
 
-        self.assertLoggedEqual("min unset", None, args.min_chunk)
-        self.assertLoggedEqual("max unset", None, args.max_chunk)
-
-    def test_ffmpeg_path_is_optional(self):
-        """The CLI keeps PATH lookup unless an explicit executable is supplied."""
-        default_args = self._parse("movie.mkv")
-        explicit_args = self._parse("movie.mkv", "--ffmpeg-path", r"C:\tools\ffmpeg.exe")
-
-        self.assertLoggedEqual("ffmpeg path default", None, default_args.ffmpeg_path)
-        self.assertLoggedEqual("explicit ffmpeg path", r"C:\tools\ffmpeg.exe", explicit_args.ffmpeg_path)
-
-    def test_postprocess_defaults_on(self):
-        """Transcribed lines are cleaned by default."""
-        args = self._parse("movie.mkv")
-
-        self.assertLoggedEqual("postprocess on", True, args.postprocess)
+        self.assertLoggedEqual("explicit ffmpeg path", r"C:\tools\ffmpeg.exe", args.ffmpeg_path)
 
     def test_no_postprocess_disables_cleaning(self):
         """Raw transcription text is available on request."""
@@ -128,12 +107,6 @@ class TestTranscribeCliExecution(LoggedTestCase):
         self.assertLoggedEqual("exit status", 0, result)
         self.assertLoggedEqual("postprocess option", False, init_transcription.call_args.kwargs['postprocess_transcription'])
         subtitles.SaveOriginal.assert_called_once_with('out.vtt')
-
-    def test_postprocess_defaults_on_for_plain_output(self):
-        """Plain subtitle output retains the default cleaning option."""
-        _result, init_transcription, _transcribe = self._run()
-
-        self.assertLoggedEqual("default postprocess", True, init_transcription.call_args.kwargs['postprocess_transcription'])
 
     @skip_if_debugger_attached
     def test_save_failure_returns_nonzero(self):

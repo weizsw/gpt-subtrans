@@ -30,7 +30,7 @@ from PySubtrans import SaveSettings, init_options, init_subtitles, init_translat
 
 options = init_options(
     provider="Gemini",
-    model="gemini-2.5-flash-lite",
+    model="gemini-3.8-flash",
     api_key="your-api-key",
     prompt="Translate these subtitles into Spanish"
     )
@@ -194,7 +194,7 @@ provider = init_translation_provider("Custom Server", options)
 
 The Options class provides a wide range of options to configure the translation process. The default values should work well for most use cases, but some are definitely worth experimenting with.
 
-`max_batch_size`: controls how many lines will be sent to the LLM in one request. The default value (30) is very conservative, for maximum compatibility. Models like Gemini 2.5 Flash can easily handle batches of 150 lines or more, which allows for faster translation.
+`max_batch_size`: controls how many lines will be sent to the LLM in one request. The default is 100 lines. Models like Gemini Flash can easily handle batches of 150 lines or more, which allows for faster translation.
 
 `scene_threshold`: subtitles are divided into scenes before batching, using this time value as a heuristic to indicate that a scene transition has happened. The default of 60 seconds is very coarse, and may end up with only one scene for dialogue heavy movies or dozens of scenes with only a few lines each for minimalist arthouse films. Depending on your use case, consider setting this very high and relying on the batcher instead.
 
@@ -211,7 +211,7 @@ from PySubtrans import init_options
 
 options = init_options(
     provider="Gemini",
-    model="gemini-2.5-flash",
+    model="gemini-3.8-flash",
     api_key="your-key",
     movie_name="French Movie",
     prompt="Translate these subtitles for {movie_name} into German, with cultural references adapted for a German audience",
@@ -269,13 +269,16 @@ PySubtrans can also create subtitles from a video or audio file, ready to be tra
 ```python
 from PySubtrans import SaveSettings, init_options, init_transcription, init_translator, transcribe_media
 
+options = init_options(provider="Gemini", model="gemini-3.8-flash", api_key="your-gemini-key", target_language="English")
+
 transcriber = init_transcription("OpenRouter", api_key="your-openrouter-key", language="Japanese")
 
-subtitles, error = transcribe_media(transcriber, "movie.mkv")
+subtitles, error = transcribe_media(transcriber, "movie.mkv", options=options)
 if error:
     print(f"Transcription is incomplete: {error}")
 
-options = init_options(provider="Gemini", model="gemini-2.5-flash-lite", api_key="your-gemini-key", target_language="English")
+# Save the transcription first, so it is not lost if translation fails
+subtitles.SaveOriginal("movie.ja.srt")
 
 translator = init_translator(options)
 translator.TranslateSubtitles(subtitles)
@@ -283,13 +286,31 @@ translator.TranslateSubtitles(subtitles)
 subtitles.SaveTranslation("movie.en.srt", save_settings=SaveSettings(options))
 ```
 
-Transcription requires [ffmpeg](https://ffmpeg.org/) on the PATH, or pass `ffmpeg_path` to `init_transcription`. If `language` is omitted, the provider detects the spoken language.
+Transcription requires [ffmpeg](https://ffmpeg.org/) on the PATH, or pass `ffmpeg_path` to `init_transcription`.
 
-`transcribe_media` blocks until the transcription is complete, which can take some time for a full-length video. Subscribe to `transcriber.events` for progress updates, or call `transcriber.Abort()` from another thread to stop early. If the transcription stops before the end of the media, the lines transcribed so far are returned along with the error.
+`language` accepts a language name or code, e.g. `"Japanese"` or `"ja"`. If it is omitted, the provider detects the spoken language. Only set it when you are sure: a wrong hint can make the model transcribe some lines in the wrong language.
+
+`transcribe_media` post-processes and batches the transcribed lines using the `options` it is given, so pass the translation options to use the same batch settings. Without `options` it uses the settings the transcriber was created with.
+
+`transcribe_media` blocks until the transcription is complete, which can take some time for a full-length video. If the transcription stops before the end of the media, the lines transcribed so far are returned along with the error. Call `transcriber.Abort()` from another thread to stop early.
+
+Subscribe to `transcriber.events` for progress updates:
+
+- `audio_progress(sender, processed, total)`: seconds of audio transcribed so far, out of the total length.
+- `progress(sender, done, total, span)`: sent before each chunk of audio is transcribed. `total` is 0, because the number of chunks is not known in advance.
+- `status(sender, text)`: sent when transcription enters a new phase.
+
+```python
+def on_audio_progress(sender, processed, total):
+    print(f"Transcribed {processed / total:.0%}")
+
+transcriber.events.audio_progress.connect(on_audio_progress)
+```
 
 Available transcription providers:
 
-- `OpenRouter` (default model `microsoft/mai-transcribe-2`), `OpenAI` and `Muse` work with the basic installation and an API key.
+- `OpenRouter` is recommended. Its default model, `microsoft/mai-transcribe-2`, gives the best results we have seen by some margin.
+- `OpenAI` and `Muse` also work with the basic installation and an API key.
 - `Gemini` requires `pip install pysubtrans[gemini]`.
 - `Qwen Local` runs Qwen3-ASR on your own hardware. Install a PyTorch build for your hardware from [pytorch.org](https://pytorch.org/get-started/locally/) first, then `pip install pysubtrans[qwen-asr]`. The first run downloads the model weights (about 6 GB). Pass `allow_cpu_fallback=True` to run without a GPU, though this is much slower.
 
@@ -313,7 +334,7 @@ from PySubtrans import init_options, init_translator
 
 options = init_options(
     provider="Gemini",
-    model="gemini-2.5-flash-latest",
+    model="gemini-3.8-flash",
     api_key="your-key",
     stream_responses=True
 )

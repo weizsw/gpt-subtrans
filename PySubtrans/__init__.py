@@ -30,10 +30,11 @@ Transcribing Media
 # Create a transcriber with its own provider settings (requires ffmpeg)
 transcriber = init_transcription(provider="OpenRouter", api_key="sk-or-...", language="Japanese")
 
-# Transcribe the media into subtitles ready for translation
-subs, error = transcribe_media(transcriber, "movie.mkv")
+# Transcribe the media into subtitles, batched for translation using the translation options
+subs, error = transcribe_media(transcriber, "movie.mkv", options=opts)
 
-# Translate the transcription as above
+# Save the transcription, then translate it as above
+subs.SaveOriginal("movie.ja.srt")
 translator.TranslateSubtitles(subs)
 """
 from __future__ import annotations
@@ -293,7 +294,7 @@ def init_translator(
     translator = init_translator(opts)
 
     # Create translator from a plain dictionary
-    translator = init_translator({"provider": "gemini", "api_key": "your-key", "model": "gemini-2.5-flash"})
+    translator = init_translator({"provider": "gemini", "api_key": "your-key", "model": "gemini-3.8-flash"})
 
     # Create translator with a terminology seed
     translator = init_translator(opts, terminology_map={"Dragon": "Drache", "Hero": "Held"})
@@ -470,6 +471,7 @@ def init_transcription(
     ----------
     provider : str or TranscriptionProvider
         The transcription provider name, or a provider created with :func:`init_transcription_provider`.
+        "OpenRouter" is recommended: its default model, microsoft/mai-transcribe-2, gives the best results.
     model : str or None, optional
         The transcription model. Defaults to the provider's recommended model.
     api_key : str or None, optional

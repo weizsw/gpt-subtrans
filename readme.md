@@ -245,15 +245,15 @@ Other options that can be specified on the command line are detailed below.
 Transcription is a separate process.
 
 ```sh
-# Transcribe with the default provider (Qwen Local)
-python scripts/transcribe.py movie.mkv --language Chinese --format ass
+# Transcribe with the default provider (OpenRouter, using microsoft/mai-transcribe-2)
+python scripts/transcribe.py movie.mkv --apikey sk-or-... --language Japanese --diarize
 
-# Use a cloud provider
-python scripts/transcribe.py movie.mkv --provider OpenRouter --model microsoft/mai-transcribe-2 --apikey sk-... --language Japanese --diarize
+# Transcribe locally with Qwen3-ASR (requires Torch and the Qwen runtime)
+python scripts/transcribe.py movie.mkv --provider "Qwen Local" --language Chinese --format ass
 ```
 
 Transcription options:
-- `--provider` — transcription provider (default: `Qwen Local`; use `--list-providers` to list)
+- `--provider` — transcription provider (default: `OpenRouter`; use `--list-providers` to list)
 - `--language` — spoken language hint (e.g. Chinese, English)
 - `--track` — audio track index (default: 0; use `--list-tracks` to identify audio tracks in the source)
 - `--diarize` / `--no-diarize` — request speaker diarization (model-dependent)
