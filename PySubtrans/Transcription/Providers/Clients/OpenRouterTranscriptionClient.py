@@ -1,5 +1,4 @@
 import base64
-import logging
 from datetime import timedelta
 
 from PySubtrans.Helpers.Attribution import APP_ATTRIBUTION_HEADERS
@@ -7,6 +6,7 @@ from PySubtrans.Helpers.Localization import _
 from PySubtrans.Helpers.Parse import TryParseNonNegative
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleError import SubtitleError
+from PySubtrans.Transcription.Providers.Provider_OpenRouter import DiarizationOptions
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionResult, TranscriptionSegment
 from PySubtrans.Transcription.WordTiming import WordTiming
@@ -21,7 +21,6 @@ class OpenRouterTranscriptionClient(TranscriptionClient):
     """
     def __init__(self, settings : SettingsType):
         super().__init__(settings)
-        self._diarize_warned : bool = False
 
     @property
     def server_address(self) -> str:
@@ -51,8 +50,8 @@ class OpenRouterTranscriptionClient(TranscriptionClient):
 
     @property
     def supports_diarization(self) -> bool:
-        """Speaker labels when diarization is requested on a mapped model."""
-        return self.diarize
+        """Speaker labels when diarization is enabled and the model can be diarized."""
+        return self.diarize and DiarizationOptions(self.model) is not None
 
     def _transcribe_chunk(self, audio_bytes : bytes, audio_format : str) -> TranscriptionResult:
         # Timings are required for subtitle input, so don't fall back to plain text.
@@ -124,28 +123,11 @@ class OpenRouterTranscriptionClient(TranscriptionClient):
         return self._ParseJsonResponse(url, response)
 
     def _diarize_options(self) -> dict:
-        """
-        Map the generic diarize flag onto provider-specific options.
-
-        Diarization is not a top-level OpenRouter field; each vendor
-        exposes it under its own provider slug.
-        """
+        """The provider options that request diarization, or none if it is off or the model cannot be diarized."""
         if not self.diarize:
             return {}
 
-        model_cf = self.model.casefold()
-
-        if model_cf.startswith('microsoft/'):
-            return {'azure': {'diarization': {'enabled': True}}}
-        if model_cf.startswith('deepgram/'):
-            return {'deepgram': {'diarize': True}}
-        if model_cf.startswith('x-ai/'):
-            return {'xai': {'diarize': True}}
-
-        if not self._diarize_warned:
-            logging.warning(_("Diarization is not mapped for model '{}', requesting without it").format(self.model))
-            self._diarize_warned = True
-        return {}
+        return DiarizationOptions(self.model) or {}
 
     def _looks_like_unsupported(self, text : str) -> bool:
         lowered = text.casefold()
