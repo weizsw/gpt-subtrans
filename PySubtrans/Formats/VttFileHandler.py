@@ -27,7 +27,7 @@ class VttFileHandler(SubtitleFileHandler):
     _TIMESTAMP_PATTERN = regex.compile(
         r'(?:(\d{2,}):)?(\d{2}):(\d{2})\.(\d{3})\s*-->\s*(?:(\d{2,}):)?(\d{2}):(\d{2})\.(\d{3})(.*)'
     )
-    _VOICE_TAG_PATTERN = regex.compile(r'^\s*<v((?:\.[\w-]+)*)(?:\s+([^>]+))?>((?:(?!</?v).)*)</v>\s*$')
+    _VOICE_TAG_PATTERN = regex.compile(r'^\s*<v((?:\.[\w-]+)*)(?:\s+([^>]+))?>((?:(?!</?v).)*)</v>\s*$', regex.DOTALL)
     _STYLE_BLOCK_START = regex.compile(r'^\s*STYLE\s*$')
     _NOTE_BLOCK_START = regex.compile(r'^\s*NOTE(?:\s.*)?$')
 
