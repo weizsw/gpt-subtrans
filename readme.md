@@ -30,6 +30,13 @@ https://openrouter.ai/privacy
 
 You can choose to let OpenRouter select the model automatically (the "Use Default Model" setting in the GUI or `--auto` on the command line) or you can specify a specific model.
 
+### Requesty
+https://www.requesty.ai/privacy
+
+[Requesty](https://www.requesty.ai) is an OpenAI-compatible gateway which provides access to models from many different providers. You will need a Requesty API key to use the service (the app will look for REQUESTY_API_KEY in the environment if this is not provided).
+
+Models are named provider/model, e.g. `openai/gpt-4o-mini` or `anthropic/claude-sonnet-4-5`.
+
 ### Google Gemini
 https://ai.google.dev/terms
 
