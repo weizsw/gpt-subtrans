@@ -8,7 +8,9 @@ check_required_imports(['PySubtrans'])
 
 from PySubtrans import init_transcription, transcribe_media
 from PySubtrans.Helpers import GetOutputPath
+from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleError import SubtitleError
+from PySubtrans.Transcription.AudioExtractor import AudioExtractor
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from scripts.subtrans_common import InitLogger
 
@@ -61,6 +63,17 @@ def main() -> int:
     if not args.input:
         parser.error("the following arguments are required: input")
 
+    # Listing tracks only probes the media with ffmpeg, so it needs no provider or credentials
+    if args.list_tracks:
+        try:
+            extractor = AudioExtractor(SettingsType({'ffmpeg_path': args.ffmpeg_path}))
+            for track in extractor.ListAudioTracks(args.input):
+                print(track)
+        except Exception as e:
+            logging.error(f"Unable to list tracks: {e}")
+            return 1
+        return 0
+
     try:
         transcriber = init_transcription(
             args.provider,
@@ -81,15 +94,6 @@ def main() -> int:
     except SubtitleError as e:
         logging.error(f"Unable to initialise transcription: {e}")
         return 1
-
-    if args.list_tracks:
-        try:
-            for track in transcriber.CheckRequirements(args.input):
-                print(track)
-        except Exception as e:
-            logging.error(f"Unable to list tracks: {e}")
-            return 1
-        return 0
 
     def progress(sender, done : int, total : int, span : str) -> None:
         # Total is unknown while the chunk plan streams in (0 signals that)

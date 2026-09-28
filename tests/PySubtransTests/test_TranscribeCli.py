@@ -93,6 +93,22 @@ class TestTranscribeCliExecution(LoggedTestCase):
         self.assertLoggedEqual("initialisation failure status", 1, result)
         self.assertLoggedEqual("transcription not started", 0, transcribe_media.call_count)
 
+    def test_list_tracks_needs_no_provider(self):
+        """Listing audio tracks probes the media without creating a transcription provider."""
+        extractor = Mock()
+        extractor.ListAudioTracks.return_value = ["Track 0: aac"]
+
+        with patch.object(transcribe, 'InitLogger'), \
+                patch.object(transcribe, 'AudioExtractor', return_value=extractor), \
+                patch.object(transcribe, 'init_transcription') as init_transcription, \
+                patch.object(sys, 'argv', ['transcribe.py', 'input.mkv', '--list-tracks']), \
+                patch('builtins.print'):
+            result = transcribe.main()
+
+        self.assertLoggedEqual("exit status", 0, result)
+        self.assertLoggedEqual("no provider created", 0, init_transcription.call_count)
+        extractor.ListAudioTracks.assert_called_once_with('input.mkv')
+
     def test_output_is_not_batched(self):
         """The CLI saves the transcription without preparing it for translation."""
         _result, _init, transcribe_media = self._run()
