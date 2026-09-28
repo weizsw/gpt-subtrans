@@ -246,7 +246,7 @@ Transcription is a separate process.
 
 ```sh
 # Transcribe with the default provider (OpenRouter, using microsoft/mai-transcribe-2)
-python scripts/transcribe.py movie.mkv --apikey sk-or-... --language Japanese --diarize
+python scripts/transcribe.py movie.mkv --apikey sk-or-... --language Japanese
 
 # Transcribe locally with Qwen3-ASR (requires Torch and the Qwen runtime)
 python scripts/transcribe.py movie.mkv --provider "Qwen Local" --language Chinese --format ass
@@ -256,7 +256,7 @@ Transcription options:
 - `--provider` — transcription provider (default: `OpenRouter`; use `--list-providers` to list)
 - `--language` — spoken language hint (e.g. Chinese, English)
 - `--track` — audio track index (default: 0; use `--list-tracks` to identify audio tracks in the source)
-- `--diarize` / `--no-diarize` — request speaker diarization (model-dependent)
+- `--diarize` / `--no-diarize` — speaker identification (default: on; support is model-dependent)
 - `--align` / `--no-align` — word-level timestamps (default: on)
 - `--format` — output format: `srt`, `ass`, or `vtt` (default: `vtt`; `ass`/`vtt` preserve speaker labels)
 - `-o` / `--output` — output file path (defaults to alongside the media file)

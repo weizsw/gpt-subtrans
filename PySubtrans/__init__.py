@@ -34,7 +34,7 @@ transcriber = init_transcription(provider="OpenRouter", api_key="sk-or-...", lan
 subs, error = transcribe_media(transcriber, "movie.mkv", options=opts)
 
 # Save the transcription, then translate it as above
-subs.SaveOriginal("movie.ja.srt")
+subs.SaveOriginal("movie.ja.vtt")
 translator.TranslateSubtitles(subs)
 """
 from __future__ import annotations
@@ -460,6 +460,7 @@ def init_transcription(
     model : str|None = None,
     api_key : str|None = None,
     language : str|None = None,
+    diarize : bool|None = None,
     **settings : SettingType,
 ) -> TranscriptionCoordinator:
     """
@@ -478,11 +479,13 @@ def init_transcription(
         The API key for the provider, if it needs one.
     language : str or None, optional
         The spoken language, e.g. "Japanese" or "ja". When omitted the provider detects the language.
+    diarize : bool or None, optional
+        Identify speakers, which helps prevent lines spoken by different people from being merged into one subtitle.
+        On by default for providers that support it; pass False to turn it off.
     **settings : SettingType
         Additional settings, e.g.
 
         server_address = "http://localhost:8000/v1",
-        diarize = True,
         audio_track = 1,
         ffmpeg_path = "/usr/local/bin/ffmpeg",
         max_characters = 80,
@@ -511,7 +514,7 @@ def init_transcription(
     # Local transcription with Qwen3-ASR (requires torch and qwen-asr to be installed)
     transcriber = init_transcription("Qwen Local", language="Chinese")
     """
-    explicit_settings = {'model': model, 'api_key': api_key, 'language': language, **settings}
+    explicit_settings = {'model': model, 'api_key': api_key, 'language': language, 'diarize': diarize, **settings}
     explicit_settings = SettingsType({key: value for key, value in explicit_settings.items() if value is not None})
 
     if isinstance(provider, TranscriptionProvider):

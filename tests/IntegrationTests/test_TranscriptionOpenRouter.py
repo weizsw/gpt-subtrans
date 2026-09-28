@@ -284,7 +284,7 @@ class TestOpenRouterClient(LoggedTestCase):
         silent = self._client(diarize=False)
 
         self.assertLoggedEqual("timestamps negotiated", True, timed.supports_timestamps)
-        self.assertLoggedEqual("no diarization by default", False, silent.supports_diarization)
+        self.assertLoggedEqual("no diarization when turned off", False, silent.supports_diarization)
 
         diarized = self._client(model="microsoft/mai-transcribe-2", diarize=True)
         self.assertLoggedEqual("diarization requested", True, diarized.supports_diarization)

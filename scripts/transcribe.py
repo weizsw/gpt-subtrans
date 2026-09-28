@@ -27,8 +27,8 @@ def CreateTranscribeParser() -> ArgumentParser:
     parser.add_argument('-k', '--apikey', type=str, default=None, help="API key (provider-specific)")
     parser.add_argument('-m', '--model', type=str, default=None, help="Transcription model (default: the provider's recommended model, e.g. microsoft/mai-transcribe-2)")
     parser.add_argument('--language', type=str, default=None, help="Spoken language hint (e.g. Chinese, English)")
-    parser.add_argument('--diarize', dest='diarize', action='store_true', default=None, help="Request speaker diarization (model-dependent)")
-    parser.add_argument('--no-diarize', dest='diarize', action='store_false', help="Explicitly disable diarization")
+    parser.add_argument('--diarize', dest='diarize', action='store_true', default=None, help="Identify speakers (default on; model-dependent)")
+    parser.add_argument('--no-diarize', dest='diarize', action='store_false', help="Turn off speaker identification")
     parser.add_argument('--track', type=int, default=0, help="Audio track index to transcribe (default 0)")
     parser.add_argument('--ffmpeg-path', type=str, default=None,
                         help="Path to the ffmpeg executable (default: use ffmpeg and ffprobe from PATH)")

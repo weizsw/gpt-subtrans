@@ -27,8 +27,8 @@ class MuseTranscriptionProvider(TranscriptionProvider):
 
     @property
     def supports_diarization(self) -> bool:
-        """Speaker labels are kept only when diarization is opted into."""
-        return self.settings.get_bool('diarize', False)
+        """Speaker labels are kept unless diarization is turned off."""
+        return self.settings.get_bool('diarize', True)
 
     def __init__(self, settings : SettingsType):
         super().__init__(self.name, settings)
@@ -36,7 +36,7 @@ class MuseTranscriptionProvider(TranscriptionProvider):
             'api_key': settings.get_str('api_key', os.getenv('MUSE_API_KEY', os.getenv('MODEL_API_KEY'))),
             'server_address': settings.get_str('server_address', os.getenv('MUSE_SERVER_ADDRESS', 'https://api.meta.ai/v1')),
             'model': settings.get_str('model', os.getenv('MUSE_STT_MODEL', 'muse-voice-transcribe-1.0')),
-            'diarize': settings.get_bool('diarize', False),
+            'diarize': settings.get_bool('diarize', True),
             'request_timeout': settings.get_float('request_timeout', env_float('TRANSCRIPTION_TIMEOUT', 300.0)),
             'rate_limit': settings.get_float('rate_limit', env_float('MUSE_TRANSCRIPTION_RATE_LIMIT')),
             # Short chunks bound request bodies and the blast radius of retries.

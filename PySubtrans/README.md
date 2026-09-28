@@ -278,7 +278,7 @@ if error:
     print(f"Transcription is incomplete: {error}")
 
 # Save the transcription first, so it is not lost if translation fails
-subtitles.SaveOriginal("movie.ja.srt")
+subtitles.SaveOriginal("movie.ja.vtt")
 
 translator = init_translator(options)
 translator.TranslateSubtitles(subtitles)
@@ -287,6 +287,10 @@ subtitles.SaveTranslation("movie.en.srt", save_settings=SaveSettings(options))
 ```
 
 Transcription requires [ffmpeg](https://ffmpeg.org/) on the PATH, or pass `ffmpeg_path` to `init_transcription`.
+
+Diarization identifies who is speaking, which helps prevent lines spoken by different people from being merged into one subtitle. It is on by default for providers that support it; pass `diarize=False` to turn it off.
+
+Save the transcription as VTT or ASS rather than SRT. SRT has no way to store speaker labels, so they would be lost if you reload the file later, e.g. to resume or retranslate it.
 
 `language` accepts a language name or code, e.g. `"Japanese"` or `"ja"`. If it is omitted, the provider detects the spoken language. Only set it when you are sure: a wrong hint can make the model transcribe some lines in the wrong language.
 
@@ -307,12 +311,24 @@ def on_audio_progress(sender, processed, total):
 transcriber.events.audio_progress.connect(on_audio_progress)
 ```
 
-Available transcription providers:
+### Transcription providers
 
-- `OpenRouter` is recommended. Its default model, `microsoft/mai-transcribe-2`, gives the best results we have seen by some margin.
-- `OpenAI` and `Muse` also work with the basic installation and an API key.
-- `Gemini` requires `pip install pysubtrans[gemini]`.
-- `Qwen Local` runs Qwen3-ASR on your own hardware. Install a PyTorch build for your hardware from [pytorch.org](https://pytorch.org/get-started/locally/) first, then `pip install pysubtrans[qwen-asr]`. The first run downloads the model weights (about 6 GB). Pass `allow_cpu_fallback=True` to run without a GPU, though this is much slower.
+`OpenRouter` with its default model, `microsoft/mai-transcribe-2`, is recommended: it gives the best results in our testing.
+
+| Provider | Model | Speaker identification | Word timings |
+|----------|-------|------------------------|--------------|
+| `OpenRouter` | `microsoft/mai-transcribe-2` (default) | Yes | Yes |
+| `OpenRouter` | `deepgram/nova-3`, `x-ai/grok-stt-1.0` | Yes | Not verified |
+| `OpenRouter` | `openai/whisper-large-v3-turbo` | No | Not verified |
+| `Gemini` | `gemini-3.5-transcribe` (default) | Yes, on by default | Partial |
+| `OpenAI` | `whisper-1` (default) | No | Yes |
+| `OpenAI` | `gpt-4o-transcribe-diarize` | Yes | No, segment timings only |
+| `Muse` | `muse-voice-transcribe-1.0` (default) | Yes | No, turn timings only |
+| `Qwen Local` | `Qwen/Qwen3-ASR-1.7B` (default), `Qwen/Qwen3-ASR-0.6B` | No | Partial, for languages the aligner supports |
+
+`OpenRouter`, `OpenAI` and `Muse` work with the basic installation and an API key. `Gemini` requires `pip install pysubtrans[gemini]`.
+
+`Qwen Local` runs Qwen3-ASR on your own hardware. Install a PyTorch build for your hardware from [pytorch.org](https://pytorch.org/get-started/locally/) first, then `pip install pysubtrans[qwen-asr]`. The first run downloads the model weights (about 6 GB). Pass `allow_cpu_fallback=True` to run without a GPU, though this is much slower.
 
 ## Advanced workflows
 
