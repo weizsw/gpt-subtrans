@@ -26,6 +26,16 @@ Before conducting exploratory searches of the code base, consult `docs/architect
 - Build distribution: `./scripts/makedistro.sh` (Linux/Mac) or `scripts\makedistro.bat` (Windows)
 - Create virtual environment, install dependencies and configure project: `./install.sh` (Linux/Mac) or `install.bat` (Windows)
 
+## Worktrees
+A git worktree has no virtual environment of its own. Link `envsubtrans` from the main worktree before running tests or committing, otherwise the commands above and the pre-commit hook fail:
+- Windows: `cmd /c mklink /J envsubtrans <main-worktree>\envsubtrans` (a junction, no admin rights needed)
+- Linux/Mac: `ln -s <main-worktree>/envsubtrans envsubtrans`
+
+**IMPORTANT** Remove the link on its own before cleaning up or archiving the worktree. A recursive delete follows the link and empties the main worktree's `envsubtrans`, destroying the shared environment.
+- Windows: `cmd /c rmdir <worktree>\envsubtrans` (no `/s`), never `Remove-Item -Recurse`
+- Linux/Mac: `rm <worktree>/envsubtrans` (no `-r`, no trailing slash)
+- Check the link is gone and `<main-worktree>/envsubtrans` is intact, then run `git worktree remove`
+
 ## Code Style
 **🚨 CRITICAL RULE: NEVER add imports in the middle of functions or methods - imports MUST be at the top of the file. Exceptions may be made for lazy-loading expensive SDKs but must first be justified, approved and documented.**
 
