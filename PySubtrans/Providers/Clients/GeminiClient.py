@@ -29,6 +29,9 @@ from PySubtrans.TranslationClient import TranslationClient
 from PySubtrans.TranslationPrompt import TranslationPrompt
 from PySubtrans.TranslationRequest import TranslationRequest
 
+# Seconds between progress messages while a streamed response is still arriving.
+STREAMING_PROGRESS_INTERVAL = 60.0
+
 class GeminiClient(TranslationClient):
     """
     Handles communication with Google Gemini to request translations
@@ -74,6 +77,11 @@ class GeminiClient(TranslationClient):
     @property
     def rate_limit(self) -> float|None:
         return self.settings.get_float( 'rate_limit')
+
+    @property
+    def timeout(self) -> int:
+        """Seconds allowed for a request, or 0 for no limit"""
+        return self.settings.get_int('timeout', 0) or 0
 
     def _request_translation(self, request: TranslationRequest, temperature: float|None = None) -> Translation|None:
         """
@@ -144,7 +152,11 @@ class GeminiClient(TranslationClient):
             async_client_args = {'proxy': proxy}
             self._emit_info(_("Using proxy: {proxy}").format(proxy=proxy))
 
-        http_options = HttpOptions(api_version='v1beta', client_args=client_args, async_client_args=async_client_args)
+        # The SDK timeout is in milliseconds.
+        # It also catches a stream that goes quiet, which the deadline below cannot see.
+        sdk_timeout = self.timeout * 1000 if self.timeout else None
+
+        http_options = HttpOptions(api_version='v1beta', client_args=client_args, async_client_args=async_client_args, timeout=sdk_timeout)
 
         gemini_client = genai.Client(api_key=self.api_key, http_options=http_options)
         config = GenerateContentConfig(
@@ -175,11 +187,21 @@ class GeminiClient(TranslationClient):
             config=config
         )
 
-        last_chunk = None
+        # A retry after a failed stream must not append to the earlier attempt's text
+        request.ResetStreaming()
+
         last_candidate: Candidate | None = None
         last_usage: GenerateContentResponseUsageMetadata | None = None
         first_prompt_feedback = None  # when blocked, this can be set only on the first chunk
         accumulated_thoughts = ""
+
+        # The finish reason can arrive on a final chunk that has no content parts
+        finish_reason : FinishReason|None = None
+
+        start_time = time.monotonic()
+        deadline = start_time + self.timeout if self.timeout else None
+        next_progress_time = start_time + STREAMING_PROGRESS_INTERVAL
+        timed_out = False
 
         for chunk in stream:
             if self.aborted:
@@ -187,6 +209,9 @@ class GeminiClient(TranslationClient):
 
             chunk_text = ""
             for candidate in chunk.candidates or []:
+                if candidate.finish_reason:
+                    finish_reason = candidate.finish_reason
+
                 if candidate.content and candidate.content.parts:
                     last_candidate = candidate
                     for part in candidate.content.parts:
@@ -204,6 +229,27 @@ class GeminiClient(TranslationClient):
             if chunk.prompt_feedback and first_prompt_feedback is None:
                 first_prompt_feedback = chunk.prompt_feedback
 
+            now = time.monotonic()
+            response_length = len(request.accumulated_text)
+
+            # Stop a response that runs too long and hand on what has arrived so far
+            if deadline and now >= deadline:
+                self._emit_warning(_("Gemini response took longer than {seconds} seconds, stopping after {characters} characters").format(
+                    seconds=self.timeout, characters=response_length
+                ))
+                timed_out = True
+                break
+
+            if now >= next_progress_time:
+                self._emit_info(_("Still receiving Gemini response after {seconds} seconds ({characters} characters)").format(
+                    seconds=int(now - start_time), characters=response_length
+                ))
+                next_progress_time = now + STREAMING_PROGRESS_INTERVAL
+
+        # Nothing to salvage, so fail the batch rather than resend the request
+        if timed_out and not request.accumulated_text:
+            return None
+
         # Build a synthetic response that keeps metadata but replaces content parts with accumulated text
         parts = [Part.from_text(text = request.accumulated_text)]
 
@@ -214,7 +260,7 @@ class GeminiClient(TranslationClient):
 
         synthetic_candidate = Candidate(
             content=Content(role="model", parts=parts),
-            finish_reason = getattr(last_candidate, "finish_reason", None) or getattr(last_chunk, "finish_reason", None),
+            finish_reason = finish_reason,
             safety_ratings = getattr(last_candidate, "safety_ratings", None)
         )
 
@@ -224,7 +270,12 @@ class GeminiClient(TranslationClient):
             prompt_feedback=first_prompt_feedback
         )
 
-        return self._process_gemini_response(response)
+        result = self._process_gemini_response(response)
+
+        if timed_out:
+            result['finish_reason'] = "timeout"
+
+        return result
 
 
     def _process_gemini_response(self, gcr: GenerateContentResponse) -> dict[str, Any]:
@@ -256,8 +307,10 @@ class GeminiClient(TranslationClient):
         if finish_reason == "STOP" or finish_reason == FinishReason.STOP:
             response['finish_reason'] = "complete"
         elif finish_reason == "MAX_TOKENS" or finish_reason == FinishReason.MAX_TOKENS:
+            # Return the partial response so the translator can recover what it can.
+            # Raising here would resend the identical request.
             response['finish_reason'] = "length"
-            raise TranslationResponseError(_("Gemini response exceeded token limit"), response=candidate)
+            self._emit_warning(_("Gemini response exceeded token limit"))
         elif finish_reason == "SAFETY" or finish_reason == FinishReason.SAFETY:
             response['finish_reason'] = "blocked"
             raise TranslationResponseError(_("Gemini response was blocked for safety reasons"), response=candidate)

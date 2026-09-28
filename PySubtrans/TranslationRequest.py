@@ -34,6 +34,11 @@ class TranslationRequest:
         if self._has_complete_line_group():
             self._emit_partial_update()
 
+    def ResetStreaming(self) -> None:
+        """Discard streamed text so a retried request starts afresh"""
+        self.accumulated_text = ""
+        self.last_processed_pos = 0
+
     def StoreContext(self, key : str, value : Any) -> None:
         """Store additional context data"""
         self.context[key] = value

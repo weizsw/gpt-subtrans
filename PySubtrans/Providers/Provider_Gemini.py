@@ -43,6 +43,7 @@ else:
                     'temperature': settings.get_float('temperature', env_float('GEMINI_TEMPERATURE', 0.0)),
                     'rate_limit': settings.get_float('rate_limit', env_float('GEMINI_RATE_LIMIT', 60.0)),
                     'proxy': settings.get_str('proxy') or os.getenv('GEMINI_PROXY'),
+                    'timeout': settings.get_int('timeout', env_int('GEMINI_TIMEOUT', 120)),
                 }))
 
                 self.refresh_when_changed = ['api_key', 'model', 'enable_thinking']
@@ -83,7 +84,8 @@ else:
                         'stream_responses': (bool, _("Stream translations in realtime as they are generated")),
                         'enable_thinking': (bool, _("Enable reasoning capabilities for more complex translations (increases cost)")),
                         'temperature': (float, _("Amount of random variance to add to translations. Generally speaking, none is best")),
-                        'rate_limit': (float, _("Maximum API requests per minute."))
+                        'rate_limit': (float, _("Maximum API requests per minute.")),
+                        'timeout': (int, _("Seconds to wait for a batch translation before stopping (0 for no limit)"))
                     })
 
                     if self.settings.get_bool('enable_thinking', False):
