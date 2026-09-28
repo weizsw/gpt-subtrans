@@ -14,6 +14,7 @@ import httpx
 
 from PySubtrans.Helpers.Speech import EndsSentence, EstimateSpeechSeconds, SentenceEnds, SentenceRanges
 from PySubtrans.Helpers.TestCases import LoggedTestCase
+from PySubtrans.Helpers.Text import SanitiseForFilename
 from PySubtrans.Helpers.Tests import skip_if_debugger_attached
 from PySubtrans.Options import Options
 from PySubtrans.SettingsType import GuiSettingsType, SettingsType
@@ -26,7 +27,7 @@ from PySubtrans.Transcription.LineMerger import MIN_TIMING_CORRECTION
 from PySubtrans.Transcription.LineSettings import LineSettings
 from PySubtrans.Transcription.SilenceStream import SilenceStream
 from PySubtrans.Transcription.WordTiming import WordTiming
-from PySubtrans.Transcription.TranscriptionCapture import LoadCaptureLineSettings
+from PySubtrans.Transcription.TranscriptionCapture import LoadCaptureLineSettings, LoadCaptureProvider
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionCoordinator import TranscriptionCoordinator, TranscriptionStatus
 from PySubtrans.Transcription.TranscriptionLines import MIN_WORD_CAP_SECONDS, WORD_CAP_MULTIPLE, TranscriptionLineBuilder
@@ -1747,6 +1748,27 @@ class TestTranscriptionCoordinator(LoggedTestCase):
             recorded = LoadCaptureLineSettings(capture_path)
 
         self.assertLoggedEqual("recorded settings", coordinator.line_builder.settings, recorded)
+
+    def test_capture_to_folder_names_file_after_media_and_provider(self):
+        """A folder destination is created and the capture is named after the media and provider."""
+        provider = FakeTranscriptionProvider(SettingsType(), ["first line"], [_word("w", 0.0, 1.0)])
+
+        with tempfile.TemporaryDirectory() as folder:
+            capture_folder = os.path.join(folder, "captures")
+            coordinator = TranscriptionCoordinator(provider, SettingsType({'min_chunk_seconds': 1.0,
+                                                                          'transcription_capture_path': capture_folder}))
+            stub_media(self, coordinator, [AudioChunk(start=timedelta(seconds=0), end=timedelta(seconds=4))])
+
+            with tempfile.NamedTemporaryFile(suffix=".mkv") as media:
+                _subtitles_of(coordinator.TranscribeMedia(media.name))
+                media_name = os.path.splitext(os.path.basename(media.name))[0]
+
+            expected_path = os.path.join(capture_folder, f"{media_name}_{SanitiseForFilename(provider.name)}.json")
+            captured = os.path.isfile(expected_path)
+            recorded_provider = LoadCaptureProvider(expected_path) if captured else None
+
+        self.assertLoggedTrue("capture written to named file", captured, input_value=expected_path)
+        self.assertLoggedEqual("recorded provider", provider.name, recorded_provider)
 
     def test_capture_without_line_settings_loads_none(self):
         """A capture from before line settings were recorded still loads, with none to replay."""

@@ -14,22 +14,37 @@ from dataclasses import asdict, fields
 from datetime import timedelta
 from typing import Any
 
+from PySubtrans.Helpers.Text import SanitiseForFilename
 from PySubtrans.SettingsType import SettingsType
 from PySubtrans.Transcription.LineSettings import LineSettings
 from PySubtrans.Transcription.TranscriptionSegment import TranscriptionSegment
 from PySubtrans.Transcription.WordAlignment import WordCoverage
 from PySubtrans.Transcription.WordTiming import WordTiming
 
-# Set either to capture the next transcription
+# Set either to capture transcriptions: a .json file, or a folder to capture every run into
 CAPTURE_PATH_ENV = 'TRANSCRIPTION_CAPTURE_PATH'
 CAPTURE_PATH_SETTING = 'transcription_capture_path'
+CAPTURE_EXTENSION = '.json'
 
 
 def CapturePath(settings : SettingsType|None = None) -> str|None:
-    """The file to capture to, or None when capture is not requested."""
+    """The configured capture destination, or None when capture is not requested."""
     path = settings.get_str(CAPTURE_PATH_SETTING) if settings is not None else None
     path = path or os.getenv(CAPTURE_PATH_ENV)
     return path.strip() or None if path else None
+
+
+def CaptureFilePath(path : str, provider : str, media_path : str|None = None) -> str:
+    """
+    The file a capture is written to.
+    A .json path is used as given.
+    Any other path is a folder, and the capture is named after the media and provider so runs can be compared side by side.
+    """
+    if path.lower().endswith(CAPTURE_EXTENSION):
+        return path
+
+    media_name = os.path.splitext(os.path.basename(media_path))[0] if media_path else "transcription"
+    return os.path.join(path, f"{media_name}_{SanitiseForFilename(provider)}{CAPTURE_EXTENSION}")
 
 
 class TranscriptionCapture:
@@ -41,7 +56,7 @@ class TranscriptionCapture:
     The line settings the run assembled lines with are recorded too, so a replay can reproduce them.
     """
     def __init__(self, path : str, provider : str, media_path : str|None = None, line_settings : LineSettings|None = None):
-        self.path : str = path
+        self.path : str = CaptureFilePath(path, provider, media_path)
         self.provider : str = provider
         self.media_path : str|None = media_path
         self.line_settings : LineSettings|None = line_settings
@@ -52,6 +67,10 @@ class TranscriptionCapture:
         self.segments.append(segment)
 
         try:
+            folder = os.path.dirname(self.path)
+            if folder:
+                os.makedirs(folder, exist_ok=True)
+
             with open(self.path, 'w', encoding='utf-8') as file:
                 json.dump(self._document(), file, ensure_ascii=False, indent=2)
 
