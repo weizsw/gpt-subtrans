@@ -6,12 +6,9 @@ from argparse import ArgumentParser
 from check_imports import check_required_imports
 check_required_imports(['PySubtrans'])
 
+from PySubtrans import init_transcription, transcribe_media
 from PySubtrans.Helpers import GetOutputPath
-from PySubtrans.Options import Options
-from PySubtrans.SettingsType import SettingsType
 from PySubtrans.SubtitleError import SubtitleError
-from PySubtrans.Transcription.TranscriptionCoordinator import TranscriptionCoordinator
-from PySubtrans.Transcription.TranscriptionOutcome import TranscriptionStatus
 from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from scripts.subtrans_common import InitLogger
 
@@ -64,66 +61,30 @@ def main() -> int:
     if not args.input:
         parser.error("the following arguments are required: input")
 
-    provider_settings = SettingsType({
-        'api_key': args.apikey,
-        'server_address': args.server,
-        'model': args.model,
-        'language': args.language,
-        'diarize': args.diarize,
-        'min_chunk_seconds': args.min_chunk,
-        'max_chunk_seconds': args.max_chunk,
-    })
-    # Drop unset values so provider environment defaults apply
-    provider_settings = SettingsType({k: v for k, v in provider_settings.items() if v is not None})
-
     try:
-        provider = TranscriptionProvider.create_provider(args.provider, provider_settings)
-    except ValueError as e:
-        logging.error(str(e))
-        return 1
-
-    if not provider.ValidateSettings():
-        logging.error(provider.validation_message or "Invalid transcription provider settings")
-        return 1
-
-    try:
-        language = provider.ResolveLanguageCode(args.language, Options().ui_language)
-    except SubtitleError as e:
-        logging.error(str(e))
-        return 1
-
-    if args.language and language != args.language:
-        logging.info(f"Language hint '{args.language}' resolved to '{language}' for {provider.name}")
-
-    options = Options()
-    coordinator_settings = SettingsType({
-        'audio_track': args.track,
-        'language': language,
-        'transcription_align': args.align,
-        'max_characters': options.get_int('max_characters'),
-        'max_line_duration': options.get_float('max_line_duration'),
-        'min_line_duration': options.get_float('min_line_duration'),
-        'min_split_chars': options.get_int('min_split_chars'),
-        'max_newlines': options.get_int('max_newlines'),
-        'min_gap': options.get_float('min_gap'),
-        'abbreviations': options.get_list('abbreviations'),
-    })
-    # Drop unset values so provider defaults apply
-    if args.rate_limit is not None:
-        coordinator_settings['rate_limit'] = args.rate_limit
-    if args.ffmpeg_path is not None:
-        coordinator_settings['ffmpeg_path'] = args.ffmpeg_path
-    if args.capture is not None:
-        coordinator_settings['transcription_capture_path'] = args.capture
-    try:
-        coordinator = TranscriptionCoordinator(provider, coordinator_settings)
+        transcriber = init_transcription(
+            args.provider,
+            model=args.model,
+            api_key=args.apikey,
+            language=args.language,
+            server_address=args.server,
+            diarize=args.diarize,
+            audio_track=args.track,
+            ffmpeg_path=args.ffmpeg_path,
+            min_chunk_seconds=args.min_chunk,
+            max_chunk_seconds=args.max_chunk,
+            rate_limit=args.rate_limit,
+            transcription_align=args.align,
+            postprocess_transcription=args.postprocess,
+            transcription_capture_path=args.capture,
+        )
     except SubtitleError as e:
         logging.error(f"Unable to initialise transcription: {e}")
         return 1
 
     if args.list_tracks:
         try:
-            for track in coordinator.CheckRequirements(args.input):
+            for track in transcriber.CheckRequirements(args.input):
                 print(track)
         except Exception as e:
             logging.error(f"Unable to list tracks: {e}")
@@ -138,15 +99,9 @@ def main() -> int:
             print(f"{label} [{span}]", flush=True)
 
     try:
-        options['postprocess_transcription'] = args.postprocess
+        transcriber.events.progress.connect(progress)
+        subtitles, error = transcribe_media(transcriber, args.input, auto_batch=False)
 
-        coordinator.events.progress.connect(progress)
-        outcome = coordinator.CreateTranscription(args.input, options)
-        if outcome.subtitles is None:
-            logging.error(f"Transcription failed: {outcome.error or 'no subtitles produced'}")
-            return 1
-
-        subtitles = outcome.subtitles
         outputpath = args.output or GetOutputPath(args.input, args.language, f".{args.format}")
         if not outputpath:
             logging.error("Unable to determine output path")
@@ -158,13 +113,13 @@ def main() -> int:
         subtitles.SaveOriginal(outputpath)
         logging.info(f"Saved subtitles to {outputpath} ({subtitles.linecount} lines)")
 
-        if outcome.status == TranscriptionStatus.INCOMPLETE:
-            logging.error(f"Transcription incomplete: {outcome.error or 'one or more chunks failed'}")
+        if error is not None:
+            logging.error(f"Transcription incomplete: {error}")
             return 1
 
     except KeyboardInterrupt:
         logging.warning("Transcription interrupted")
-        coordinator.Abort()
+        transcriber.Abort()
         return 130
     except Exception as e:
         logging.error(f"Error during transcription: {e}")

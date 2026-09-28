@@ -23,6 +23,18 @@ translator.TranslateSubtitles(subs)
 
 # Save translated subtitles
 subs.SaveTranslation("movie_translated.srt", save_settings=SaveSettings(opts))
+
+Transcribing Media
+------------------
+
+# Create a transcriber with its own provider settings (requires ffmpeg)
+transcriber = init_transcription(provider="OpenRouter", api_key="sk-or-...", language="Japanese")
+
+# Transcribe the media into subtitles ready for translation
+subs, error = transcribe_media(transcriber, "movie.mkv")
+
+# Translate the transcription as above
+translator.TranslateSubtitles(subs)
 """
 from __future__ import annotations
 
@@ -31,6 +43,7 @@ from enum import Enum
 
 from PySubtrans.Helpers import GetInputPath
 from PySubtrans.Helpers.InstructionsHelpers import LoadInstructions
+from PySubtrans.Helpers.Localization import _
 from PySubtrans.Options import Options
 from PySubtrans.SettingsType import SettingType, SettingsType
 from PySubtrans.SubtitleBatcher import SubtitleBatcher
@@ -44,8 +57,25 @@ from PySubtrans.SubtitleProcessor import SubtitleProcessor
 from PySubtrans.SubtitleProject import SubtitleProject
 from PySubtrans.SubtitleScene import SubtitleScene
 from PySubtrans.SubtitleTranslator import SubtitleTranslator
+from PySubtrans.Transcription.AudioChunker import AudioChunker
+from PySubtrans.Transcription.TranscriptionCoordinator import TranscriptionCoordinator
+from PySubtrans.Transcription.TranscriptionProvider import TranscriptionProvider
 from PySubtrans.TranslationProvider import TranslationProvider
 from PySubtrans.version import __version__
+
+# Settings the transcriber takes from Options when they are not supplied.
+# Transcribed lines obey the same limits as loaded and translated subtitles.
+# A whole Options is not passed on, because its translation defaults (e.g. max_retries) would override the provider's own.
+_TRANSCRIPTION_OPTIONS : list[str] = [
+    'max_characters',
+    'max_line_duration',
+    'min_line_duration',
+    'min_split_chars',
+    'max_newlines',
+    'min_gap',
+    'abbreviations',
+    'ffmpeg_path',
+]
 
 
 class SettingsPrecedence(Enum):
@@ -168,14 +198,7 @@ def init_subtitles(
         preprocess_subtitles(subtitles, options)
 
     if auto_batch:
-        batch_subtitles(
-            subtitles,
-            scene_threshold=options.get_float('scene_threshold') or 60.0,
-            min_batch_size=options.get_int('min_batch_size') or 1,
-            max_batch_size=options.get_int('max_batch_size') or 100,
-            prevent_overlap=options.get_bool('prevent_overlapping_times'),
-            min_gap=options.get_float('min_gap', 0.05) or 0.0,
-        )
+        _batch_with_options(subtitles, options)
 
     return subtitles
 
@@ -385,18 +408,191 @@ def init_project(
                 preprocess_subtitles(subtitles, options)
 
             if auto_batch:
-                batch_subtitles(
-                    subtitles,
-                    scene_threshold=options.get_float('scene_threshold') or 60.0,
-                    min_batch_size=options.get_int('min_batch_size') or 1,
-                    max_batch_size=options.get_int('max_batch_size') or 100,
-                    prevent_overlap=options.get_bool('prevent_overlapping_times'),
-                    min_gap=options.get_float('min_gap', 0.05) or 0.0,
-                )
+                _batch_with_options(subtitles, options)
 
     project.save_settings = SaveSettings(Options(settings))
 
     return project
+
+
+def init_transcription_provider(provider : str, **settings : SettingType) -> TranscriptionProvider:
+    """
+    Initialise and validate a :class:`TranscriptionProvider` instance.
+
+    Parameters
+    ----------
+    provider : str
+        The transcription provider name, e.g. "OpenRouter", "OpenAI", "Gemini", "Qwen Local".
+    **settings : SettingType
+        Provider settings such as `model`, `api_key`, `server_address` or `language`.
+        Settings that are None are ignored, so the provider's defaults apply.
+
+    Returns
+    -------
+    TranscriptionProvider
+        A provider instance with validated settings.
+
+    Examples
+    --------
+
+    provider = init_transcription_provider("OpenAI", api_key="sk-...", model="whisper-1")
+    transcriber = init_transcription(provider)
+    """
+    if not provider:
+        raise SubtitleError(_("Transcription provider name is required"))
+
+    provider_settings = SettingsType({key: value for key, value in settings.items() if value is not None})
+
+    try:
+        transcription_provider = TranscriptionProvider.create_provider(provider, provider_settings)
+    except ValueError as exc:
+        raise SubtitleError(str(exc)) from exc
+
+    _validate_transcription_provider(transcription_provider)
+
+    return transcription_provider
+
+
+def init_transcription(
+    provider : str|TranscriptionProvider,
+    *,
+    model : str|None = None,
+    api_key : str|None = None,
+    language : str|None = None,
+    **settings : SettingType,
+) -> TranscriptionCoordinator:
+    """
+    Return a :class:`TranscriptionCoordinator` ready to transcribe media with the specified provider.
+
+    Transcription settings are separate from translation settings, so the transcription and translation providers can differ.
+
+    Parameters
+    ----------
+    provider : str or TranscriptionProvider
+        The transcription provider name, or a provider created with :func:`init_transcription_provider`.
+    model : str or None, optional
+        The transcription model. Defaults to the provider's recommended model.
+    api_key : str or None, optional
+        The API key for the provider, if it needs one.
+    language : str or None, optional
+        The spoken language, e.g. "Japanese" or "ja". When omitted the provider detects the language.
+    **settings : SettingType
+        Additional settings, e.g.
+
+        server_address = "http://localhost:8000/v1",
+        diarize = True,
+        audio_track = 1,
+        ffmpeg_path = "/usr/local/bin/ffmpeg",
+        max_characters = 80,
+        max_line_duration = 5.0,
+        postprocess_transcription = True,
+
+        Line limits not specified are taken from the :class:`Options` defaults.
+        When *provider* is an instance, `model`, `api_key` and provider-specific settings are not applied to it.
+
+    Exceptions
+    ----------
+    SubtitleError
+        If the provider is unknown, its settings are invalid or the language is not recognised.
+
+    Returns
+    -------
+    TranscriptionCoordinator
+        A transcriber to pass to :func:`transcribe_media`.
+        Subscribe to its `events` for progress (see :class:`TranscriptionEvents`), or call `Abort()` from another thread to stop early.
+
+    Examples
+    --------
+
+    transcriber = init_transcription("OpenRouter", api_key="sk-or-...", language="Japanese")
+
+    # Local transcription with Qwen3-ASR (requires torch and qwen-asr to be installed)
+    transcriber = init_transcription("Qwen Local", language="Chinese")
+    """
+    explicit_settings = {'model': model, 'api_key': api_key, 'language': language, **settings}
+    explicit_settings = SettingsType({key: value for key, value in explicit_settings.items() if value is not None})
+
+    if isinstance(provider, TranscriptionProvider):
+        transcription_provider = provider
+        _validate_transcription_provider(transcription_provider)
+    else:
+        transcription_provider = init_transcription_provider(provider, **explicit_settings)
+
+    options = Options(explicit_settings)
+
+    coordinator_settings = SettingsType(explicit_settings)
+    for key in _TRANSCRIPTION_OPTIONS:
+        if key not in coordinator_settings:
+            coordinator_settings[key] = options.get(key)
+
+    # The provider converts the language hint to the form its engine expects
+    language_hint = language or transcription_provider.settings.get_str('language')
+    coordinator_settings['language'] = transcription_provider.ResolveLanguageCode(language_hint, options.ui_language)
+
+    # Chunk bounds given for this run override the provider's
+    min_chunk_seconds = coordinator_settings.get_float('min_chunk_seconds') or transcription_provider.settings.get_float('min_chunk_seconds')
+    max_chunk_seconds = coordinator_settings.get_float('max_chunk_seconds') or transcription_provider.settings.get_float('max_chunk_seconds')
+    if min_chunk_seconds is not None and max_chunk_seconds is not None:
+        AudioChunker.ValidateChunkBounds(min_chunk_seconds, max_chunk_seconds)
+
+    return TranscriptionCoordinator(transcription_provider, coordinator_settings)
+
+
+def transcribe_media(
+    transcriber : TranscriptionCoordinator,
+    media_path : str,
+    *,
+    options : Options|SettingsType|None = None,
+    auto_batch : bool = True,
+) -> tuple[Subtitles, SubtitleError|None]:
+    """
+    Transcribe a media file into :class:`Subtitles` ready for translation.
+
+    This call blocks until the transcription finishes, which can take a long time for a full-length video.
+
+    Parameters
+    ----------
+    transcriber : TranscriptionCoordinator
+        A transcriber created with :func:`init_transcription`.
+    media_path : str
+        Path to the video or audio file to transcribe.
+    options : Options or SettingsType, optional
+        Settings for post-processing and batching the transcribed lines, e.g. `remove_filler_words`, `scene_threshold`, `max_batch_size`.
+        Defaults to the settings the transcriber was created with.
+    auto_batch : bool, optional
+        If True (default), divide the subtitles into scenes and batches ready for translation.
+
+    Returns
+    -------
+    tuple[Subtitles, SubtitleError or None]
+        The transcribed subtitles, and the error that stopped the transcription early, if any.
+        Lines transcribed before an error are returned so they are not lost.
+        Pass them to `transcriber.CreateTranscription` as `prior_subtitles` to resume.
+
+    Exceptions
+    ----------
+    SubtitleError
+        If no subtitles could be transcribed.
+
+    Examples
+    --------
+
+    subs, error = transcribe_media(transcriber, "movie.mkv")
+    if error:
+        print(f"Transcription is incomplete: {error}")
+    """
+    options = Options(options or transcriber.settings)
+
+    outcome = transcriber.CreateTranscription(media_path, options)
+
+    subtitles = outcome.subtitles
+    if subtitles is None or not subtitles.originals:
+        raise outcome.error or SubtitleError(_("No subtitles were transcribed from '{}'").format(media_path))
+
+    if auto_batch:
+        _batch_with_options(subtitles, options)
+
+    return subtitles, outcome.error
 
 
 def preprocess_subtitles(
@@ -476,6 +672,25 @@ def batch_subtitles(
     return subtitles.scenes
 
 
+def _batch_with_options(subtitles : Subtitles, options : Options) -> None:
+    """Divide subtitles into scenes and batches using the batching settings in *options*."""
+    batch_subtitles(
+        subtitles,
+        scene_threshold=options.get_float('scene_threshold') or 60.0,
+        min_batch_size=options.get_int('min_batch_size') or 1,
+        max_batch_size=options.get_int('max_batch_size') or 100,
+        prevent_overlap=options.get_bool('prevent_overlapping_times'),
+        min_gap=options.get_float('min_gap', 0.05) or 0.0,
+    )
+
+
+def _validate_transcription_provider(provider : TranscriptionProvider) -> None:
+    """Raise a SubtitleError explaining why the provider's settings are invalid."""
+    if not provider.ValidateSettings():
+        message = provider.validation_message or _("Invalid settings for transcription provider {}").format(provider.name)
+        raise SubtitleError(message)
+
+
 __all__ = [
     '__version__',
     'Options',
@@ -492,12 +707,17 @@ __all__ = [
     'SubtitleProcessor',
     'SubtitleProject',
     'SubtitleTranslator',
+    'TranscriptionCoordinator',
+    'TranscriptionProvider',
     'TranslationProvider',
     'init_options',
     'batch_subtitles',
     'init_project',
     'init_subtitles',
+    'init_transcription',
+    'init_transcription_provider',
     'init_translation_provider',
     'init_translator',
     'preprocess_subtitles',
+    'transcribe_media',
 ]

@@ -1,6 +1,6 @@
 # PySubtrans
 
-PySubtrans is the subtitle translation engine that powers [LLM-Subtrans](https://github.com/machinewrapped/llm-subtrans). It provides tools to read and write subtitle files in various formats, connect to various LLMs as translators and manage a translation workflow.
+PySubtrans is the subtitle translation engine that powers [LLM-Subtrans](https://github.com/machinewrapped/llm-subtrans). It provides tools to read and write subtitle files in various formats, connect to various LLMs as translators and manage a translation workflow. It can also transcribe video and audio files into subtitles that are ready for translation.
 
 This package makes these capabilities available as a library that you can incorporate into your own tools and workflows to take advantage of the best-in-class translation quality that LLM-Subtrans provides.
 
@@ -261,6 +261,37 @@ print(translator.terminology_map)
 ```
 
 Note: `build_terminology_map` controls whether the model is asked to report new terms after each batch. A seed `terminology_map` passed to `init_translator` is always injected into the prompt context regardless of this setting.
+
+## Transcribing media
+
+PySubtrans can also create subtitles from a video or audio file, ready to be translated. `init_transcription` creates a transcriber with its own provider settings, so the transcription and translation providers can be different. `transcribe_media` transcribes a file and returns `Subtitles` divided into scenes and batches, just like `init_subtitles`.
+
+```python
+from PySubtrans import SaveSettings, init_options, init_transcription, init_translator, transcribe_media
+
+transcriber = init_transcription("OpenRouter", api_key="your-openrouter-key", language="Japanese")
+
+subtitles, error = transcribe_media(transcriber, "movie.mkv")
+if error:
+    print(f"Transcription is incomplete: {error}")
+
+options = init_options(provider="Gemini", model="gemini-2.5-flash-lite", api_key="your-gemini-key", target_language="English")
+
+translator = init_translator(options)
+translator.TranslateSubtitles(subtitles)
+
+subtitles.SaveTranslation("movie.en.srt", save_settings=SaveSettings(options))
+```
+
+Transcription requires [ffmpeg](https://ffmpeg.org/) on the PATH, or pass `ffmpeg_path` to `init_transcription`. If `language` is omitted, the provider detects the spoken language.
+
+`transcribe_media` blocks until the transcription is complete, which can take some time for a full-length video. Subscribe to `transcriber.events` for progress updates, or call `transcriber.Abort()` from another thread to stop early. If the transcription stops before the end of the media, the lines transcribed so far are returned along with the error.
+
+Available transcription providers:
+
+- `OpenRouter` (default model `microsoft/mai-transcribe-2`), `OpenAI` and `Muse` work with the basic installation and an API key.
+- `Gemini` requires `pip install pysubtrans[gemini]`.
+- `Qwen Local` runs Qwen3-ASR on your own hardware. Install a PyTorch build for your hardware from [pytorch.org](https://pytorch.org/get-started/locally/) first, then `pip install pysubtrans[qwen-asr]`. The first run downloads the model weights (about 6 GB). Pass `allow_cpu_fallback=True` to run without a GPU, though this is much slower.
 
 ## Advanced workflows
 
