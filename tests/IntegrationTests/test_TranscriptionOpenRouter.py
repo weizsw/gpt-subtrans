@@ -90,6 +90,16 @@ class TestOpenRouterRegistered(LoggedTestCase):
         for key in ('request_timeout', 'rate_limit', 'merge_eligible_gap'):
             self.assertLoggedNotIn(f"{key} withheld per run", key, options)
 
+    def test_diarization_follows_model_support(self):
+        """Models without a diarization option neither offer it nor report speaker labels."""
+        unmapped = OpenRouterTranscriptionProvider(SettingsType({'api_key': 'k', 'model': 'openai/whisper-large-v3-turbo', 'diarize': True}))
+        mapped = OpenRouterTranscriptionProvider(SettingsType({'api_key': 'k', 'model': 'deepgram/nova-3', 'diarize': True}))
+
+        self.assertLoggedNotIn("unmapped model hides diarize", 'diarize', unmapped.GetOptions(unmapped.settings, OptionsScope.PER_RUN))
+        self.assertLoggedFalse("unmapped model has no speakers", unmapped.supports_diarization)
+        self.assertLoggedIn("mapped model offers diarize", 'diarize', mapped.GetOptions(mapped.settings, OptionsScope.PER_RUN))
+        self.assertLoggedTrue("mapped model has speakers", mapped.supports_diarization)
+
     def test_verbose_words_with_speakers(self):
         """Word timings and speaker labels parse from verbose responses."""
 
@@ -284,7 +294,7 @@ class TestOpenRouterClient(LoggedTestCase):
         silent = self._client(diarize=False)
 
         self.assertLoggedEqual("timestamps negotiated", True, timed.supports_timestamps)
-        self.assertLoggedEqual("no diarization by default", False, silent.supports_diarization)
+        self.assertLoggedEqual("no diarization when turned off", False, silent.supports_diarization)
 
         diarized = self._client(model="microsoft/mai-transcribe-2", diarize=True)
         self.assertLoggedEqual("diarization requested", True, diarized.supports_diarization)

@@ -30,6 +30,13 @@ https://openrouter.ai/privacy
 
 You can choose to let OpenRouter select the model automatically (the "Use Default Model" setting in the GUI or `--auto` on the command line) or you can specify a specific model.
 
+### Requesty
+https://www.requesty.ai/privacy
+
+[Requesty](https://www.requesty.ai) is an OpenAI-compatible gateway which provides access to models from many different providers. You will need a Requesty API key to use the service (the app will look for REQUESTY_API_KEY in the environment if this is not provided).
+
+Models are named provider/model, e.g. `openai/gpt-4o-mini` or `anthropic/claude-sonnet-4-5`.
+
 ### Google Gemini
 https://ai.google.dev/terms
 
@@ -245,18 +252,18 @@ Other options that can be specified on the command line are detailed below.
 Transcription is a separate process.
 
 ```sh
-# Transcribe with the default provider (Qwen Local)
-python scripts/transcribe.py movie.mkv --language Chinese --format ass
+# Transcribe with the default provider (OpenRouter, using microsoft/mai-transcribe-2)
+python scripts/transcribe.py movie.mkv --apikey sk-or-... --language Japanese
 
-# Use a cloud provider
-python scripts/transcribe.py movie.mkv --provider OpenRouter --model microsoft/mai-transcribe-2 --apikey sk-... --language Japanese --diarize
+# Transcribe locally with Qwen3-ASR (requires Torch and the Qwen runtime)
+python scripts/transcribe.py movie.mkv --provider "Qwen Local" --language Chinese --format ass
 ```
 
 Transcription options:
-- `--provider` — transcription provider (default: `Qwen Local`; use `--list-providers` to list)
+- `--provider` — transcription provider (default: `OpenRouter`; use `--list-providers` to list)
 - `--language` — spoken language hint (e.g. Chinese, English)
 - `--track` — audio track index (default: 0; use `--list-tracks` to identify audio tracks in the source)
-- `--diarize` / `--no-diarize` — request speaker diarization (model-dependent)
+- `--diarize` / `--no-diarize` — speaker identification (default: on; support is model-dependent)
 - `--align` / `--no-align` — word-level timestamps (default: on)
 - `--format` — output format: `srt`, `ass`, or `vtt` (default: `vtt`; `ass`/`vtt` preserve speaker labels)
 - `-o` / `--output` — output file path (defaults to alongside the media file)

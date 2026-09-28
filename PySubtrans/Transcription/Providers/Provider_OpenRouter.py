@@ -10,6 +10,21 @@ from PySubtrans.SettingsType import GuiSettingsType, SettingsType
 from PySubtrans.Transcription.TranscriptionClient import TranscriptionClient
 from PySubtrans.Transcription.TranscriptionProvider import OptionsScope, TranscriptionProvider
 
+# Diarization is not a top-level OpenRouter field; each vendor takes its own option under its provider slug
+_DIARIZATION_OPTIONS : dict[str, dict] = {
+    'microsoft/': {'azure': {'diarization': {'enabled': True}}},
+    'deepgram/': {'deepgram': {'diarize': True}},
+    'x-ai/': {'xai': {'diarize': True}},
+}
+
+def DiarizationOptions(model : str) -> dict|None:
+    """The provider options that request diarization for *model*, or None if it cannot be diarized."""
+    model_cf = model.casefold()
+    for prefix, options in _DIARIZATION_OPTIONS.items():
+        if model_cf.startswith(prefix):
+            return options
+    return None
+
 class OpenRouterTranscriptionProvider(TranscriptionProvider):
     """
     Speech-to-text via OpenRouter with the shared account API key.
@@ -29,8 +44,13 @@ class OpenRouterTranscriptionProvider(TranscriptionProvider):
 
     @property
     def supports_diarization(self) -> bool:
-        """Speaker labels when diarization is requested on a mapped model."""
-        return self.settings.get_bool('diarize', False)
+        """Speaker labels when diarization is enabled and the model can be diarized."""
+        return self.settings.get_bool('diarize', True) and self._model_can_diarize
+
+    @property
+    def _model_can_diarize(self) -> bool:
+        """Whether the selected model has a known diarization option."""
+        return DiarizationOptions(self.selected_model or self.default_transcription_model) is not None
 
     def __init__(self, settings : SettingsType):
         super().__init__(self.name, settings)
@@ -38,7 +58,7 @@ class OpenRouterTranscriptionProvider(TranscriptionProvider):
             'api_key': settings.get_str('api_key', os.getenv('OPENROUTER_API_KEY')),
             'server_address': settings.get_str('server_address', os.getenv('OPENROUTER_SERVER_ADDRESS', 'https://openrouter.ai/api/v1')),
             'model': settings.get_str('model', os.getenv('OPENROUTER_STT_MODEL', 'microsoft/mai-transcribe-2')),
-            'diarize': settings.get_bool('diarize', False),
+            'diarize': settings.get_bool('diarize', True),
             'request_timeout': settings.get_float('request_timeout', env_float('TRANSCRIPTION_TIMEOUT', 300.0)),
             'rate_limit': settings.get_float('rate_limit', env_float('OPENROUTER_TRANSCRIPTION_RATE_LIMIT')),
             # Short chunks bound base64 request bodies and the blast radius of retries.
@@ -47,7 +67,7 @@ class OpenRouterTranscriptionProvider(TranscriptionProvider):
             'proxy': settings.get_str('proxy') or os.getenv('OPENROUTER_PROXY'),
         })
 
-        self.refresh_when_changed = ['api_key', 'language', 'diarize']
+        self.refresh_when_changed = ['api_key', 'model', 'language', 'diarize']
 
     def GetAvailableModels(self) -> list[str]:
         """
@@ -90,8 +110,11 @@ class OpenRouterTranscriptionProvider(TranscriptionProvider):
         options.update({
             'model': (self.available_models, _("Speech-to-text model")),
             'language': (str, _("Spoken language hint, e.g. Chinese or en (optional, auto-detected when empty)")),
-            'diarize': (bool, _("Request speaker diarization (only supported by some models)")),
         })
+
+        if self._model_can_diarize:
+            options['diarize'] = (bool, _("Identify speakers"))
+
         options.update(self._chunk_options())
 
         if scope is OptionsScope.ALL:

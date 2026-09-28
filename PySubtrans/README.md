@@ -1,6 +1,6 @@
 # PySubtrans
 
-PySubtrans is the subtitle translation engine that powers [LLM-Subtrans](https://github.com/machinewrapped/llm-subtrans). It provides tools to read and write subtitle files in various formats, connect to various LLMs as translators and manage a translation workflow.
+PySubtrans is the subtitle translation engine that powers [LLM-Subtrans](https://github.com/machinewrapped/llm-subtrans). It provides tools to read and write subtitle files in various formats, connect to various LLMs as translators and manage a translation workflow. It can also transcribe video and audio files into subtitles that are ready for translation.
 
 This package makes these capabilities available as a library that you can incorporate into your own tools and workflows to take advantage of the best-in-class translation quality that LLM-Subtrans provides.
 
@@ -30,7 +30,7 @@ from PySubtrans import SaveSettings, init_options, init_subtitles, init_translat
 
 options = init_options(
     provider="Gemini",
-    model="gemini-2.5-flash-lite",
+    model="gemini-flash-latest",
     api_key="your-api-key",
     prompt="Translate these subtitles into Spanish"
     )
@@ -181,7 +181,7 @@ provider = init_translation_provider("Custom Server", options)
 - `batch_updated`: Emitted during streaming responses for partial updates
 - `scene_translated`: Emitted when an entire scene is translated
 - `preprocessed`: Emitted when subtitle preprocessing completes
-- `translation_cost`: Emitted when a provider response reports a translation cost
+- `translation_cost`: Emitted when a provider response reports a translation cost (currently only OpenRouter reports costs)
 
 **Logging Hooks:**
 - `error`: Critical errors that stop translation
@@ -194,7 +194,7 @@ provider = init_translation_provider("Custom Server", options)
 
 The Options class provides a wide range of options to configure the translation process. The default values should work well for most use cases, but some are definitely worth experimenting with.
 
-`max_batch_size`: controls how many lines will be sent to the LLM in one request. The default value (30) is very conservative, for maximum compatibility. Models like Gemini 2.5 Flash can easily handle batches of 150 lines or more, which allows for faster translation.
+`max_batch_size`: controls how many lines will be sent to the LLM in one request. The default is 100 lines. Models like Gemini Flash can easily handle batches of 150 lines or more, which allows for faster translation.
 
 `scene_threshold`: subtitles are divided into scenes before batching, using this time value as a heuristic to indicate that a scene transition has happened. The default of 60 seconds is very coarse, and may end up with only one scene for dialogue heavy movies or dozens of scenes with only a few lines each for minimalist arthouse films. Depending on your use case, consider setting this very high and relying on the batcher instead.
 
@@ -211,7 +211,7 @@ from PySubtrans import init_options
 
 options = init_options(
     provider="Gemini",
-    model="gemini-2.5-flash",
+    model="gemini-flash-latest",
     api_key="your-key",
     movie_name="French Movie",
     prompt="Translate these subtitles for {movie_name} into German, with cultural references adapted for a German audience",
@@ -262,6 +262,74 @@ print(translator.terminology_map)
 
 Note: `build_terminology_map` controls whether the model is asked to report new terms after each batch. A seed `terminology_map` passed to `init_translator` is always injected into the prompt context regardless of this setting.
 
+## Transcribing media
+
+PySubtrans can also create subtitles from a video or audio file, ready to be translated. `init_transcription` creates a transcriber with its own provider settings, so the transcription and translation providers can be different. `transcribe_media` transcribes a file and returns `Subtitles` divided into scenes and batches, just like `init_subtitles`.
+
+```python
+from PySubtrans import SaveSettings, init_options, init_transcription, init_translator, transcribe_media
+
+options = init_options(provider="Gemini", model="gemini-flash-latest", api_key="your-gemini-key", target_language="English")
+
+transcriber = init_transcription("OpenRouter", api_key="your-openrouter-key", language="Japanese")
+
+subtitles, error = transcribe_media(transcriber, "movie.mkv", options=options)
+if error:
+    print(f"Transcription is incomplete: {error}")
+
+# Save the transcription first, so it is not lost if translation fails
+subtitles.SaveOriginal("movie.ja.vtt")
+
+translator = init_translator(options)
+translator.TranslateSubtitles(subtitles)
+
+subtitles.SaveTranslation("movie.en.srt", save_settings=SaveSettings(options))
+```
+
+Transcription requires [ffmpeg](https://ffmpeg.org/) on the PATH, or pass `ffmpeg_path` to `init_transcription`.
+
+Diarization identifies who is speaking, which helps prevent lines spoken by different people from being merged into one subtitle. It is on by default for providers that support it; pass `diarize=False` to turn it off.
+
+Save the transcription as VTT or ASS rather than SRT. SRT has no way to store speaker labels, so they would be lost if you reload the file later, e.g. to resume or retranslate it.
+
+`language` accepts a language name or code, e.g. `"Japanese"` or `"ja"`. If it is omitted, the provider detects the spoken language. Only set it when you are sure: a wrong hint can make the model transcribe some lines in the wrong language.
+
+`transcribe_media` post-processes and batches the transcribed lines using the `options` it is given, so pass the translation options to use the same batch settings. Without `options` it uses the settings the transcriber was created with.
+
+`transcribe_media` blocks until the transcription is complete, which can take some time for a full-length video. If the transcription stops before the end of the media, the lines transcribed so far are returned along with the error.
+
+Subscribe to `transcriber.events` for progress updates:
+
+- `audio_progress(sender, processed, total)`: seconds of audio transcribed so far, out of the total length.
+- `progress(sender, done, total, span)`: sent before each chunk of audio is transcribed. `total` is 0, because the number of chunks is not known in advance.
+- `status(sender, text)`: sent when transcription enters a new phase.
+
+```python
+def on_audio_progress(sender, processed, total):
+    print(f"Transcribed {processed / total:.0%}")
+
+transcriber.events.audio_progress.connect(on_audio_progress)
+```
+
+### Transcription providers
+
+`OpenRouter` with its default model, `microsoft/mai-transcribe-2`, is recommended: it gives the best results in our testing.
+
+| Provider | Model | Speaker identification | Word timings |
+|----------|-------|------------------------|--------------|
+| `OpenRouter` | `microsoft/mai-transcribe-2` (default) | Yes | Yes |
+| `OpenRouter` | `deepgram/nova-3`, `x-ai/grok-stt-1.0` | Yes | Not verified |
+| `OpenRouter` | `openai/whisper-large-v3-turbo` | No | Not verified |
+| `Gemini` | `gemini-3.5-transcribe` (default) | Yes, on by default | Partial |
+| `OpenAI` | `whisper-1` (default) | No | Yes |
+| `OpenAI` | `gpt-4o-transcribe-diarize` | Yes | No, segment timings only |
+| `Muse` | `muse-voice-transcribe-1.0` (default) | Yes | No, turn timings only |
+| `Qwen Local` | `Qwen/Qwen3-ASR-1.7B` (default), `Qwen/Qwen3-ASR-0.6B` | No | Partial, for languages the aligner supports |
+
+`OpenRouter`, `OpenAI` and `Muse` work with the basic installation and an API key. `Gemini` requires `pip install pysubtrans[gemini]`.
+
+`Qwen Local` runs Qwen3-ASR on your own hardware. Install a PyTorch build for your hardware from [pytorch.org](https://pytorch.org/get-started/locally/) first, then `pip install pysubtrans[qwen-asr]`. The first run downloads the model weights (about 6 GB). Pass `allow_cpu_fallback=True` to run without a GPU, though this is much slower.
+
 ## Advanced workflows
 
 PySubtrans is designed to be modular. The helper functions above are convenient entry points, but you are free to use lower-level components directly when you need more control:
@@ -282,7 +350,7 @@ from PySubtrans import init_options, init_translator
 
 options = init_options(
     provider="Gemini",
-    model="gemini-2.5-flash-latest",
+    model="gemini-flash-latest",
     api_key="your-key",
     stream_responses=True
 )
