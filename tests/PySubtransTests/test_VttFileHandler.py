@@ -556,6 +556,8 @@ Styled subtitle
         "<v.under_score-mixed>Mixed separators</v>": "Mixed separators",
         "<v>No attributes</v>": "No attributes",
         "<v.class1.class2>Multiple classes</v>": "Multiple classes",
+        "<v A>First line\nsecond line</v>": "First line\nsecond line",
+        "<v A>First</v>\n<v B>Second</v>": "<v A>First</v>\n<v B>Second</v>",
         "Text <v Speaker>with voice</v> inside": "Text <v Speaker>with voice</v> inside",
         "<v.loud Mary>Start</v> and <v John>end</v>": "<v.loud Mary>Start</v> and <v John>end</v>"
     }
@@ -576,6 +578,7 @@ Styled subtitle
         "<v>No attrs</v>": {},
         "<v.loud>Class only</v>": {"voice_classes": ["loud"]},
         "<v Speaker>Name only</v>": {"speaker": "Speaker"},
+        "<v A>First line\nsecond line</v>": {"speaker": "A"},
         "Text <v Speaker>partial</v> inside": {}
     }
     
