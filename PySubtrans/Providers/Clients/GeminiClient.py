@@ -196,7 +196,7 @@ class GeminiClient(TranslationClient):
         accumulated_thoughts = ""
 
         # The finish reason can arrive on a final chunk that has no content parts
-        finish_reason: FinishReason | None = None
+        finish_reason : FinishReason|None = None
 
         start_time = time.monotonic()
         deadline = start_time + self.timeout if self.timeout else None
@@ -245,6 +245,10 @@ class GeminiClient(TranslationClient):
                     seconds=int(now - start_time), characters=response_length
                 ))
                 next_progress_time = now + STREAMING_PROGRESS_INTERVAL
+
+        # Nothing to salvage, so fail the batch rather than resend the request
+        if timed_out and not request.accumulated_text:
+            return None
 
         # Build a synthetic response that keeps metadata but replaces content parts with accumulated text
         parts = [Part.from_text(text = request.accumulated_text)]

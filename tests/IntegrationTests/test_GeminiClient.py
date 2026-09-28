@@ -113,6 +113,28 @@ class TestGeminiClientStreaming(LoggedTestCase):
 
         self.assertLoggedLess("chunks consumed", chunks_consumed, 10)
 
+    def test_timeout_without_text_is_not_retried(self) -> None:
+        """A stream that times out before any visible text fails without resending the request."""
+        client = _create_client(timeout=120, max_retries=1)
+        clock = itertools.count(0.0, 45.0)
+
+        def thinking_chunks() -> Iterator['GenerateContentResponse']:
+            while True:
+                thought = Part.from_text(text="Thinking...")
+                thought.thought = True
+                yield GenerateContentResponse(candidates=[Candidate(content=Content(role="model", parts=[thought]))])
+
+        genai_client = MagicMock()
+        genai_client.models.generate_content_stream.return_value = thinking_chunks()
+
+        with patch(f'{_MODULE}.genai.Client', MagicMock(return_value=genai_client)):
+            with patch(f'{_MODULE}.time.monotonic', side_effect=lambda: next(clock)):
+                with self.assertLogs(level=logging.WARNING):
+                    translation = client._request_translation(_create_request())
+
+        self.assertLoggedIsNone("translation", translation)
+        self.assertLoggedEqual("stream requests", 1, genai_client.models.generate_content_stream.call_count)
+
     def test_timeout_passed_to_sdk(self) -> None:
         """The timeout also bounds the SDK request, in milliseconds."""
         client = _create_client(timeout=120)
