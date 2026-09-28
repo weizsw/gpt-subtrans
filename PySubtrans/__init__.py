@@ -294,7 +294,7 @@ def init_translator(
     translator = init_translator(opts)
 
     # Create translator from a plain dictionary
-    translator = init_translator({"provider": "gemini", "api_key": "your-key", "model": "gemini-3.8-flash"})
+    translator = init_translator({"provider": "gemini", "api_key": "your-key", "model": "gemini-flash-latest"})
 
     # Create translator with a terminology seed
     translator = init_translator(opts, terminology_map={"Dragon": "Drache", "Hero": "Held"})

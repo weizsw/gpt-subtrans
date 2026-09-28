@@ -30,7 +30,7 @@ from PySubtrans import SaveSettings, init_options, init_subtitles, init_translat
 
 options = init_options(
     provider="Gemini",
-    model="gemini-3.8-flash",
+    model="gemini-flash-latest",
     api_key="your-api-key",
     prompt="Translate these subtitles into Spanish"
     )
@@ -181,7 +181,7 @@ provider = init_translation_provider("Custom Server", options)
 - `batch_updated`: Emitted during streaming responses for partial updates
 - `scene_translated`: Emitted when an entire scene is translated
 - `preprocessed`: Emitted when subtitle preprocessing completes
-- `translation_cost`: Emitted when a provider response reports a translation cost
+- `translation_cost`: Emitted when a provider response reports a translation cost (currently only OpenRouter reports costs)
 
 **Logging Hooks:**
 - `error`: Critical errors that stop translation
@@ -211,7 +211,7 @@ from PySubtrans import init_options
 
 options = init_options(
     provider="Gemini",
-    model="gemini-3.8-flash",
+    model="gemini-flash-latest",
     api_key="your-key",
     movie_name="French Movie",
     prompt="Translate these subtitles for {movie_name} into German, with cultural references adapted for a German audience",
@@ -269,7 +269,7 @@ PySubtrans can also create subtitles from a video or audio file, ready to be tra
 ```python
 from PySubtrans import SaveSettings, init_options, init_transcription, init_translator, transcribe_media
 
-options = init_options(provider="Gemini", model="gemini-3.8-flash", api_key="your-gemini-key", target_language="English")
+options = init_options(provider="Gemini", model="gemini-flash-latest", api_key="your-gemini-key", target_language="English")
 
 transcriber = init_transcription("OpenRouter", api_key="your-openrouter-key", language="Japanese")
 
@@ -334,7 +334,7 @@ from PySubtrans import init_options, init_translator
 
 options = init_options(
     provider="Gemini",
-    model="gemini-3.8-flash",
+    model="gemini-flash-latest",
     api_key="your-key",
     stream_responses=True
 )
