@@ -44,8 +44,8 @@ class MuseTranscriptionClient(TranscriptionClient):
 
     @property
     def diarize(self) -> bool:
-        """Whether speaker diarization is requested (DIARIZATION mode)."""
-        return self.settings.get_bool('diarize', False)
+        """Whether speaker labels are kept (DIARIZATION mode is always requested)."""
+        return self.settings.get_bool('diarize', True)
 
     @property
     def abbreviations(self) -> frozenset[str]:
@@ -59,7 +59,7 @@ class MuseTranscriptionClient(TranscriptionClient):
 
     @property
     def supports_diarization(self) -> bool:
-        """Speaker labels are kept only when diarization is opted into."""
+        """Speaker labels are kept unless diarization is turned off."""
         return self.diarize
 
     def _transcribe_chunk(self, audio_bytes : bytes, audio_format : str) -> TranscriptionResult:

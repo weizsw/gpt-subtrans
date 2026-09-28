@@ -42,7 +42,7 @@ class OpenRouterTranscriptionClient(TranscriptionClient):
     @property
     def diarize(self) -> bool:
         """Whether speaker diarization is requested (model-dependent)."""
-        return self.settings.get_bool('diarize', False)
+        return self.settings.get_bool('diarize', True)
 
     @property
     def supports_timestamps(self) -> bool:

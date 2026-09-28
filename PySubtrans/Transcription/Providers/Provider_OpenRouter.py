@@ -30,7 +30,7 @@ class OpenRouterTranscriptionProvider(TranscriptionProvider):
     @property
     def supports_diarization(self) -> bool:
         """Speaker labels when diarization is requested on a mapped model."""
-        return self.settings.get_bool('diarize', False)
+        return self.settings.get_bool('diarize', True)
 
     def __init__(self, settings : SettingsType):
         super().__init__(self.name, settings)
@@ -38,7 +38,7 @@ class OpenRouterTranscriptionProvider(TranscriptionProvider):
             'api_key': settings.get_str('api_key', os.getenv('OPENROUTER_API_KEY')),
             'server_address': settings.get_str('server_address', os.getenv('OPENROUTER_SERVER_ADDRESS', 'https://openrouter.ai/api/v1')),
             'model': settings.get_str('model', os.getenv('OPENROUTER_STT_MODEL', 'microsoft/mai-transcribe-2')),
-            'diarize': settings.get_bool('diarize', False),
+            'diarize': settings.get_bool('diarize', True),
             'request_timeout': settings.get_float('request_timeout', env_float('TRANSCRIPTION_TIMEOUT', 300.0)),
             'rate_limit': settings.get_float('rate_limit', env_float('OPENROUTER_TRANSCRIPTION_RATE_LIMIT')),
             # Short chunks bound base64 request bodies and the blast radius of retries.
