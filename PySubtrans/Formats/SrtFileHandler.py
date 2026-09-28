@@ -76,7 +76,7 @@ class SrtFileHandler(SubtitleFileHandler):
 
             num_empty = len([line for line in data.lines if not line.text])
             if num_empty:
-                logging.warning(_("{} lines were empty and were not written to the output file").format(num_empty))
+                logging.info(_("{} lines were empty and were not written to the output file").format(num_empty))
 
         # Add RTL markers if required
         if data.metadata.get('add_rtl_markers'):
